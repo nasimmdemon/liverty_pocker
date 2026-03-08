@@ -17,16 +17,16 @@ import PotDisplay from './PotDisplay';
 import ActionButtons from './ActionButtons';
 import PlayerPopup from './PlayerPopup';
 
-// Seat positions for 8 players arranged around the table
+// Seat positions for 8 players arranged around the oval table edge
 const SEAT_POSITIONS = [
-  { bottom: '10%', left: '50%', transform: 'translateX(-50%)' },   // 0 - user (bottom center)
-  { bottom: '30%', left: '2%' },                                    // 1 - bottom left (LADY_LUCK)
-  { top: '25%', left: '0%' },                                       // 2 - mid left (IRON_RAT)
-  { top: '2%', left: '15%' },                                       // 3 - top left (SHADOW)
-  { top: '-2%', left: '50%', transform: 'translateX(-50%)' },       // 4 - top center (SLICK)
-  { top: '2%', right: '15%' },                                      // 5 - top right (THE_BOSS)
-  { top: '25%', right: '0%' },                                      // 6 - mid right (DUCHESS)
-  { bottom: '30%', right: '2%' },                                   // 7 - bottom right (SMOKE)
+  { bottom: '12%', left: '50%', transform: 'translateX(-50%)' },    // 0 - user (bottom center)
+  { bottom: '28%', left: '6%' },                                     // 1 - bottom left (LADY_LUCK)
+  { top: '32%', left: '3%' },                                        // 2 - left (IRON_RAT)
+  { top: '5%', left: '18%' },                                        // 3 - top left (SHADOW)
+  { top: '2%', left: '50%', transform: 'translateX(-50%)' },         // 4 - top center (SLICK)
+  { top: '5%', right: '18%' },                                       // 5 - top right (THE_BOSS)
+  { top: '32%', right: '3%' },                                       // 6 - right (DUCHESS)
+  { bottom: '28%', right: '6%' },                                    // 7 - bottom right (SMOKE)
 ];
 
 const TURN_DURATION = 5;
