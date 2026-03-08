@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import pokerRoomBg from '@/assets/poker-room-bg.png';
+import charactersBg from '@/assets/characters-bg.png';
 
 interface LoadingScreenProps {
   onComplete: () => void;
@@ -28,24 +28,25 @@ const LoadingScreen = ({ onComplete }: LoadingScreenProps) => {
 
   return (
     <motion.div
-      className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden"
+      className="fixed inset-0 flex flex-col items-center justify-end overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.8 }}
     >
-      {/* Background */}
+      {/* Characters background - full bleed */}
       <div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${pokerRoomBg})` }}
+        style={{ backgroundImage: `url(${charactersBg})` }}
       />
-      <div className="absolute inset-0 bg-black/70" />
+      {/* Dark gradient from bottom for text readability */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
 
-      {/* Content */}
-      <div className="relative z-10 flex flex-col items-center gap-6">
-        {/* Title text */}
+      {/* Content at bottom */}
+      <div className="relative z-10 flex flex-col items-center gap-4 mb-[15vh] w-full px-8">
+        {/* Loading text */}
         <h2
-          className="text-3xl md:text-4xl tracking-[0.15em]"
+          className="text-2xl md:text-3xl tracking-[0.15em]"
           style={{
             fontFamily: "'Bebas Neue', 'Cinzel', serif",
             color: '#F2D27A',
@@ -54,52 +55,44 @@ const LoadingScreen = ({ onComplete }: LoadingScreenProps) => {
             textAlign: 'center',
           }}
         >
-          ENTERING TABLE{dots}
+          CREATING TABLE FOR YOU{dots}
         </h2>
 
-        {/* Vertical loading bar */}
+        {/* Horizontal loading bar */}
         <div
-          className="relative w-10 sm:w-12 rounded-lg overflow-hidden"
+          className="relative w-full max-w-md h-3 sm:h-4 rounded-full overflow-hidden"
           style={{
-            height: '200px',
-            border: '2px solid hsl(var(--casino-gold))',
-            background: 'hsl(var(--casino-dark) / 0.8)',
-            boxShadow: '0 0 20px rgba(242, 210, 122, 0.15)',
+            border: '1px solid hsl(var(--casino-gold) / 0.5)',
+            background: 'hsl(var(--casino-dark) / 0.6)',
           }}
         >
-          {/* Fill from bottom to top */}
           <motion.div
-            className="absolute bottom-0 left-0 right-0 rounded-b-md"
+            className="absolute top-0 left-0 bottom-0 rounded-full"
             style={{
-              background: 'linear-gradient(0deg, hsl(var(--casino-red)), hsl(var(--casino-gold)))',
-              boxShadow: '0 -4px 15px rgba(242, 210, 122, 0.4)',
+              background: 'linear-gradient(90deg, hsl(var(--casino-gold)), hsl(45 80% 65%))',
+              boxShadow: '0 0 12px rgba(242, 210, 122, 0.5)',
             }}
-            initial={{ height: '0%' }}
-            animate={{ height: '100%' }}
+            initial={{ width: '0%' }}
+            animate={{ width: '100%' }}
             transition={{ duration: LOADING_DURATION, ease: 'linear' }}
-          />
-          {/* Shine overlay */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: 'linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%)',
-            }}
           />
         </div>
 
-        {/* Percentage text */}
-        <motion.span
-          className="text-lg tracking-wider"
+        {/* Bottom banner text */}
+        <p
+          className="text-lg md:text-2xl lg:text-3xl tracking-[0.08em] text-center mt-4"
           style={{
             fontFamily: "'Bebas Neue', 'Cinzel', serif",
             color: '#F2D27A',
+            textShadow: '0 2px 8px rgba(0,0,0,0.6)',
           }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
         >
-          LOADING
-        </motion.span>
+          EARN 30% OF COMMISSION FOR{' '}
+          <span className="text-destructive">LIFE</span>{' '}
+          FROM{' '}
+          <span className="text-destructive">EVERY HAND</span>{' '}
+          YOUR RECRUITS PLAY
+        </p>
       </div>
     </motion.div>
   );
