@@ -9,6 +9,7 @@ import {
   getNextActivePlayer,
   simulateBotAction,
 } from '@/lib/gameLogic';
+import pokerRoomBg from '@/assets/poker-room-bg.png';
 import pokerTable from '@/assets/poker-table.png';
 import PlayerSeat from './PlayerSeat';
 import Card from './Card';
@@ -16,19 +17,19 @@ import PotDisplay from './PotDisplay';
 import ActionButtons from './ActionButtons';
 import PlayerPopup from './PlayerPopup';
 
-// Seat positions (percentage-based for responsiveness)
+// Seat positions for 8 players arranged around the table
 const SEAT_POSITIONS = [
-  { bottom: '8%', left: '50%', transform: 'translateX(-50%)' },  // 0 - user (bottom center)
-  { bottom: '22%', left: '8%' },   // 1 - bottom left
-  { top: '38%', left: '3%' },      // 2 - mid left
-  { top: '8%', left: '18%' },      // 3 - top left
-  { top: '2%', left: '50%', transform: 'translateX(-50%)' },  // 4 - top center
-  { top: '8%', right: '18%' },     // 5 - top right
-  { top: '38%', right: '3%' },     // 6 - mid right
-  { bottom: '22%', right: '8%' },  // 7 - bottom right
+  { bottom: '4%', left: '50%', transform: 'translateX(-50%)' },   // 0 - user (bottom center)
+  { bottom: '18%', left: '5%' },    // 1 - bottom left
+  { top: '35%', left: '1%' },       // 2 - mid left
+  { top: '5%', left: '15%' },       // 3 - top left
+  { top: '0%', left: '50%', transform: 'translateX(-50%)' },   // 4 - top center
+  { top: '5%', right: '15%' },      // 5 - top right
+  { top: '35%', right: '1%' },      // 6 - mid right
+  { bottom: '18%', right: '5%' },   // 7 - bottom right
 ];
 
-const TURN_DURATION = 5; // seconds for demo speed
+const TURN_DURATION = 5;
 
 const PokerTable = () => {
   const [gameState, setGameState] = useState(() => {
@@ -39,7 +40,6 @@ const PokerTable = () => {
   const [timer, setTimer] = useState(TURN_DURATION);
   const [isUserTurn, setIsUserTurn] = useState(false);
 
-  // Mark current player's turn
   const playersWithTurn = gameState.players.map((p, i) => ({
     ...p,
     isTurn: i === gameState.currentPlayerIndex && !p.hasFolded,
@@ -47,21 +47,17 @@ const PokerTable = () => {
 
   const advanceTurn = useCallback(() => {
     setGameState(prev => {
-      // Check if we've gone around (simple: every 8 turns advance phase)
       const activePlayers = prev.players.filter(p => !p.hasFolded && p.isActive);
       if (activePlayers.length <= 1) {
-        // Reset game
         const fresh = createInitialGameState();
         return dealCards(fresh);
       }
 
       const nextIdx = getNextActivePlayer(prev);
-      
-      // If we've looped, advance phase
+
       if (nextIdx <= prev.currentPlayerIndex && prev.phase !== 'showdown') {
         const advanced = advancePhase(prev);
         if (advanced.phase === 'showdown') {
-          // After showdown, restart
           setTimeout(() => {
             setGameState(() => {
               const fresh = createInitialGameState();
@@ -78,7 +74,6 @@ const PokerTable = () => {
     setTimer(TURN_DURATION);
   }, []);
 
-  // Bot auto-play & timer
   useEffect(() => {
     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
     const userTurn = currentPlayer?.isUser && !currentPlayer.hasFolded;
@@ -98,7 +93,6 @@ const PokerTable = () => {
 
     const timeout = setTimeout(() => {
       if (!userTurn) {
-        // Bot action
         setGameState(prev => simulateBotAction(prev));
       }
       advanceTurn();
@@ -133,10 +127,18 @@ const PokerTable = () => {
   const userPlayer = gameState.players.find(p => p.isUser);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden" style={{ background: 'radial-gradient(ellipse at center, hsl(var(--muted)), hsl(var(--casino-dark)))' }}>
+    <div className="relative w-full h-screen overflow-hidden">
+      {/* Full background image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${pokerRoomBg})` }}
+      />
+      {/* Dark overlay for readability */}
+      <div className="absolute inset-0 bg-black/50" />
+
       {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3">
-        <button className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg border-2 border-secondary flex items-center justify-center" style={{ background: 'hsl(var(--secondary))' }}>
+        <button className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg border-2 border-primary flex items-center justify-center bg-secondary">
           <ArrowLeft size={20} className="text-primary" />
         </button>
         <div className="flex items-center gap-2">
@@ -153,7 +155,7 @@ const PokerTable = () => {
         <img
           src={pokerTable}
           alt="Poker Table"
-          className="w-[85%] sm:w-[70%] max-w-[800px] object-contain drop-shadow-2xl"
+          className="w-[90%] sm:w-[75%] max-w-[850px] object-contain drop-shadow-2xl"
         />
       </div>
 
