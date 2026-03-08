@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { PlayingCard as CardType, isRedSuit, cardToString } from '@/lib/gameLogic';
+import { PlayingCard as CardType } from '@/lib/gameTypes';
+import { isRedSuit } from '@/lib/gameLogic';
 
 interface CardProps {
   card: CardType;
