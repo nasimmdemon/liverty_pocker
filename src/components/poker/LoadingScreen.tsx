@@ -6,6 +6,8 @@ interface LoadingScreenProps {
   onComplete: () => void;
 }
 
+const LOADING_DURATION = 5; // seconds
+
 const LoadingScreen = ({ onComplete }: LoadingScreenProps) => {
   const [dots, setDots] = useState('');
 
@@ -16,7 +18,7 @@ const LoadingScreen = ({ onComplete }: LoadingScreenProps) => {
 
     const timer = setTimeout(() => {
       onComplete();
-    }, 5000);
+    }, LOADING_DURATION * 1000);
 
     return () => {
       clearInterval(dotInterval);
@@ -40,35 +42,64 @@ const LoadingScreen = ({ onComplete }: LoadingScreenProps) => {
       <div className="absolute inset-0 bg-black/70" />
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center gap-8">
-        {/* Spinning chip */}
-        <motion.div
-          className="w-20 h-20 rounded-full border-4 flex items-center justify-center"
+      <div className="relative z-10 flex flex-col items-center gap-6">
+        {/* Title text */}
+        <h2
+          className="text-3xl md:text-4xl tracking-[0.15em]"
           style={{
-            borderColor: '#F2D27A',
-            background: 'radial-gradient(circle, #8B1A1A 0%, #4a0e0e 100%)',
-            boxShadow: '0 0 20px rgba(242, 210, 122, 0.3)',
+            fontFamily: "'Bebas Neue', 'Cinzel', serif",
+            color: '#F2D27A',
+            textShadow: '0 2px 10px rgba(242, 210, 122, 0.4)',
+            minWidth: '280px',
+            textAlign: 'center',
           }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
         >
-          <span style={{ color: '#F2D27A', fontFamily: "'Bebas Neue', 'Cinzel', serif", fontSize: '24px' }}>♠</span>
-        </motion.div>
+          ENTERING TABLE{dots}
+        </h2>
 
-        {/* Loading text */}
-        <div className="text-center">
-          <h2
-            className="text-3xl md:text-4xl tracking-[0.15em]"
+        {/* Vertical loading bar */}
+        <div
+          className="relative w-10 sm:w-12 rounded-lg overflow-hidden"
+          style={{
+            height: '200px',
+            border: '2px solid hsl(var(--casino-gold))',
+            background: 'hsl(var(--casino-dark) / 0.8)',
+            boxShadow: '0 0 20px rgba(242, 210, 122, 0.15)',
+          }}
+        >
+          {/* Fill from bottom to top */}
+          <motion.div
+            className="absolute bottom-0 left-0 right-0 rounded-b-md"
             style={{
-              fontFamily: "'Bebas Neue', 'Cinzel', serif",
-              color: '#F2D27A',
-              textShadow: '0 2px 10px rgba(242, 210, 122, 0.4)',
-              minWidth: '320px',
+              background: 'linear-gradient(0deg, hsl(var(--casino-red)), hsl(var(--casino-gold)))',
+              boxShadow: '0 -4px 15px rgba(242, 210, 122, 0.4)',
             }}
-          >
-            ENTERING TABLE{dots}
-          </h2>
+            initial={{ height: '0%' }}
+            animate={{ height: '100%' }}
+            transition={{ duration: LOADING_DURATION, ease: 'linear' }}
+          />
+          {/* Shine overlay */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%)',
+            }}
+          />
         </div>
+
+        {/* Percentage text */}
+        <motion.span
+          className="text-lg tracking-wider"
+          style={{
+            fontFamily: "'Bebas Neue', 'Cinzel', serif",
+            color: '#F2D27A',
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          LOADING
+        </motion.span>
       </div>
     </motion.div>
   );
