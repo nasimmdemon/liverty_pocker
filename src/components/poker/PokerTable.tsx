@@ -19,14 +19,14 @@ import PlayerPopup from './PlayerPopup';
 
 // Seat positions for 8 players arranged around the table
 const SEAT_POSITIONS = [
-  { bottom: '8%', left: '50%', transform: 'translateX(-50%)' },    // 0 - user (bottom center)
-  { bottom: '25%', left: '3%' },                                    // 1 - bottom left
-  { top: '30%', left: '0%' },                                       // 2 - mid left
-  { top: '5%', left: '18%' },                                       // 3 - top left
-  { top: '0%', left: '50%', transform: 'translateX(-50%)' },        // 4 - top center
-  { top: '5%', right: '18%' },                                      // 5 - top right
-  { top: '30%', right: '0%' },                                      // 6 - mid right
-  { bottom: '25%', right: '3%' },                                   // 7 - bottom right
+  { bottom: '10%', left: '50%', transform: 'translateX(-50%)' },   // 0 - user (bottom center)
+  { bottom: '30%', left: '2%' },                                    // 1 - bottom left (LADY_LUCK)
+  { top: '25%', left: '0%' },                                       // 2 - mid left (IRON_RAT)
+  { top: '2%', left: '15%' },                                       // 3 - top left (SHADOW)
+  { top: '-2%', left: '50%', transform: 'translateX(-50%)' },       // 4 - top center (SLICK)
+  { top: '2%', right: '15%' },                                      // 5 - top right (THE_BOSS)
+  { top: '25%', right: '0%' },                                      // 6 - mid right (DUCHESS)
+  { bottom: '30%', right: '2%' },                                   // 7 - bottom right (SMOKE)
 ];
 
 const TURN_DURATION = 5;
