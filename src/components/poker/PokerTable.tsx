@@ -19,14 +19,14 @@ import PlayerPopup from './PlayerPopup';
 
 // Seat positions for 8 players arranged around the table
 const SEAT_POSITIONS = [
-  { bottom: '4%', left: '50%', transform: 'translateX(-50%)' },   // 0 - user (bottom center)
-  { bottom: '18%', left: '5%' },    // 1 - bottom left
-  { top: '35%', left: '1%' },       // 2 - mid left
-  { top: '5%', left: '15%' },       // 3 - top left
-  { top: '0%', left: '50%', transform: 'translateX(-50%)' },   // 4 - top center
-  { top: '5%', right: '15%' },      // 5 - top right
-  { top: '35%', right: '1%' },      // 6 - mid right
-  { bottom: '18%', right: '5%' },   // 7 - bottom right
+  { bottom: '8%', left: '50%', transform: 'translateX(-50%)' },    // 0 - user (bottom center)
+  { bottom: '25%', left: '3%' },                                    // 1 - bottom left
+  { top: '30%', left: '0%' },                                       // 2 - mid left
+  { top: '5%', left: '18%' },                                       // 3 - top left
+  { top: '0%', left: '50%', transform: 'translateX(-50%)' },        // 4 - top center
+  { top: '5%', right: '18%' },                                      // 5 - top right
+  { top: '30%', right: '0%' },                                      // 6 - mid right
+  { bottom: '25%', right: '3%' },                                   // 7 - bottom right
 ];
 
 const TURN_DURATION = 5;
@@ -134,7 +134,7 @@ const PokerTable = () => {
         style={{ backgroundImage: `url(${pokerRoomBg})` }}
       />
       {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0 bg-black/40" />
 
       {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3">
@@ -155,7 +155,8 @@ const PokerTable = () => {
         <img
           src={pokerTable}
           alt="Poker Table"
-          className="w-[90%] sm:w-[75%] max-w-[850px] object-contain drop-shadow-2xl"
+          className="w-[88%] sm:w-[72%] max-w-[820px] object-contain drop-shadow-2xl"
+          loading="lazy"
         />
       </div>
 

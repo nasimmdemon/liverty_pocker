@@ -12,6 +12,7 @@ interface PlayerSeatProps {
 const PlayerSeat = ({ player, position, onClickAvatar, timerProgress = 0 }: PlayerSeatProps) => {
   const isTurn = player.isTurn;
   const hasFolded = player.hasFolded;
+  const showCards = player.isUser && player.cards.length > 0 && !hasFolded;
 
   return (
     <motion.div
@@ -21,8 +22,8 @@ const PlayerSeat = ({ player, position, onClickAvatar, timerProgress = 0 }: Play
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.5, type: 'spring' }}
     >
-      {/* Cards behind avatar */}
-      {player.cards.length > 0 && !hasFolded && (
+      {/* Cards only for the user player */}
+      {showCards && (
         <div className="flex gap-0.5 mb-[-12px] z-0">
           {player.cards.map((card, i) => (
             <div key={i} className="scale-[0.65] sm:scale-75">
@@ -49,16 +50,14 @@ const PlayerSeat = ({ player, position, onClickAvatar, timerProgress = 0 }: Play
           </svg>
         )}
         <div
-          className={`w-20 h-20 sm:w-[120px] sm:h-[120px] lg:w-[140px] lg:h-[140px] rounded-full overflow-hidden border-[3px] transition-all duration-300 ${
+          className={`w-[80px] h-[80px] sm:w-[110px] sm:h-[110px] lg:w-[130px] lg:h-[130px] rounded-full overflow-hidden border-[3px] transition-all duration-300 ${
             isTurn ? 'border-primary glow-turn' : hasFolded ? 'border-muted opacity-50' : 'border-primary/60'
           }`}
           style={{
-            boxShadow: isTurn
-              ? undefined
-              : '0 4px 15px rgba(0,0,0,0.5)',
+            boxShadow: isTurn ? undefined : '0 4px 15px rgba(0,0,0,0.5)',
           }}
         >
-          <img src={player.avatar} alt={player.name} className="w-full h-full object-cover" />
+          <img src={player.avatar} alt={player.name} className="w-full h-full object-cover" loading="lazy" />
         </div>
       </div>
 
