@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import pokerRoomBg from '@/assets/poker-room-bg.png';
+import pokerTableBg from '@/assets/poker-table-bg.png';
 import joinTableChip from '@/assets/join-table-chip.png';
 
 interface StakeOption {
@@ -23,10 +23,10 @@ interface SitAndGoScreenProps {
 
 const SitAndGoScreen = ({ onJoinTable, onBack }: SitAndGoScreenProps) => {
   const [selectedStake, setSelectedStake] = useState(0);
-  const [entranceAmount, setEntranceAmount] = useState(6);
+  const [entranceAmount, setEntranceAmount] = useState(5000);
   const funds = 9;
-  const minEntrance = 4;
-  const maxEntrance = 8;
+  const minEntrance = 1000;
+  const maxEntrance = 10000;
 
   const handleJoin = () => {
     const stake = STAKE_OPTIONS[selectedStake];
