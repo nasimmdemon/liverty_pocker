@@ -9,7 +9,6 @@ interface LoadingScreenProps {
 const LOADING_DURATION = 5; // seconds
 
 const LoadingScreen = ({ onComplete }: LoadingScreenProps) => {
-  const [dots, setDots] = useState('');
 
   useEffect(() => {
     const dotInterval = setInterval(() => {
