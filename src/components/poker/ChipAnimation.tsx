@@ -20,18 +20,18 @@ const ChipAnimation = ({ bets, onComplete }: ChipAnimationProps) => {
         <motion.div
           key={bet.id}
           className="fixed z-50 pointer-events-none flex items-center gap-1"
-          initial={{ x: bet.fromX, y: bet.fromY, opacity: 1, scale: 0.6 }}
+          initial={{ x: bet.fromX, y: bet.fromY, opacity: 1, scale: 1 }}
           animate={{
             x: window.innerWidth / 2 - 20,
             y: window.innerHeight * 0.35,
             opacity: [1, 1, 0.8],
-            scale: [0.6, 0.8, 0.5],
+            scale: [1, 1.3, 0.85],
           }}
           exit={{ opacity: 0, scale: 0 }}
           transition={{ duration: 0.7, ease: 'easeInOut' }}
           onAnimationComplete={() => onComplete?.(bet.id)}
         >
-          <img src={pokerChip} alt="" className="w-8 h-8 drop-shadow-lg" />
+          <img src={pokerChip} alt="" className="w-14 h-14 drop-shadow-lg" />
           <span
             className="text-xs font-bold text-primary drop-shadow-md"
             style={{ fontFamily: "'Bebas Neue', sans-serif" }}

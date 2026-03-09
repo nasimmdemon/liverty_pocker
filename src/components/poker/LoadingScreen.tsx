@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import charactersBg from '@/assets/characters-bg.png';
 
@@ -9,19 +9,13 @@ interface LoadingScreenProps {
 const LOADING_DURATION = 5; // seconds
 
 const LoadingScreen = ({ onComplete }: LoadingScreenProps) => {
-  const [dots, setDots] = useState('');
 
   useEffect(() => {
-    const dotInterval = setInterval(() => {
-      setDots(prev => (prev.length >= 3 ? '' : prev + '.'));
-    }, 500);
-
     const timer = setTimeout(() => {
       onComplete();
     }, LOADING_DURATION * 1000);
 
     return () => {
-      clearInterval(dotInterval);
       clearTimeout(timer);
     };
   }, [onComplete]);
@@ -55,7 +49,7 @@ const LoadingScreen = ({ onComplete }: LoadingScreenProps) => {
             textAlign: 'center',
           }}
         >
-          CREATING TABLE FOR YOU{dots}
+          CREATING TABLE FOR YOU
         </h2>
 
         {/* Horizontal loading bar */}
