@@ -11,16 +11,11 @@ const LOADING_DURATION = 5; // seconds
 const LoadingScreen = ({ onComplete }: LoadingScreenProps) => {
 
   useEffect(() => {
-    const dotInterval = setInterval(() => {
-      setDots(prev => (prev.length >= 3 ? '' : prev + '.'));
-    }, 500);
-
     const timer = setTimeout(() => {
       onComplete();
     }, LOADING_DURATION * 1000);
 
     return () => {
-      clearInterval(dotInterval);
       clearTimeout(timer);
     };
   }, [onComplete]);
