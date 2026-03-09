@@ -182,7 +182,7 @@ const SitAndGoScreen = ({ onJoinTable, onBack }: SitAndGoScreenProps) => {
           className="text-3xl tracking-wider"
           style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
         >
-          {entranceAmount} $
+          ${entranceAmount.toLocaleString()}
         </span>
       </motion.div>
 

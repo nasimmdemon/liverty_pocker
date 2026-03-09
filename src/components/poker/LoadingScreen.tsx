@@ -49,7 +49,7 @@ const LoadingScreen = ({ onComplete }: LoadingScreenProps) => {
             textAlign: 'center',
           }}
         >
-          CREATING TABLE FOR YOU{dots}
+          CREATING TABLE FOR YOU
         </h2>
 
         {/* Horizontal loading bar */}
