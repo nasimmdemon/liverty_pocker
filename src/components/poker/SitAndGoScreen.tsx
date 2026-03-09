@@ -42,7 +42,7 @@ const SitAndGoScreen = ({ onJoinTable, onBack }: SitAndGoScreenProps) => {
       transition={{ duration: 0.5 }}
     >
       <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${pokerTableBg})` }} />
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0 bg-black/60" />
 
       {/* Top bar */}
       <div className="relative z-10 w-full flex justify-between items-start px-6 py-5">
