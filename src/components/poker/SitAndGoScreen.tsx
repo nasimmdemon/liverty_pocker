@@ -159,12 +159,13 @@ const SitAndGoScreen = ({ onJoinTable, onBack }: SitAndGoScreenProps) => {
 
         <div className="w-full flex items-center gap-4">
           <span className="text-muted-foreground text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-            Min {minEntrance}
+            Min ${minEntrance.toLocaleString()}
           </span>
           <input
             type="range"
             min={minEntrance}
             max={maxEntrance}
+            step={500}
             value={entranceAmount}
             onChange={(e) => setEntranceAmount(Number(e.target.value))}
             className="flex-1 accent-[hsl(var(--casino-gold))] h-2 rounded-full appearance-none cursor-pointer"
@@ -173,7 +174,7 @@ const SitAndGoScreen = ({ onJoinTable, onBack }: SitAndGoScreenProps) => {
             }}
           />
           <span className="text-muted-foreground text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-            Max {maxEntrance} $
+            Max ${maxEntrance.toLocaleString()}
           </span>
         </div>
 
