@@ -20,54 +20,75 @@ import Card from './Card';
 import PotDisplay from './PotDisplay';
 import ActionButtons from './ActionButtons';
 import PlayerPopup from './PlayerPopup';
-import BuyInModal from './BuyInModal';
+import ChipAnimation, { type ChipBet } from './ChipAnimation';
 
-const SEAT_POSITIONS = [
-  { bottom: '12%', left: '50%', transform: 'translateX(-50%)' },
-  { bottom: '28%', left: '6%' },
-  { top: '32%', left: '3%' },
-  { top: '5%', left: '18%' },
-  { top: '2%', left: '50%', transform: 'translateX(-50%)' },
-  { top: '5%', right: '18%' },
-  { top: '32%', right: '3%' },
-  { bottom: '28%', right: '6%' },
+// Viewport-unit based positions for 8 seats around the oval table
+const SEAT_POSITIONS: Record<string, string>[] = [
+  { bottom: '11vh', left: '50vw', transform: 'translateX(-50%)' },   // 0: Bottom center (user)
+  { bottom: '26vh', left: '8vw' },                                    // 1: Bottom left
+  { top: '30vh', left: '4vw' },                                       // 2: Left
+  { top: '8vh', left: '16vw' },                                       // 3: Top left
+  { top: '4vh', left: '50vw', transform: 'translateX(-50%)' },        // 4: Top center
+  { top: '8vh', right: '16vw' },                                      // 5: Top right
+  { top: '30vh', right: '4vw' },                                      // 6: Right
+  { bottom: '26vh', right: '8vw' },                                   // 7: Bottom right
 ];
 
 const TURN_DURATION = 30;
 const BOT_DELAY = 1500;
 const SHOWDOWN_DELAY = 4000;
 
-const PokerTable = () => {
-  const [showBuyIn, setShowBuyIn] = useState(true);
+interface PokerTableProps {
+  initialBuyIn?: number;
+}
+
+const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [timer, setTimer] = useState(TURN_DURATION);
+  const [chipBets, setChipBets] = useState<ChipBet[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const botTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleBuyIn = useCallback((amount: number) => {
-    const initial = createInitialGameState(amount);
+  // Auto-start game
+  useEffect(() => {
+    const initial = createInitialGameState(initialBuyIn);
     const round = startNewRound(initial);
     setGameState(round);
-    setShowBuyIn(false);
     setTimer(TURN_DURATION);
+  }, [initialBuyIn]);
+
+  const triggerChipAnimation = useCallback((playerIndex: number, amount: number) => {
+    // Approximate position based on seat index
+    const seatEl = document.querySelector(`[data-seat-index="${playerIndex}"]`);
+    if (seatEl) {
+      const rect = seatEl.getBoundingClientRect();
+      const bet: ChipBet = {
+        id: `${Date.now()}-${playerIndex}`,
+        fromX: rect.left + rect.width / 2 - 20,
+        fromY: rect.top + rect.height / 2,
+        amount,
+      };
+      setChipBets(prev => [...prev, bet]);
+    }
   }, []);
 
-  // Advance turn logic
+  const handleChipAnimComplete = useCallback((id: string) => {
+    setChipBets(prev => prev.filter(b => b.id !== id));
+  }, []);
+
   const advanceTurn = useCallback((state: GameState): GameState => {
     if (state.showdown) return state;
 
-    // Check if betting round is complete
     if (isBettingRoundComplete(state)) {
       if (state.phase === 'river') {
-        return advancePhase({ ...state, phase: 'river' }); // goes to showdown
+        return advancePhase({ ...state, phase: 'river' });
       }
       return advancePhase(state);
     }
 
     const nextIdx = getNextActivePlayerIndex(state);
     if (nextIdx === -1) {
-      // No active players (all folded or all-in), advance to showdown
       let s = state;
       while (s.phase !== 'showdown') {
         s = advancePhase(s);
@@ -80,19 +101,16 @@ const PokerTable = () => {
 
   // Bot turn automation
   useEffect(() => {
-    if (!gameState || showBuyIn) return;
+    if (!gameState) return;
 
-    // Clean up
     if (botTimeoutRef.current) clearTimeout(botTimeoutRef.current);
     if (timerRef.current) clearInterval(timerRef.current);
 
     if (gameState.showdown) {
-      // Auto-start new round after showdown
       botTimeoutRef.current = setTimeout(() => {
         setGameState(prev => {
           if (!prev) return prev;
-          const newRound = startNewRound(prev);
-          return newRound;
+          return startNewRound(prev);
         });
         setTimer(TURN_DURATION);
       }, SHOWDOWN_DELAY);
@@ -101,33 +119,30 @@ const PokerTable = () => {
 
     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
     if (!currentPlayer || currentPlayer.hasFolded || currentPlayer.isAllIn) {
-      // Skip this player
       setGameState(prev => prev ? advanceTurn(prev) : prev);
       return;
     }
 
     const isUserTurn = currentPlayer.isUser;
 
-    // Start timer
     setTimer(TURN_DURATION);
     timerRef.current = setInterval(() => {
-      setTimer(prev => {
-        if (prev <= 0) return 0;
-        return prev - 0.1;
-      });
+      setTimer(prev => (prev <= 0 ? 0 : prev - 0.1));
     }, 100);
 
     if (!isUserTurn) {
-      // Bot acts after delay
       botTimeoutRef.current = setTimeout(() => {
         setGameState(prev => {
           if (!prev) return prev;
           const { state: afterBot } = simulateBotAction(prev);
+          const betAmount = afterBot.players[prev.currentPlayerIndex].currentBet - prev.players[prev.currentPlayerIndex].currentBet;
+          if (betAmount > 0) {
+            triggerChipAnimation(prev.currentPlayerIndex, betAmount);
+          }
           return advanceTurn(afterBot);
         });
       }, BOT_DELAY + Math.random() * 1000);
     } else {
-      // User turn — auto-fold after timeout
       botTimeoutRef.current = setTimeout(() => {
         setGameState(prev => {
           if (!prev) return prev;
@@ -141,7 +156,7 @@ const PokerTable = () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (botTimeoutRef.current) clearTimeout(botTimeoutRef.current);
     };
-  }, [gameState?.currentPlayerIndex, gameState?.phase, gameState?.showdown, gameState?.roundNumber, showBuyIn, advanceTurn]);
+  }, [gameState?.currentPlayerIndex, gameState?.phase, gameState?.showdown, gameState?.roundNumber, advanceTurn, triggerChipAnimation]);
 
   const handleUserAction = useCallback((action: 'fold' | 'check' | 'call' | 'bet' | 'raise' | 'all-in', amount?: number) => {
     setGameState(prev => {
@@ -149,19 +164,13 @@ const PokerTable = () => {
       const current = prev.players[prev.currentPlayerIndex];
       if (!current?.isUser) return prev;
       const afterAction = playerAction(prev, prev.currentPlayerIndex, action, amount);
+      const betAmount = afterAction.players[prev.currentPlayerIndex].currentBet - prev.players[prev.currentPlayerIndex].currentBet;
+      if (betAmount > 0) {
+        triggerChipAnimation(prev.currentPlayerIndex, betAmount);
+      }
       return advanceTurn(afterAction);
     });
-  }, [advanceTurn]);
-
-  if (showBuyIn) {
-    return (
-      <div className="relative w-full h-screen overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${pokerRoomBg})` }} />
-        <div className="absolute inset-0 bg-black/60" />
-        <BuyInModal onConfirm={handleBuyIn} />
-      </div>
-    );
-  }
+  }, [advanceTurn, triggerChipAnimation]);
 
   if (!gameState) return null;
 
@@ -214,6 +223,9 @@ const PokerTable = () => {
       {/* Pot */}
       <PotDisplay pot={gameState.pot} />
 
+      {/* Chip animations */}
+      <ChipAnimation bets={chipBets} onComplete={handleChipAnimComplete} />
+
       {/* Winner announcement */}
       <AnimatePresence>
         {gameState.showdown && gameState.winnerId !== null && (
@@ -241,12 +253,13 @@ const PokerTable = () => {
         ))}
       </div>
 
-      {/* Dealer button indicator */}
+      {/* Player seats */}
       {playersWithTurn.map((player, i) => (
         <PlayerSeat
           key={player.id}
           player={player}
           position={SEAT_POSITIONS[i]}
+          seatIndex={i}
           onClickAvatar={setSelectedPlayer}
           timerProgress={player.isTurn ? timerProgress : 0}
           isDealer={i === gameState.dealerIndex}

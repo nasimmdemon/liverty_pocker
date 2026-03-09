@@ -4,14 +4,15 @@ import Card from './Card';
 
 interface PlayerSeatProps {
   player: Player;
-  position: { top?: string; bottom?: string; left?: string; right?: string; transform?: string };
+  position: Record<string, string>;
+  seatIndex: number;
   onClickAvatar: (player: Player) => void;
   timerProgress?: number;
   isDealer?: boolean;
   isWinner?: boolean;
 }
 
-const PlayerSeat = ({ player, position, onClickAvatar, timerProgress = 0, isDealer = false, isWinner = false }: PlayerSeatProps) => {
+const PlayerSeat = ({ player, position, seatIndex, onClickAvatar, timerProgress = 0, isDealer = false, isWinner = false }: PlayerSeatProps) => {
   const isTurn = player.isTurn;
   const hasFolded = player.hasFolded;
   const isUser = player.isUser;
@@ -19,12 +20,13 @@ const PlayerSeat = ({ player, position, onClickAvatar, timerProgress = 0, isDeal
 
   const avatarSize = isUser
     ? 'w-[130px] h-[130px] sm:w-[150px] sm:h-[150px]'
-    : 'w-[100px] h-[100px] sm:w-[110px] sm:h-[110px] lg:w-[120px] lg:h-[120px]';
+    : 'w-[110px] h-[110px] sm:w-[120px] sm:h-[120px]';
 
   return (
     <motion.div
       className="absolute flex flex-col items-center z-10"
       style={position}
+      data-seat-index={seatIndex}
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.5, type: 'spring' }}
@@ -78,7 +80,7 @@ const PlayerSeat = ({ player, position, onClickAvatar, timerProgress = 0, isDeal
             isWinner
               ? 'border-primary glow-gold'
               : isUser
-                ? 'border-primary shadow-[0_0_20px_hsl(var(--casino-gold)/0.4)]'
+                ? 'border-primary glow-gold'
                 : isTurn
                   ? 'border-primary glow-turn'
                   : hasFolded
@@ -97,10 +99,16 @@ const PlayerSeat = ({ player, position, onClickAvatar, timerProgress = 0, isDeal
 
       {/* Name, chips, last action */}
       <div className="mt-1.5 px-3 py-1 rounded-lg flex flex-col items-center" style={{ background: 'hsl(var(--casino-dark) / 0.9)' }}>
-        <span className="text-foreground text-xs sm:text-sm font-display font-semibold truncate max-w-[100px] tracking-wide">
+        <span
+          className="text-foreground text-xs sm:text-sm font-semibold truncate max-w-[100px] tracking-wider"
+          style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+        >
           {player.name}
         </span>
-        <span className="text-primary text-xs sm:text-sm font-display font-bold">
+        <span
+          className="text-primary text-xs sm:text-sm font-bold"
+          style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+        >
           ${player.chips.toLocaleString()}
         </span>
         {player.lastAction && (
