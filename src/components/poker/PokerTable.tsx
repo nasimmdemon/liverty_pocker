@@ -221,8 +221,8 @@ const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
           className="poker-table-felt relative"
         >
           {/* Inner table zones for layout reference */}
-          {/* Pot zone: top 25-35% */}
-          <div className="absolute top-[22%] left-1/2 -translate-x-1/2 z-20" data-pot-display>
+          {/* Pot zone */}
+          <div className="absolute top-[28%] left-1/2 -translate-x-1/2 z-20" data-pot-display>
             <PotDisplay pot={gameState.pot} />
           </div>
 
