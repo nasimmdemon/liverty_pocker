@@ -26,21 +26,21 @@ import { useIsMobile } from '@/hooks/use-mobile';
 // Mobile: table is ~92vw x 50vh (portrait) or 80vw x 55vh (landscape)
 // Seats sit ON the edge of the oval, not inside or far outside
 const SEAT_POSITIONS_DESKTOP = [
-  { top: '100%', left: '50%' },   // 0: Bottom center (user) - below table
-  { top: '72%', left: '2%' },     // 1: Bottom left
-  { top: '15%', left: '5%' },     // 2: Top left
-  { top: '-8%', left: '50%' },    // 3: Top center - above table
-  { top: '15%', left: '95%' },    // 4: Top right
-  { top: '72%', left: '98%' },    // 5: Bottom right
+  { top: '105%', left: '50%' },   // 0: Bottom center (user) - below table
+  { top: '78%', left: '3%' },     // 1: Bottom left - on oval edge
+  { top: '22%', left: '3%' },     // 2: Top left - on oval edge
+  { top: '-15%', left: '50%' },   // 3: Top center - above table
+  { top: '22%', left: '97%' },    // 4: Top right - on oval edge
+  { top: '78%', left: '97%' },    // 5: Bottom right - on oval edge
 ];
 
 const SEAT_POSITIONS_MOBILE = [
-  { top: '105%', left: '50%' },   // 0: Bottom center (user)
-  { top: '75%', left: '-2%' },    // 1: Bottom left
-  { top: '12%', left: '2%' },     // 2: Top left
-  { top: '-12%', left: '50%' },   // 3: Top center
-  { top: '12%', left: '98%' },    // 4: Top right
-  { top: '75%', left: '102%' },   // 5: Bottom right
+  { top: '110%', left: '50%' },   // 0: Bottom center (user)
+  { top: '80%', left: '-4%' },    // 1: Bottom left
+  { top: '20%', left: '-4%' },    // 2: Top left
+  { top: '-18%', left: '50%' },   // 3: Top center
+  { top: '20%', left: '104%' },   // 4: Top right
+  { top: '80%', left: '104%' },   // 5: Bottom right
 ];
 
 const TURN_DURATION = 30;
@@ -221,8 +221,8 @@ const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
           className="poker-table-felt relative"
         >
           {/* Inner table zones for layout reference */}
-          {/* Pot zone: top 25-35% */}
-          <div className="absolute top-[22%] left-1/2 -translate-x-1/2 z-20" data-pot-display>
+          {/* Pot zone */}
+          <div className="absolute top-[28%] left-1/2 -translate-x-1/2 z-20" data-pot-display>
             <PotDisplay pot={gameState.pot} />
           </div>
 
