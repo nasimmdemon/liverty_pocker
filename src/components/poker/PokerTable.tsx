@@ -19,15 +19,28 @@ import PotDisplay from './PotDisplay';
 import ActionButtons from './ActionButtons';
 import PlayerPopup from './PlayerPopup';
 import ChipAnimation, { type ChipBet } from './ChipAnimation';
+import { useIsMobile } from '@/hooks/use-mobile';
 
-// 6-player seat positions (percentage-based, relative to table container)
-const SEAT_POSITIONS = [
-  { top: '88%', left: '50%' },   // 0: Bottom center (user)
-  { top: '70%', left: '8%' },    // 1: Bottom left
-  { top: '18%', left: '12%' },   // 2: Top left
-  { top: '5%', left: '50%' },    // 3: Top center
-  { top: '18%', left: '88%' },   // 4: Top right
-  { top: '70%', left: '92%' },   // 5: Bottom right
+// 6-player seats: positions are relative to the TABLE container
+// Desktop: table is ~70vw x 42vh centered
+// Mobile: table is ~92vw x 50vh (portrait) or 80vw x 55vh (landscape)
+// Seats sit ON the edge of the oval, not inside or far outside
+const SEAT_POSITIONS_DESKTOP = [
+  { top: '100%', left: '50%' },   // 0: Bottom center (user) - below table
+  { top: '72%', left: '2%' },     // 1: Bottom left
+  { top: '15%', left: '5%' },     // 2: Top left
+  { top: '-8%', left: '50%' },    // 3: Top center - above table
+  { top: '15%', left: '95%' },    // 4: Top right
+  { top: '72%', left: '98%' },    // 5: Bottom right
+];
+
+const SEAT_POSITIONS_MOBILE = [
+  { top: '105%', left: '50%' },   // 0: Bottom center (user)
+  { top: '75%', left: '-2%' },    // 1: Bottom left
+  { top: '12%', left: '2%' },     // 2: Top left
+  { top: '-12%', left: '50%' },   // 3: Top center
+  { top: '12%', left: '98%' },    // 4: Top right
+  { top: '75%', left: '102%' },   // 5: Bottom right
 ];
 
 const TURN_DURATION = 30;
@@ -46,6 +59,9 @@ const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const botTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
+
+  const seatPositions = isMobile ? SEAT_POSITIONS_MOBILE : SEAT_POSITIONS_DESKTOP;
 
   useEffect(() => {
     const initial = createInitialGameState(initialBuyIn);
@@ -198,61 +214,59 @@ const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
         <span className="text-[10px] sm:text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">BB: ${gameState.bigBlind}</span>
       </div>
 
-      {/* Table container — centered */}
-      <div className="absolute inset-0 flex items-center justify-center">
+      {/* Table area — centered with padding for seats that overflow */}
+      <div className="absolute inset-0 flex items-center justify-center" style={{ paddingBottom: isMobile ? '70px' : '80px', paddingTop: '50px' }}>
         <div
           ref={tableRef}
           className="poker-table-felt relative"
-          style={{
-            width: 'min(70vw, 820px)',
-            height: 'min(42vh, 380px)',
-          }}
         >
-          {/* Player seats */}
-          {playersWithTurn.map((player, i) => (
-            <PlayerSeat
-              key={player.id}
-              player={player}
-              position={SEAT_POSITIONS[i]}
-              seatIndex={i}
-              onClickAvatar={setSelectedPlayer}
-              timerProgress={player.isTurn ? timerProgress : 0}
-              isDealer={i === gameState.dealerIndex}
-              isWinner={gameState.showdown && player.id === gameState.winnerId}
-            />
-          ))}
-
-          {/* Pot */}
-          <div className="absolute top-[28%] left-1/2 -translate-x-1/2 z-20" data-pot-display>
+          {/* Inner table zones for layout reference */}
+          {/* Pot zone: top 25-35% */}
+          <div className="absolute top-[22%] left-1/2 -translate-x-1/2 z-20" data-pot-display>
             <PotDisplay pot={gameState.pot} />
           </div>
 
-          {/* Community Cards */}
-          <div className="absolute top-[44%] left-1/2 -translate-x-1/2 flex gap-1 sm:gap-2 z-20">
+          {/* Community Cards zone: center 40-55% */}
+          <div className="absolute top-[38%] left-1/2 -translate-x-1/2 flex gap-1 sm:gap-1.5 z-20">
             {gameState.communityCards.map((card, i) => (
               <Card key={`${gameState.roundNumber}-${i}`} card={card} delay={0.15 * i} index={i} />
             ))}
           </div>
 
-          {/* Winner announcement */}
+          {/* Winner announcement: between pot and cards */}
           <AnimatePresence>
             {gameState.showdown && gameState.winnerId !== null && (
               <motion.div
-                className="absolute top-[14%] left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-1"
+                className="absolute top-[58%] left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-0.5"
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0, opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 200 }}
               >
-                <div className="bg-primary/20 border-2 border-primary rounded-xl px-4 sm:px-6 py-2 sm:py-3 text-center whitespace-nowrap">
-                  <div className="text-primary font-display text-sm sm:text-lg tracking-wider">
+                <div className="bg-background/80 backdrop-blur-sm border-2 border-primary rounded-xl px-3 sm:px-5 py-1.5 sm:py-2 text-center whitespace-nowrap">
+                  <div className="text-primary font-display text-xs sm:text-base tracking-wider">
                     {gameState.players.find(p => p.id === gameState.winnerId)?.name} WINS!
                   </div>
-                  <div className="text-muted-foreground text-[10px] sm:text-sm mt-0.5">{gameState.winnerHandDescription}</div>
+                  <div className="text-muted-foreground text-[8px] sm:text-xs mt-0.5">{gameState.winnerHandDescription}</div>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Player seats — positioned relative to the table oval */}
+          {playersWithTurn.map((player, i) => (
+            <PlayerSeat
+              key={player.id}
+              player={player}
+              position={seatPositions[i]}
+              seatIndex={i}
+              onClickAvatar={setSelectedPlayer}
+              timerProgress={player.isTurn ? timerProgress : 0}
+              isDealer={i === gameState.dealerIndex}
+              isWinner={gameState.showdown && player.id === gameState.winnerId}
+              isMobile={isMobile}
+            />
+          ))}
         </div>
       </div>
 
@@ -272,6 +286,7 @@ const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
         callAmount={callAmount}
         canCheck={canCheck}
         minRaise={getMinRaiseTotal(gameState) - (userPlayer?.currentBet ?? 0)}
+        isMobile={isMobile}
       />
 
       {/* Player Popup */}
