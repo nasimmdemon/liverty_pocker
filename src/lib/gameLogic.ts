@@ -11,8 +11,8 @@ const SUITS: Suit[] = ['♠', '♥', '♦', '♣'];
 const RANKS: Rank[] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 const avatars = [avatar1, avatar2, avatar3, avatar4, avatar5, avatar6];
 
-const PLAYER_NAMES = ['THE_HUSTLER', 'LADY_LUCK', 'IRON_RAT', 'SHADOW', 'SLICK', 'THE_BOSS', 'DUCHESS', 'SMOKE'];
-const RANKS_LIST = ['HUMEN', 'RAT KING', 'SHARP', 'WHALE', 'GRINDER', 'ROOKIE', 'VIP', 'LEGEND'];
+const PLAYER_NAMES = ['THE_HUSTLER', 'LADY_LUCK', 'IRON_RAT', 'SHADOW', 'SLICK', 'SMOKE'];
+const RANKS_LIST = ['HUMEN', 'RAT KING', 'SHARP', 'WHALE', 'GRINDER', 'LEGEND'];
 
 export function createDeck(): PlayingCard[] {
   const deck: PlayingCard[] = [];
