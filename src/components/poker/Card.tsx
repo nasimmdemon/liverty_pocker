@@ -6,6 +6,7 @@ interface CardProps {
   card: CardType;
   delay?: number;
   index?: number;
+  isPlayerCard?: boolean;
 }
 
 const SUIT_SYMBOLS: Record<string, string> = {
@@ -15,21 +16,23 @@ const SUIT_SYMBOLS: Record<string, string> = {
   '♣': '♣',
 };
 
-const Card = ({ card, delay = 0 }: CardProps) => {
+const Card = ({ card, delay = 0, isPlayerCard = false }: CardProps) => {
   if (!card.faceUp) {
     return (
       <motion.div
-        initial={{ scale: 0, rotateY: 180, opacity: 0 }}
-        animate={{ scale: 1, rotateY: 0, opacity: 1 }}
-        transition={{ delay, duration: 0.5, type: 'spring', stiffness: 180 }}
-        className="w-11 h-[62px] sm:w-[52px] sm:h-[72px] rounded-lg border border-border/60 flex items-center justify-center"
+        initial={{ scale: 0, rotateY: 180, rotateZ: -180, opacity: 0 }}
+        animate={{ scale: 1, rotateY: 0, rotateZ: 0, opacity: 1 }}
+        transition={{ delay, duration: 0.7, type: 'spring', stiffness: 120, damping: 14 }}
+        className="w-10 h-[56px] sm:w-[48px] sm:h-[66px] rounded-lg border border-border/60 flex items-center justify-center"
         style={{
           background: 'linear-gradient(135deg, hsl(var(--casino-red)), hsl(0 50% 25%))',
           boxShadow: '0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)',
+          transformStyle: 'preserve-3d',
+          perspective: '600px',
         }}
       >
-        <div className="w-7 h-9 sm:w-8 sm:h-11 border border-primary/20 rounded-sm flex items-center justify-center">
-          <span className="font-display text-primary/30 text-[9px] sm:text-xs font-bold tracking-wider">LP</span>
+        <div className="w-6 h-8 sm:w-7 sm:h-10 border border-primary/20 rounded-sm flex items-center justify-center">
+          <span className="font-display text-primary/30 text-[8px] sm:text-[10px] font-bold tracking-wider">LP</span>
         </div>
       </motion.div>
     );
@@ -39,35 +42,44 @@ const Card = ({ card, delay = 0 }: CardProps) => {
   const colorClass = red ? 'text-red-600' : 'text-gray-900';
   const suit = SUIT_SYMBOLS[card.suit] || card.suit;
 
+  // Community cards get a dramatic spin; player cards get a simpler flip
+  const initialAnim = isPlayerCard
+    ? { rotateY: 180, scale: 0.5, opacity: 0 }
+    : { rotateY: 180, rotateZ: 90, scale: 0.3, opacity: 0 };
+  
+  const animateAnim = { rotateY: 0, rotateZ: 0, scale: 1, opacity: 1 };
+
   return (
     <motion.div
-      initial={{ rotateY: 180, scale: 0.7, opacity: 0 }}
-      animate={{ rotateY: 0, scale: 1, opacity: 1 }}
-      transition={{ delay, duration: 0.6, type: 'spring', stiffness: 150 }}
-      className="w-11 h-[62px] sm:w-[52px] sm:h-[72px] rounded-lg border border-gray-300 relative overflow-hidden select-none"
+      initial={initialAnim}
+      animate={animateAnim}
+      transition={{ delay, duration: 0.8, type: 'spring', stiffness: 100, damping: 12 }}
+      className="w-10 h-[56px] sm:w-[48px] sm:h-[66px] rounded-lg border border-gray-300 relative overflow-hidden select-none"
       style={{
         background: 'linear-gradient(180deg, #fefefe 0%, #f0ebe0 40%, #e8e0d0 100%)',
         boxShadow: '0 4px 14px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2)',
+        transformStyle: 'preserve-3d',
+        perspective: '800px',
       }}
     >
       {/* Top-left rank + suit */}
-      <div className={`absolute top-0.5 left-1 flex flex-col items-center leading-none ${colorClass}`}>
-        <span className="text-[10px] sm:text-xs font-extrabold">{card.rank}</span>
-        <span className="text-[9px] sm:text-[11px] -mt-0.5">{suit}</span>
+      <div className={`absolute top-0.5 left-0.5 flex flex-col items-center leading-none ${colorClass}`}>
+        <span className="text-[9px] sm:text-[11px] font-extrabold">{card.rank}</span>
+        <span className="text-[8px] sm:text-[10px] -mt-0.5">{suit}</span>
       </div>
 
       {/* Center suit */}
       <div className={`absolute inset-0 flex items-center justify-center ${colorClass}`}>
-        <span className="text-xl sm:text-2xl opacity-90">{suit}</span>
+        <span className="text-lg sm:text-xl opacity-90">{suit}</span>
       </div>
 
       {/* Bottom-right rank + suit (mirrored) */}
-      <div className={`absolute bottom-0.5 right-1 flex flex-col items-center leading-none rotate-180 ${colorClass}`}>
-        <span className="text-[10px] sm:text-xs font-extrabold">{card.rank}</span>
-        <span className="text-[9px] sm:text-[11px] -mt-0.5">{suit}</span>
+      <div className={`absolute bottom-0.5 right-0.5 flex flex-col items-center leading-none rotate-180 ${colorClass}`}>
+        <span className="text-[9px] sm:text-[11px] font-extrabold">{card.rank}</span>
+        <span className="text-[8px] sm:text-[10px] -mt-0.5">{suit}</span>
       </div>
 
-      {/* Subtle inner border for realism */}
+      {/* Subtle inner border */}
       <div className="absolute inset-[2px] rounded-md border border-gray-200/50 pointer-events-none" />
     </motion.div>
   );
