@@ -98,18 +98,38 @@
 
   .poker-table-felt {
     border-radius: 50%;
-    background: radial-gradient(
-      ellipse at center,
-      hsl(var(--casino-felt)) 0%,
-      hsl(120 28% 18%) 60%,
-      hsl(120 30% 14%) 100%
-    );
-    border: 4px solid hsl(var(--casino-gold));
+    background:
+      radial-gradient(ellipse at 30% 40%, rgba(255,255,255,0.03) 0%, transparent 50%),
+      radial-gradient(
+        ellipse at center,
+        hsl(120 30% 26%) 0%,
+        hsl(var(--casino-felt)) 35%,
+        hsl(120 28% 18%) 65%,
+        hsl(120 30% 14%) 100%
+      );
+    border: 5px solid hsl(var(--casino-gold));
     box-shadow:
-      inset 0 0 60px rgba(0, 0, 0, 0.5),
-      inset 0 0 120px rgba(0, 0, 0, 0.3),
-      0 0 30px hsl(var(--casino-gold) / 0.15),
-      0 8px 32px rgba(0, 0, 0, 0.6);
+      inset 0 2px 80px rgba(0, 0, 0, 0.5),
+      inset 0 0 150px rgba(0, 0, 0, 0.25),
+      0 0 40px hsl(var(--casino-gold) / 0.12),
+      0 0 80px hsl(var(--casino-gold) / 0.06),
+      0 12px 40px rgba(0, 0, 0, 0.7);
+  }
+
+  /* Mobile portrait: wider table */
+  @media (max-width: 767px) and (orientation: portrait) {
+    .poker-table-felt {
+      width: 92vw !important;
+      height: 36vh !important;
+    }
+  }
+
+  /* Mobile landscape */
+  @media (max-width: 900px) and (orientation: landscape) {
+    .poker-table-felt {
+      width: 75vw !important;
+      height: 50vh !important;
+    }
   }
 }
 

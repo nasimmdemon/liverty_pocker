@@ -13,25 +13,21 @@ import {
   getCallAmount,
   getMinRaiseTotal,
 } from '@/lib/gameLogic';
-import pokerRoomBg from '@/assets/poker-room-bg.png';
 import PlayerSeat from './PlayerSeat';
 import Card from './Card';
 import PotDisplay from './PotDisplay';
 import ActionButtons from './ActionButtons';
 import PlayerPopup from './PlayerPopup';
 import ChipAnimation, { type ChipBet } from './ChipAnimation';
-import LandscapeOverlay from './LandscapeOverlay';
 
-// Percentage-based seat positions relative to the table container
+// 6-player seat positions (percentage-based, relative to table container)
 const SEAT_POSITIONS = [
-  { top: '90%', left: '50%' },   // 0: Bottom center (user)
-  { top: '75%', left: '25%' },   // 1: Bottom left
-  { top: '50%', left: '5%' },    // 2: Left
-  { top: '20%', left: '15%' },   // 3: Top left
-  { top: '5%', left: '50%' },    // 4: Top center
-  { top: '20%', left: '85%' },   // 5: Top right
-  { top: '50%', left: '95%' },   // 6: Right
-  { top: '75%', left: '75%' },   // 7: Bottom right
+  { top: '88%', left: '50%' },   // 0: Bottom center (user)
+  { top: '70%', left: '8%' },    // 1: Bottom left
+  { top: '18%', left: '12%' },   // 2: Top left
+  { top: '5%', left: '50%' },    // 3: Top center
+  { top: '18%', left: '88%' },   // 4: Top right
+  { top: '70%', left: '92%' },   // 5: Bottom right
 ];
 
 const TURN_DURATION = 30;
@@ -112,13 +108,12 @@ const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
       return;
     }
 
-    const isUserTurn = currentPlayer.isUser;
     setTimer(TURN_DURATION);
     timerRef.current = setInterval(() => {
       setTimer(prev => (prev <= 0 ? 0 : prev - 0.1));
     }, 100);
 
-    if (!isUserTurn) {
+    if (!currentPlayer.isUser) {
       botTimeoutRef.current = setTimeout(() => {
         setGameState(prev => {
           if (!prev) return prev;
@@ -170,12 +165,14 @@ const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
   }));
 
   return (
-    <div className="relative w-full h-screen overflow-hidden">
-      <LandscapeOverlay />
-
-      {/* Background */}
-      <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${pokerRoomBg})` }} />
-      <div className="absolute inset-0 bg-black/40" />
+    <div className="relative w-full h-screen overflow-hidden bg-background">
+      {/* Dark room background */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse at center, hsl(120 20% 10%) 0%, hsl(0 0% 5%) 70%, hsl(0 0% 3%) 100%)',
+        }}
+      />
 
       {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-3 py-2 lg:px-4 lg:py-3">
@@ -201,17 +198,17 @@ const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
         <span className="text-[10px] sm:text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">BB: ${gameState.bigBlind}</span>
       </div>
 
-      {/* CSS Poker Table */}
+      {/* Table container — centered */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div
           ref={tableRef}
           className="poker-table-felt relative"
           style={{
-            width: 'min(75vw, 820px)',
+            width: 'min(70vw, 820px)',
             height: 'min(42vh, 380px)',
           }}
         >
-          {/* Player seats — positioned relative to this container */}
+          {/* Player seats */}
           {playersWithTurn.map((player, i) => (
             <PlayerSeat
               key={player.id}
@@ -231,7 +228,7 @@ const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
           </div>
 
           {/* Community Cards */}
-          <div className="absolute top-[42%] left-1/2 -translate-x-1/2 flex gap-1 sm:gap-2 z-20">
+          <div className="absolute top-[44%] left-1/2 -translate-x-1/2 flex gap-1 sm:gap-2 z-20">
             {gameState.communityCards.map((card, i) => (
               <Card key={`${gameState.roundNumber}-${i}`} card={card} delay={0.15 * i} index={i} />
             ))}
@@ -241,7 +238,7 @@ const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
           <AnimatePresence>
             {gameState.showdown && gameState.winnerId !== null && (
               <motion.div
-                className="absolute top-[15%] left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-1"
+                className="absolute top-[14%] left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-1"
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0, opacity: 0 }}
