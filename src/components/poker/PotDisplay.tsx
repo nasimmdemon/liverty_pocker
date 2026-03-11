@@ -1,30 +1,41 @@
 import { motion } from 'framer-motion';
+import { calculateRake } from '@/lib/rake';
 
 interface PotDisplayProps {
   pot: number;
   rakeAmount?: number;
 }
 
-const PotDisplay = ({ pot, rakeAmount = 0 }: PotDisplayProps) => (
-  <motion.div
-    className="flex flex-col items-center justify-center rounded-xl px-4 py-2 border border-primary/40"
-    style={{
-      background: 'linear-gradient(180deg, hsl(120 22% 14% / 0.8) 0%, hsl(120 20% 10% / 0.9) 100%)',
-      boxShadow: 'inset 0 0 16px rgba(0,0,0,0.3), 0 0 12px hsl(var(--casino-gold) / 0.15)',
-    }}
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-  >
-    <span className="text-primary font-display text-sm sm:text-base lg:text-xl font-bold drop-shadow-lg tracking-wider">
-      ${pot.toLocaleString()}
-    </span>
-    <span className="text-muted-foreground text-[9px] sm:text-[10px] uppercase tracking-widest">Pot</span>
-    {rakeAmount > 0 && (
-      <span className="text-destructive text-[8px] sm:text-[9px] uppercase tracking-wider mt-0.5">
-        Rake: ${rakeAmount}
+const PotDisplay = ({ pot, rakeAmount = 0 }: PotDisplayProps) => {
+  // Calculate what the rake would be on current pot (for live preview)
+  const liveRake = pot > 0 ? calculateRake(pot) : null;
+
+  return (
+    <motion.div
+      className="flex flex-col items-center justify-center rounded-xl px-4 py-2 border border-primary/40"
+      style={{
+        background: 'linear-gradient(180deg, hsl(120 22% 14% / 0.8) 0%, hsl(120 20% 10% / 0.9) 100%)',
+        boxShadow: 'inset 0 0 16px rgba(0,0,0,0.3), 0 0 12px hsl(var(--casino-gold) / 0.15)',
+      }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+    >
+      <span className="text-primary font-display text-sm sm:text-base lg:text-xl font-bold drop-shadow-lg tracking-wider">
+        ${pot.toLocaleString()}
       </span>
-    )}
-  </motion.div>
-);
+      <span className="text-muted-foreground text-[9px] sm:text-[10px] uppercase tracking-widest">Pot</span>
+      {/* Show rake info */}
+      {rakeAmount > 0 ? (
+        <span className="text-destructive text-[8px] sm:text-[9px] uppercase tracking-wider mt-0.5">
+          Rake: ${rakeAmount} (5%)
+        </span>
+      ) : liveRake && pot > 0 ? (
+        <span className="text-muted-foreground/60 text-[7px] sm:text-[8px] uppercase tracking-wider mt-0.5">
+          Est. rake: ${liveRake.totalRake}
+        </span>
+      ) : null}
+    </motion.div>
+  );
+};
 
 export default PotDisplay;
