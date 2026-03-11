@@ -9,6 +9,8 @@ interface PlayerSeatProps {
   onClickAvatar: (player: Player) => void;
   timerProgress?: number;
   isDealer?: boolean;
+  isSmallBlind?: boolean;
+  isBigBlind?: boolean;
   isWinner?: boolean;
   isMobile?: boolean;
   isShowdown?: boolean;
@@ -52,7 +54,8 @@ const NamePlate = ({ player, isTopSeat }: { player: Player; isTopSeat: boolean }
 // PlayerSeat renders INSIDE player-position-zone. The avatar is a direct child of the zone.
 const PlayerSeat = ({
   player, seatIndex, onClickAvatar,
-  timerProgress = 0, isDealer = false, isWinner = false, isMobile = false,
+  timerProgress = 0, isDealer = false, isSmallBlind = false, isBigBlind = false,
+  isWinner = false, isMobile = false,
   isShowdown = false, chatBubble = null,
 }: PlayerSeatProps) => {
   const isTurn = player.isTurn;
@@ -146,6 +149,16 @@ const PlayerSeat = ({
         {isDealer && (
           <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[9px] font-black flex items-center justify-center z-20 border border-border shadow-lg">
             D
+          </div>
+        )}
+        {isSmallBlind && !isDealer && (
+          <div className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-blue-500 text-white text-[8px] font-black flex items-center justify-center z-20 border border-border shadow-lg">
+            SB
+          </div>
+        )}
+        {isBigBlind && !isDealer && (
+          <div className="absolute -bottom-1.5 -left-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[8px] font-black flex items-center justify-center z-20 border border-border shadow-lg">
+            BB
           </div>
         )}
 

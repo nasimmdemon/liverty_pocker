@@ -1,5 +1,6 @@
 import { GameState, Player, PlayingCard, Suit, Rank, GamePhase } from './gameTypes';
 import { determineWinners } from './handEvaluator';
+import { calculateRake } from './rake';
 import avatar1 from '@/assets/avatar-1.png';
 import avatar2 from '@/assets/avatar-2.png';
 import avatar3 from '@/assets/avatar-3.png';
@@ -58,6 +59,8 @@ export function createInitialGameState(buyIn: number = 1500): GameState {
     phase: 'preflop',
     tableId: '4XGHE',
     dealerIndex: 0,
+    smallBlindIndex: 0,
+    bigBlindIndex: 0,
     smallBlind: 5,
     bigBlind: 10,
     currentBet: 0,
@@ -71,6 +74,8 @@ export function createInitialGameState(buyIn: number = 1500): GameState {
     bettingRoundComplete: false,
     firstActorIndex: 0,
     actedCount: 0,
+    rakeAmount: 0,
+    totalRake: 0,
   };
 }
 
@@ -155,6 +160,8 @@ export function startNewRound(state: GameState): GameState {
     sidePots: [],
     deck: deck.slice(cardIndex),
     dealerIndex,
+    smallBlindIndex: sbIndex,
+    bigBlindIndex: bbIndex,
     phase: 'preflop',
     currentBet: state.bigBlind,
     minRaise: state.bigBlind,
@@ -167,6 +174,8 @@ export function startNewRound(state: GameState): GameState {
     bettingRoundComplete: false,
     firstActorIndex: firstToAct,
     actedCount: 0,
+    rakeAmount: 0,
+    totalRake: state.totalRake ?? 0,
   };
 }
 
@@ -300,8 +309,28 @@ function handleShowdown(state: GameState): GameState {
     }
   }
 
+  // Apply rake to total winnings
+  const totalWinnings = Array.from(chipGains.values()).reduce((a, b) => a + b, 0);
+  const { rakeAmount } = calculateRake(totalWinnings);
+  
+  // Distribute rake proportionally from winners
+  let rakeRemaining = rakeAmount;
+  const adjustedGains = new Map(chipGains);
+  for (const wid of winnerIds) {
+    const gain = adjustedGains.get(wid) ?? 0;
+    if (gain <= 0) continue;
+    const share = Math.min(Math.floor(rakeAmount * gain / totalWinnings), rakeRemaining);
+    adjustedGains.set(wid, gain - share);
+    rakeRemaining -= share;
+  }
+  // Remainder from rounding
+  if (rakeRemaining > 0 && winnerIds.length > 0) {
+    const firstWin = winnerIds[0];
+    adjustedGains.set(firstWin, (adjustedGains.get(firstWin) ?? 0) - rakeRemaining);
+  }
+
   const finalPlayers = players.map(p => {
-    const gain = chipGains.get(p.id) ?? 0;
+    const gain = adjustedGains.get(p.id) ?? 0;
     if (gain <= 0) return p;
     return { ...p, chips: p.chips + gain, lastAction: '🏆 WINNER' };
   });
@@ -319,6 +348,8 @@ function handleShowdown(state: GameState): GameState {
     winnerHandDescription: desc,
     showdown: true,
     pot: 0,
+    rakeAmount,
+    totalRake: (state.totalRake ?? 0) + rakeAmount,
   };
 }
 
@@ -347,12 +378,14 @@ export function playerAction(
       const remaining = newPlayers.filter(p => p.isActive && !p.hasFolded);
       if (remaining.length === 1) {
         const winner = remaining[0];
+        // Apply rake even on fold-win
+        const { rakeAmount, netPot } = calculateRake(pot);
         newPlayers = newPlayers.map(p => 
           p.id === winner.id 
-            ? { ...p, chips: p.chips + pot, lastAction: '🏆 WINNER' }
+            ? { ...p, chips: p.chips + netPot, lastAction: '🏆 WINNER' }
             : p
         );
-        return { ...state, players: newPlayers, pot: 0, winnerId: winner.id, winnerIds: [winner.id], winnerHandDescription: 'Last player standing', showdown: true, actedCount };
+        return { ...state, players: newPlayers, pot: 0, winnerId: winner.id, winnerIds: [winner.id], winnerHandDescription: 'Last player standing', showdown: true, actedCount, rakeAmount, totalRake: (state.totalRake ?? 0) + rakeAmount };
       }
       break;
     }

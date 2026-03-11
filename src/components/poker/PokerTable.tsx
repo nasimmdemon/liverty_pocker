@@ -55,7 +55,7 @@ const SEAT_POSITIONS_MOBILE = [
   { top: '82%', left: '92%' },
 ];
 
-const TURN_DURATION = 30;
+const TURN_DURATION = 10;
 const BOT_DELAY = 1500;
 const SHOWDOWN_DELAY = 4000;
 
@@ -382,7 +382,7 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
 
           {/* Pot zone — above cards */}
           <div className="absolute top-[26%] left-1/2 -translate-x-1/2 z-20" data-pot-display>
-            <PotDisplay pot={gameState.pot} />
+            <PotDisplay pot={gameState.pot} rakeAmount={gameState.rakeAmount} />
           </div>
 
           {/* Winner announcement: between pot and cards */}
@@ -432,6 +432,8 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
                   onClickAvatar={setSelectedPlayer}
                   timerProgress={player.isTurn ? timerProgress : 0}
                   isDealer={i === gameState.dealerIndex}
+                  isSmallBlind={i === gameState.smallBlindIndex}
+                  isBigBlind={i === gameState.bigBlindIndex}
                   isWinner={gameState.showdown && (gameState.winnerIds?.includes(player.id) ?? player.id === gameState.winnerId)}
                   isMobile={isMobile}
                   isShowdown={gameState.showdown}
