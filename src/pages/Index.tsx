@@ -70,6 +70,7 @@ const Index = () => {
           smallBlind={tableConfig.smallBlind}
           bigBlind={tableConfig.bigBlind}
           turnTimer={tableConfig.turnTimer}
+          isTestingTable={tableConfig.isTestingTable}
           onExit={() => setScreen('start')}
         />
       )}
