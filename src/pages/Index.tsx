@@ -15,6 +15,7 @@ interface TableConfig {
   turnTimer?: number;
   botCount?: number;
   isTestingTable?: boolean;
+  isPublic?: boolean;
 }
 
 const Index = () => {
@@ -25,7 +26,7 @@ const Index = () => {
   const handleLoadingComplete = useCallback(() => setScreen('table'), []);
 
   const handleJoinTable = useCallback((buyIn: number, smallBlind: number, bigBlind: number) => {
-    setTableConfig({ buyIn, smallBlind, bigBlind });
+    setTableConfig({ buyIn, smallBlind, bigBlind, isPublic: true });
     setScreen('loading');
   }, []);
 
@@ -61,7 +62,7 @@ const Index = () => {
           onBack={() => setScreen('sitandgo')}
         />
       )}
-      {screen === 'loading' && <LoadingScreen key="loading" onComplete={handleLoadingComplete} />}
+      {screen === 'loading' && <LoadingScreen key="loading" onComplete={handleLoadingComplete} isPublic={tableConfig.isPublic} />}
       {screen === 'table' && (
         <PokerTable
           key="table"
