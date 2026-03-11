@@ -294,6 +294,13 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
     if (userPlayer) showChatBubble(userPlayer.id, text, userPlayer.name);
   }, [showChatBubble]);
 
+  const handleTableClick = useCallback(() => {
+    if (!audioUnlockedRef.current) {
+      audioUnlockedRef.current = true;
+      unlockAudio();
+    }
+  }, []);
+
   if (!gameState) return null;
 
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
@@ -307,13 +314,6 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
     ...p,
     isTurn: i === gameState.currentPlayerIndex && !p.hasFolded && !p.isAllIn && !gameState.showdown,
   }));
-
-  const handleTableClick = useCallback(() => {
-    if (!audioUnlockedRef.current) {
-      audioUnlockedRef.current = true;
-      unlockAudio();
-    }
-  }, []);
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background" onClick={handleTableClick}>
