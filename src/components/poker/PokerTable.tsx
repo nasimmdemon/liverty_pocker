@@ -61,6 +61,10 @@ const SHOWDOWN_DELAY = 4000;
 
 interface PokerTableProps {
   initialBuyIn?: number;
+  botCount?: number;
+  smallBlind?: number;
+  bigBlind?: number;
+  turnTimer?: number;
   onExit?: () => void;
   seatAnchorOverrides?: {
     desktop?: { top: string; left: string }[];
