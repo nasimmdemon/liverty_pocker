@@ -59,8 +59,8 @@ const PlayerSeat = ({
   const isTurn = player.isTurn;
   const hasFolded = player.hasFolded;
   const isUser = player.isUser;
-  // User sees own cards (face-up). Others: only visible at showdown
-  const showCards = player.cards.length > 0 && !hasFolded && (isUser || isShowdown);
+  // User sees own cards (face-up). Others: show closed cards during hand, face-up at showdown
+  const showCards = player.cards.length > 0 && !hasFolded;
   const isTopSeat = seatIndex >= 2 && seatIndex <= 4;
 
   // Avatar 2x bigger: was 56/72 (user) and 46/60 (others)
