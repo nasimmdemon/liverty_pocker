@@ -160,6 +160,8 @@ export function startNewRound(state: GameState): GameState {
     sidePots: [],
     deck: deck.slice(cardIndex),
     dealerIndex,
+    smallBlindIndex: sbIndex,
+    bigBlindIndex: bbIndex,
     phase: 'preflop',
     currentBet: state.bigBlind,
     minRaise: state.bigBlind,
@@ -172,6 +174,8 @@ export function startNewRound(state: GameState): GameState {
     bettingRoundComplete: false,
     firstActorIndex: firstToAct,
     actedCount: 0,
+    rakeAmount: 0,
+    totalRake: state.totalRake ?? 0,
   };
 }
 
