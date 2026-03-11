@@ -163,6 +163,8 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const [winAnimation, setWinAnimation] = useState<{ winnerSeatIndex: number; amount: number } | null>(null);
   const [showWinDisplay, setShowWinDisplay] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [eliminatedPlayer, setEliminatedPlayer] = useState<{ name: string; id: number; isUser: boolean } | null>(null);
+  const [markedCheaters, setMarkedCheaters] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (gameState?.showdown && gameState.winnerId !== null && prevGameStateRef.current && !prevGameStateRef.current.showdown) {
