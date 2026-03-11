@@ -14,6 +14,7 @@ interface TableConfig {
   bigBlind: number;
   turnTimer?: number;
   botCount?: number;
+  isTestingTable?: boolean;
 }
 
 const Index = () => {
