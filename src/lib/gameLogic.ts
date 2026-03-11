@@ -309,8 +309,28 @@ function handleShowdown(state: GameState): GameState {
     }
   }
 
+  // Apply rake to total winnings
+  const totalWinnings = Array.from(chipGains.values()).reduce((a, b) => a + b, 0);
+  const { rakeAmount } = calculateRake(totalWinnings);
+  
+  // Distribute rake proportionally from winners
+  let rakeRemaining = rakeAmount;
+  const adjustedGains = new Map(chipGains);
+  for (const wid of winnerIds) {
+    const gain = adjustedGains.get(wid) ?? 0;
+    if (gain <= 0) continue;
+    const share = Math.min(Math.floor(rakeAmount * gain / totalWinnings), rakeRemaining);
+    adjustedGains.set(wid, gain - share);
+    rakeRemaining -= share;
+  }
+  // Remainder from rounding
+  if (rakeRemaining > 0 && winnerIds.length > 0) {
+    const firstWin = winnerIds[0];
+    adjustedGains.set(firstWin, (adjustedGains.get(firstWin) ?? 0) - rakeRemaining);
+  }
+
   const finalPlayers = players.map(p => {
-    const gain = chipGains.get(p.id) ?? 0;
+    const gain = adjustedGains.get(p.id) ?? 0;
     if (gain <= 0) return p;
     return { ...p, chips: p.chips + gain, lastAction: '🏆 WINNER' };
   });
@@ -328,6 +348,8 @@ function handleShowdown(state: GameState): GameState {
     winnerHandDescription: desc,
     showdown: true,
     pot: 0,
+    rakeAmount,
+    totalRake: (state.totalRake ?? 0) + rakeAmount,
   };
 }
 
