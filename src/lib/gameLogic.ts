@@ -313,9 +313,9 @@ function handleShowdown(state: GameState): GameState {
     }
   }
 
-  // Apply rake to total winnings
+  // Apply rake to total winnings (5% house rake)
   const totalWinnings = Array.from(chipGains.values()).reduce((a, b) => a + b, 0);
-  const { rakeAmount } = calculateRake(totalWinnings);
+  const { totalRake: rakeAmount } = calculateRake(totalWinnings);
   
   // Distribute rake proportionally from winners
   let rakeRemaining = rakeAmount;
@@ -382,8 +382,8 @@ export function playerAction(
       const remaining = newPlayers.filter(p => p.isActive && !p.hasFolded);
       if (remaining.length === 1) {
         const winner = remaining[0];
-        // Apply rake even on fold-win
-        const { rakeAmount, netPot } = calculateRake(pot);
+        // Apply 5% house rake even on fold-win
+        const { totalRake: rakeAmount, netPot } = calculateRake(pot);
         newPlayers = newPlayers.map(p => 
           p.id === winner.id 
             ? { ...p, chips: p.chips + netPot, lastAction: '🏆 WINNER' }
@@ -466,7 +466,17 @@ export function playerAction(
     }
   }
 
-  return { ...state, players: newPlayers, pot, currentBet, minRaise, actedCount };
+  const result = { ...state, players: newPlayers, pot, currentBet, minRaise, actedCount };
+  
+  // ── Chip conservation check (debug mode) ──
+  // Total = sum(player.chips) + pot. currentBet is NOT added because
+  // those chips are already deducted from player.chips and included in pot.
+  if (typeof window !== 'undefined' && (window as any).__POKER_DEBUG__) {
+    const totalChips = result.players.reduce((s, p) => s + p.chips, 0) + result.pot;
+    console.log(`[CHIP CHECK] Action=${action} | Total=${totalChips} | Pot=${result.pot} | PlayerChips=${result.players.map(p => p.chips).join(',')}`);
+  }
+  
+  return result;
 }
 
 export function getNextActivePlayerIndex(state: GameState): number {
