@@ -2,9 +2,10 @@ import { motion } from 'framer-motion';
 
 interface PotDisplayProps {
   pot: number;
+  rakeAmount?: number;
 }
 
-const PotDisplay = ({ pot }: PotDisplayProps) => (
+const PotDisplay = ({ pot, rakeAmount = 0 }: PotDisplayProps) => (
   <motion.div
     className="flex flex-col items-center justify-center rounded-xl px-4 py-2 border border-primary/40"
     style={{
@@ -18,6 +19,11 @@ const PotDisplay = ({ pot }: PotDisplayProps) => (
       ${pot.toLocaleString()}
     </span>
     <span className="text-muted-foreground text-[9px] sm:text-[10px] uppercase tracking-widest">Pot</span>
+    {rakeAmount > 0 && (
+      <span className="text-destructive text-[8px] sm:text-[9px] uppercase tracking-wider mt-0.5">
+        Rake: ${rakeAmount}
+      </span>
+    )}
   </motion.div>
 );
 

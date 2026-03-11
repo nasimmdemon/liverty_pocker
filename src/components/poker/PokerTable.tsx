@@ -432,6 +432,8 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
                   onClickAvatar={setSelectedPlayer}
                   timerProgress={player.isTurn ? timerProgress : 0}
                   isDealer={i === gameState.dealerIndex}
+                  isSmallBlind={i === gameState.smallBlindIndex}
+                  isBigBlind={i === gameState.bigBlindIndex}
                   isWinner={gameState.showdown && (gameState.winnerIds?.includes(player.id) ?? player.id === gameState.winnerId)}
                   isMobile={isMobile}
                   isShowdown={gameState.showdown}
