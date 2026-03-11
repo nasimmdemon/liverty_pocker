@@ -23,8 +23,8 @@ const TIERS: TierData[] = [
   {
     key: 'human', label: 'HUMAN', emoji: '🧑',
     tournamentEntrance: '11%', organizerProfit: 0, affiliateShare: 30,
-    sitAndGoOptions: ['0.01-0.02', '0.02-0.04', '0.04-0.08', '0.08-0.16'],
-    tournamentOptions: ['$0.15', '$0.30', '$0.60', '$1.20'],
+    sitAndGoOptions: ['FREE 0.01-0.02', '0.02-0.04', '0.04-0.08', '0.08-0.16'],
+    tournamentOptions: ['FREE $0.15', '$0.30', '$0.60', '$1.20'],
     color: '200 60% 50%',
   },
   {
@@ -148,8 +148,10 @@ const TierPopup = ({
           </h3>
           <div className="flex flex-col gap-2">
             {options.map((opt, i) => {
-              // Parse the option
-              const parts = opt.replace('$', '').split('-');
+              // Parse the option - handle FREE prefix
+              const isFree = opt.startsWith('FREE ');
+              const cleanOpt = isFree ? opt.replace('FREE ', '') : opt;
+              const parts = cleanOpt.replace('$', '').split('-');
               const small = parseFloat(parts[0]);
               const big = parts.length > 1 ? parseFloat(parts[1]) : small;
               return (
@@ -157,22 +159,29 @@ const TierPopup = ({
                   key={i}
                   className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border-2 border-primary/30 hover:border-primary/70 transition-all"
                   style={{
-                    background: 'linear-gradient(180deg, hsl(0 0% 14%) 0%, hsl(0 0% 10%) 100%)',
+                    background: isFree
+                      ? 'linear-gradient(180deg, hsl(120 25% 16%) 0%, hsl(120 20% 10%) 100%)'
+                      : 'linear-gradient(180deg, hsl(0 0% 14%) 0%, hsl(0 0% 10%) 100%)',
                     fontFamily: "'Bebas Neue', sans-serif",
                   }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => onSelect(small, big)}
                 >
-                  <span className="text-foreground text-sm tracking-wider">
-                    {gameMode === 'sit-and-go' ? `${opt} (SB/BB)` : `${opt} Buy-in`}
+                  <span className="text-foreground text-sm tracking-wider flex items-center gap-2">
+                    {isFree && <span className="text-lg">🆓</span>}
+                    {gameMode === 'sit-and-go' ? `${cleanOpt} (SB/BB)` : `${cleanOpt} Buy-in`}
                   </span>
-                  <span
-                    className="text-xs px-3 py-1 rounded-full border border-primary/50"
-                    style={{ color: `hsl(${tier.color})` }}
-                  >
-                    SELECT
-                  </span>
+                  {isFree ? (
+                    <span className="bg-destructive text-destructive-foreground text-[10px] font-bold px-2 py-1 rounded-full">FREE</span>
+                  ) : (
+                    <span
+                      className="text-xs px-3 py-1 rounded-full border border-primary/50"
+                      style={{ color: `hsl(${tier.color})` }}
+                    >
+                      SELECT
+                    </span>
+                  )}
                 </motion.button>
               );
             })}
@@ -409,31 +418,6 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
             SELECT TIER
           </h2>
 
-          {/* Free option */}
-          <motion.button
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all ${
-              selectedStake?.small === FREE_SIT_AND_GO.small && selectedStake?.big === FREE_SIT_AND_GO.big
-                ? 'border-primary shadow-[0_0_15px_hsl(var(--casino-gold)/0.4)]'
-                : 'border-primary/30 hover:border-primary/60'
-            }`}
-            style={{
-              background: 'linear-gradient(180deg, hsl(120 25% 16%) 0%, hsl(120 20% 10%) 100%)',
-              fontFamily: "'Bebas Neue', sans-serif",
-            }}
-            onClick={() => setSelectedStake(FREE_SIT_AND_GO)}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🆓</span>
-              <div className="text-left">
-                <span className="text-foreground text-sm tracking-wider block">FREE TABLE</span>
-                <span className="text-muted-foreground text-[10px]">0.01 / 0.02 blinds • No entry fee</span>
-              </div>
-            </div>
-            <span className="bg-destructive text-destructive-foreground text-[10px] font-bold px-2 py-1 rounded-full">FREE</span>
-          </motion.button>
-
           {/* Tier cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 w-full">
             {TIERS.map((tier) => (
@@ -452,7 +436,9 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
                 <span className="text-sm sm:text-base tracking-wider" style={{ color: `hsl(${tier.color})` }}>
                   {tier.label}
                 </span>
-                <span className="text-muted-foreground text-[9px]">{tier.tournamentEntrance} fee</span>
+                <span className="text-muted-foreground text-[9px]">
+                  {tier.key === 'human' ? 'FREE option • ' : ''}{tier.tournamentEntrance} fee
+                </span>
                 <span
                   className="text-[9px] px-2 py-0.5 rounded-full border mt-0.5"
                   style={{ borderColor: `hsl(${tier.color} / 0.5)`, color: `hsl(${tier.color})` }}
