@@ -37,16 +37,15 @@ const LoadingScreen = ({ onComplete }: LoadingScreenProps) => {
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
 
       {/* Content at bottom */}
-      <div className="relative z-10 flex flex-col items-center gap-4 mb-[15vh] w-full px-8">
+      <div className="relative z-10 flex flex-col items-center gap-3 sm:gap-4 mb-[12vh] sm:mb-[15vh] w-full px-4 sm:px-8">
         {/* Loading text */}
         <h2
-          className="text-2xl md:text-3xl tracking-[0.15em]"
+          className="text-xl sm:text-2xl md:text-3xl tracking-[0.1em] sm:tracking-[0.15em] text-center"
           style={{
             fontFamily: "'Bebas Neue', 'Cinzel', serif",
             color: '#F2D27A',
             textShadow: '0 2px 10px rgba(242, 210, 122, 0.4)',
-            minWidth: '280px',
-            textAlign: 'center',
+            minWidth: 'min(280px, 90vw)',
           }}
         >
           CREATING TABLE FOR YOU
@@ -54,7 +53,7 @@ const LoadingScreen = ({ onComplete }: LoadingScreenProps) => {
 
         {/* Horizontal loading bar */}
         <div
-          className="relative w-full max-w-md h-3 sm:h-4 rounded-full overflow-hidden"
+          className="relative w-full max-w-md h-2.5 sm:h-3 md:h-4 rounded-full overflow-hidden"
           style={{
             border: '1px solid hsl(var(--casino-gold) / 0.5)',
             background: 'hsl(var(--casino-dark) / 0.6)',
@@ -74,7 +73,7 @@ const LoadingScreen = ({ onComplete }: LoadingScreenProps) => {
 
         {/* Bottom banner text */}
         <p
-          className="text-lg md:text-2xl lg:text-3xl tracking-[0.08em] text-center mt-4"
+          className="text-sm sm:text-lg md:text-2xl lg:text-3xl tracking-[0.06em] sm:tracking-[0.08em] text-center mt-2 sm:mt-4 px-2"
           style={{
             fontFamily: "'Bebas Neue', 'Cinzel', serif",
             color: '#F2D27A',

@@ -1,6 +1,8 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Player } from '@/lib/gameTypes';
 import Card from './Card';
+import { ChatBubble } from './GameChat';
+import { playCardRevealSound } from '@/lib/sounds';
 
 interface PlayerSeatProps {
   player: Player;
@@ -10,6 +12,7 @@ interface PlayerSeatProps {
   isDealer?: boolean;
   isWinner?: boolean;
   isMobile?: boolean;
+  chatBubble?: { id: number; text: string; playerName: string } | null;
 }
 
 const NamePlate = ({ player, isTopSeat }: { player: Player; isTopSeat: boolean }) => (
@@ -50,17 +53,19 @@ const NamePlate = ({ player, isTopSeat }: { player: Player; isTopSeat: boolean }
 const PlayerSeat = ({
   player, seatIndex, onClickAvatar,
   timerProgress = 0, isDealer = false, isWinner = false, isMobile = false,
+  chatBubble = null,
 }: PlayerSeatProps) => {
   const isTurn = player.isTurn;
   const hasFolded = player.hasFolded;
   const isUser = player.isUser;
-  const showCards = isUser && player.cards.length > 0 && !hasFolded;
+  // Show cards for all players: user sees own face-up; others see closed until showdown
+  const showCards = player.cards.length > 0 && !hasFolded;
   const isTopSeat = seatIndex >= 2 && seatIndex <= 4;
 
-  // Avatar fits inside the player-position-zone circle (88px desktop / 72px mobile)
+  // Avatar 2x bigger: was 56/72 (user) and 46/60 (others)
   const avatarSizePx = isUser
-    ? (isMobile ? 56 : 72)
-    : (isMobile ? 46 : 60);
+    ? (isMobile ? 112 : 144)
+    : (isMobile ? 92 : 120);
 
   const borderClass = isWinner
     ? 'border-primary glow-gold'
@@ -80,18 +85,29 @@ const PlayerSeat = ({
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.4, delay: seatIndex * 0.08, type: 'spring' }}
     >
-      {/* User hole cards — fanned above avatar for bottom seats */}
+      {/* Hole cards — user: 50% behind avatar on both mobile & desktop. Others: above avatar. */}
       {showCards && !isTopSeat && (
         <div
           className="absolute"
           style={{
-            bottom: '100%',
             left: '50%',
             transform: 'translateX(-50%)',
-            marginBottom: 8,
-            width: isMobile ? 86 : 112,
-            height: isMobile ? 48 : 60,
             perspective: 600,
+            zIndex: isUser ? 5 : 15, // User: below avatar so 50% goes behind; others: above
+            // User: show more of cards — less overlap behind avatar
+            ...(isUser
+              ? {
+                  bottom: '100%',
+                  marginBottom: isMobile ? -18 : -32, // ~25% behind avatar so more card visible
+                  width: isMobile ? 150 : 240,
+                  height: isMobile ? 88 : 128,
+                }
+              : {
+                  bottom: '100%',
+                  marginBottom: 8,
+                  width: isMobile ? 86 : 112,
+                  height: isMobile ? 48 : 60,
+                }),
           }}
         >
           {player.cards.map((card, i) => (
@@ -102,17 +118,26 @@ const PlayerSeat = ({
                 left: '50%',
                 bottom: 0,
                 transformOrigin: 'bottom center',
-                transform: `translateX(${i === 0 ? '-68%' : '-28%'}) rotate(${i === 0 ? -22 : 22}deg) scale(${isMobile ? 0.58 : 0.72})`,
+                transform: `translateX(${i === 0 ? '-68%' : '-28%'}) rotate(${i === 0 ? -18 : 18}deg) scale(${isUser ? (isMobile ? 1.28 : 1.58) : (isMobile ? 0.58 : 0.72)})`,
                 zIndex: i,
               }}
             >
-              <Card card={card} delay={0.3 + 0.15 * i} index={i} isPlayerCard />
+              <Card card={card} delay={0.2 + 0.2 * i} index={i} isPlayerCard onReveal={playCardRevealSound} />
             </div>
           ))}
         </div>
       )}
 
-      {/* Avatar */}
+      {/* Chat bubble above avatar */}
+      <AnimatePresence>
+        {chatBubble && (
+          <div key={chatBubble.id} className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-30" style={{ pointerEvents: 'none' }}>
+            <ChatBubble text={chatBubble.text} playerName={chatBubble.playerName} />
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Avatar — z-index above user's cards so 50% overlap appears behind */}
       <div
         className="relative cursor-pointer group"
         style={{ zIndex: 10 }}
@@ -169,15 +194,15 @@ const PlayerSeat = ({
       {/* Name plate */}
       <NamePlate player={player} isTopSeat={isTopSeat} />
 
-      {/* Bot hole cards below avatar (only for top seats if user is at top — unlikely) */}
+      {/* Hole cards below avatar for top seats */}
       {showCards && isTopSeat && (
         <div
           className="absolute flex gap-0.5"
           style={{ top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 8, zIndex: 5 }}
         >
           {player.cards.map((card, i) => (
-            <div key={i} style={{ transform: `scale(${isMobile ? 0.5 : 0.62})`, transformOrigin: 'top center' }}>
-              <Card card={card} delay={0.3 + 0.15 * i} index={i} isPlayerCard />
+            <div key={i} style={{ transform: `scale(${isUser ? (isMobile ? 1.5 : 1.86) : (isMobile ? 0.5 : 0.62)})`, transformOrigin: 'top center' }}>
+              <Card card={card} delay={0.2 + 0.2 * i} index={i} isPlayerCard onReveal={playCardRevealSound} />
             </div>
           ))}
         </div>

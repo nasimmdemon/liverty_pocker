@@ -45,9 +45,9 @@ const SitAndGoScreen = ({ onJoinTable, onBack }: SitAndGoScreenProps) => {
       <div className="absolute inset-0 bg-black/60" />
 
       {/* Top bar */}
-      <div className="relative z-10 w-full flex justify-between items-start px-6 py-5">
+      <div className="relative z-10 w-full flex justify-between items-start px-3 sm:px-6 py-3 sm:py-5 gap-2">
         <motion.button
-          className="casino-btn text-xs px-4 py-2 leading-tight text-center"
+          className="casino-btn text-[10px] sm:text-xs px-2 sm:px-4 py-1.5 sm:py-2 leading-tight text-center shrink-0"
           onClick={onBack}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -56,7 +56,7 @@ const SitAndGoScreen = ({ onJoinTable, onBack }: SitAndGoScreenProps) => {
         </motion.button>
 
         <motion.h1
-          className="text-4xl md:text-5xl lg:text-6xl tracking-[0.15em] text-center"
+          className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl tracking-[0.1em] sm:tracking-[0.15em] text-center flex-1 min-w-0"
           style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
           initial={{ y: -30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -66,7 +66,7 @@ const SitAndGoScreen = ({ onJoinTable, onBack }: SitAndGoScreenProps) => {
         </motion.h1>
 
         <motion.button
-          className="casino-btn text-xs px-4 py-2 leading-tight text-center"
+          className="casino-btn text-[10px] sm:text-xs px-2 sm:px-4 py-1.5 sm:py-2 leading-tight text-center shrink-0"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
@@ -76,13 +76,13 @@ const SitAndGoScreen = ({ onJoinTable, onBack }: SitAndGoScreenProps) => {
 
       {/* Funds */}
       <motion.div
-        className="relative z-10 mt-2"
+        className="relative z-10 mt-1 sm:mt-2"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
       >
         <span
-          className="text-2xl md:text-3xl tracking-wider"
+          className="text-xl sm:text-2xl md:text-3xl tracking-wider"
           style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
         >
           FUNDS: {funds} $
@@ -90,27 +90,27 @@ const SitAndGoScreen = ({ onJoinTable, onBack }: SitAndGoScreenProps) => {
       </motion.div>
 
       {/* Divider */}
-      <div className="relative z-10 w-[60%] max-w-md h-px bg-primary/30 my-4" />
+      <div className="relative z-10 w-[80%] sm:w-[60%] max-w-md h-px bg-primary/30 my-2 sm:my-4" />
 
       {/* Stake Options */}
       <motion.div
-        className="relative z-10 flex flex-col items-center gap-3"
+        className="relative z-10 flex flex-col items-center gap-2 sm:gap-3 px-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
       >
         <h2
-          className="text-2xl md:text-3xl tracking-wider mb-2"
+          className="text-xl sm:text-2xl md:text-3xl tracking-wider mb-1 sm:mb-2"
           style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
         >
           STAKE OPTIONS
         </h2>
 
-        <div className="flex flex-wrap justify-center gap-3">
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
           {STAKE_OPTIONS.map((stake, i) => (
             <motion.button
               key={i}
-              className={`relative px-5 py-3 rounded-full text-sm font-bold tracking-wide transition-all duration-200 border-2 ${
+              className={`relative px-3 sm:px-5 py-2 sm:py-3 rounded-full text-xs sm:text-sm font-bold tracking-wide transition-all duration-200 border-2 ${
                 selectedStake === i
                   ? 'border-primary shadow-[0_0_20px_hsl(var(--casino-gold)/0.5)]'
                   : 'border-primary/40 hover:border-primary/70'
@@ -141,23 +141,23 @@ const SitAndGoScreen = ({ onJoinTable, onBack }: SitAndGoScreenProps) => {
       </motion.div>
 
       {/* Divider */}
-      <div className="relative z-10 w-[60%] max-w-md h-px bg-primary/30 my-5" />
+      <div className="relative z-10 w-[80%] sm:w-[60%] max-w-md h-px bg-primary/30 my-3 sm:my-5" />
 
       {/* Entrance Amount */}
       <motion.div
-        className="relative z-10 flex flex-col items-center gap-4 w-[80%] max-w-sm"
+        className="relative z-10 flex flex-col items-center gap-2 sm:gap-4 w-[95%] sm:w-[80%] max-w-sm px-2"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
       >
         <h2
-          className="text-2xl md:text-3xl tracking-wider"
+          className="text-xl sm:text-2xl md:text-3xl tracking-wider"
           style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
         >
           ENTRANCE AMOUNT
         </h2>
 
-        <div className="w-full flex items-center gap-4">
+        <div className="w-full flex items-center gap-2 sm:gap-4">
           <span className="text-muted-foreground text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
             Min ${minEntrance.toLocaleString()}
           </span>
@@ -179,7 +179,7 @@ const SitAndGoScreen = ({ onJoinTable, onBack }: SitAndGoScreenProps) => {
         </div>
 
         <span
-          className="text-3xl tracking-wider"
+          className="text-2xl sm:text-3xl tracking-wider"
           style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
         >
           ${entranceAmount.toLocaleString()}
@@ -188,7 +188,7 @@ const SitAndGoScreen = ({ onJoinTable, onBack }: SitAndGoScreenProps) => {
 
       {/* Join Table Button */}
       <motion.button
-        className="relative z-10 mt-8 group"
+        className="relative z-10 mt-4 sm:mt-8 group"
         onClick={handleJoin}
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -199,7 +199,7 @@ const SitAndGoScreen = ({ onJoinTable, onBack }: SitAndGoScreenProps) => {
         <img
           src={joinTableChip}
           alt="Join Table"
-          className="w-32 h-32 md:w-40 md:h-40 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] group-hover:drop-shadow-[0_8px_32px_hsl(var(--casino-gold)/0.4)] transition-all duration-300"
+          className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] group-hover:drop-shadow-[0_8px_32px_hsl(var(--casino-gold)/0.4)] transition-all duration-300"
         />
       </motion.button>
     </motion.div>

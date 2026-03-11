@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import pokerChip from '@/assets/poker-chip.png';
+import ChipIcon from './ChipIcon';
 
 interface ChipBet {
   id: string;
@@ -31,7 +31,7 @@ const ChipAnimation = ({ bets, onComplete }: ChipAnimationProps) => {
           transition={{ duration: 0.7, ease: 'easeInOut' }}
           onAnimationComplete={() => onComplete?.(bet.id)}
         >
-          <img src={pokerChip} alt="" className="w-14 h-14 drop-shadow-lg" />
+          <ChipIcon size={56} />
           <span
             className="text-xs font-bold text-primary drop-shadow-md"
             style={{ fontFamily: "'Bebas Neue', sans-serif" }}

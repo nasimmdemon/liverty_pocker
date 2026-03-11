@@ -8,7 +8,7 @@ const PlayButton = ({ onClick }: PlayButtonProps) => {
   return (
     <motion.button
       onClick={onClick}
-      className="relative px-16 py-6 text-4xl md:text-5xl font-display tracking-wider uppercase rounded-2xl border-3 cursor-pointer select-none"
+      className="relative px-8 sm:px-12 md:px-16 py-4 sm:py-5 md:py-6 text-2xl sm:text-4xl md:text-5xl font-display tracking-wider uppercase rounded-xl sm:rounded-2xl cursor-pointer select-none"
       style={{
         fontFamily: "'Bebas Neue', 'Cinzel', serif",
         background: 'linear-gradient(180deg, #C0392B 0%, #8B1A1A 50%, #6B1010 100%)',

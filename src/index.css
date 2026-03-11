@@ -96,6 +96,29 @@
     opacity: 0.5;
     pointer-events: none;
   }
+  /* Mobile action buttons — larger tap targets, cleaner hierarchy */
+  .casino-btn-mobile {
+    @apply min-h-[48px] px-5 py-3 rounded-2xl font-bold text-base uppercase tracking-wider transition-all duration-200 active:scale-[0.98];
+    background: linear-gradient(180deg, hsl(var(--casino-red)) 0%, hsl(0 50% 28%) 100%);
+    border: 2px solid hsl(var(--casino-gold) / 0.8);
+    color: hsl(var(--casino-gold));
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+  .casino-btn-mobile:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .casino-btn-mobile-gold {
+    @apply min-h-[48px] px-5 py-3 rounded-2xl font-bold text-base uppercase tracking-wider transition-all duration-200 active:scale-[0.98];
+    background: linear-gradient(180deg, hsl(var(--casino-gold)) 0%, hsl(40 60% 32%) 100%);
+    border: 2px solid hsl(40 80% 55%);
+    color: hsl(0 0% 5%);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  .casino-btn-mobile-gold:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
   .glow-gold {
     box-shadow: 0 0 20px hsl(var(--casino-gold) / 0.5), 0 0 40px hsl(var(--casino-gold) / 0.2);
   }
@@ -106,8 +129,8 @@
 
   /* Poker table — premium oval with carved wood rail & LED lighting */
   .poker-table-felt {
-    width: min(86vw, 1080px);
-    height: min(52vh, 520px);
+    width: min(92vw, 1280px);
+    height: min(58vh, 640px);
     border-radius: 50%;
     position: relative;
     overflow: visible;
@@ -225,13 +248,12 @@
     }
   }
 
-  /* player-position-zone = circle border; player avatar is a direct child inside it */
+  /* player-position-zone = circle border same size as avatar (no extra padding) */
   .player-position-zone {
-    /* Positioning: centered on the anchor coordinate */
-    width: 72px;
-    height: 72px;
+    /* Base: other players 92/120; user override 112/144 */
+    width: 92px;
+    height: 92px;
     transform: translate(-50%, -50%);
-    /* Circle styling */
     border-radius: 50%;
     border: 2px solid hsl(var(--casino-gold) / 0.55);
     background: radial-gradient(circle at center, hsl(120 25% 20% / 0.45) 0%, transparent 70%);
@@ -239,39 +261,30 @@
       inset 0 0 16px rgba(0, 0, 0, 0.35),
       0 0 10px hsl(var(--casino-gold) / 0.18),
       0 0 22px hsl(var(--casino-gold) / 0.08);
-    /* Allow name plates and cards to overflow */
     overflow: visible;
     z-index: 10;
   }
 
+  .player-position-zone[data-is-user="true"] {
+    width: 112px;
+    height: 112px;
+  }
+
   @media (min-width: 768px) {
     .player-position-zone {
-      width: 88px;
-      height: 88px;
+      width: 120px;
+      height: 120px;
       border-width: 2.5px;
     }
-  }
-
-  /* Community cards zone — horizontal rectangle */
-  .cards-position-zone {
-    position: absolute;
-    width: 280px;
-    height: 88px;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    border-radius: 12px;
-    border: 2px solid hsl(var(--casino-gold) / 0.45);
-    background: linear-gradient(180deg, hsl(120 22% 18% / 0.5) 0%, hsl(120 20% 14% / 0.6) 100%);
-    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.35), 0 0 15px hsl(var(--casino-gold) / 0.1);
-    pointer-events: none;
-  }
-
-  @media (max-width: 767px) {
-    .cards-position-zone {
-      width: 220px;
-      height: 72px;
+    .player-position-zone[data-is-user="true"] {
+      width: 144px;
+      height: 144px;
     }
+  }
+
+  /* Community cards — clean floating design, cards rest naturally on felt */
+  .community-cards-area {
+    pointer-events: none;
   }
 
   /* Dealer position indicator zone (small circle) */
@@ -309,8 +322,8 @@
   /* Small desktop */
   @media (min-width: 768px) and (max-width: 1024px) {
     .poker-table-felt {
-      width: 88vw !important;
-      height: 50vh !important;
+      width: 92vw !important;
+      height: 56vh !important;
     }
   }
 }

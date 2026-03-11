@@ -33,15 +33,15 @@ const StartScreen = ({ onPlay }: StartScreenProps) => {
       <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/70" />
 
       {/* Top bar */}
-      <div className="absolute top-0 left-0 right-0 flex justify-between items-start px-6 py-5 z-10">
+      <div className="absolute top-0 left-0 right-0 flex justify-between items-start px-4 sm:px-6 py-3 sm:py-5 z-10">
         <h1
-          className="text-2xl md:text-3xl tracking-wider"
+          className="text-lg sm:text-2xl md:text-3xl tracking-wider"
           style={{ fontFamily: "'Bebas Neue', 'Cinzel', serif", color: '#F2D27A' }}
         >
           LIBERTY POKER
         </h1>
         <span
-          className="text-xl md:text-2xl tracking-wider"
+          className="text-base sm:text-xl md:text-2xl tracking-wider"
           style={{ fontFamily: "'Bebas Neue', 'Cinzel', serif", color: '#F2D27A' }}
         >
           FUNDS: 999$
@@ -49,9 +49,9 @@ const StartScreen = ({ onPlay }: StartScreenProps) => {
       </div>
 
       {/* Center content */}
-      <div className="relative z-10 flex flex-col items-center gap-8 mt-16">
+      <div className="relative z-10 flex flex-col items-center gap-6 sm:gap-8 mt-12 sm:mt-16 px-4">
         <motion.h2
-          className="text-3xl md:text-4xl lg:text-5xl tracking-[0.2em] text-center"
+          className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl tracking-[0.15em] sm:tracking-[0.2em] text-center"
           style={{ fontFamily: "'Bebas Neue', 'Cinzel', serif", color: '#F2D27A', textShadow: '0 3px 10px rgba(0,0,0,0.7)' }}
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -70,11 +70,11 @@ const StartScreen = ({ onPlay }: StartScreenProps) => {
       </div>
 
       {/* Bottom icons row */}
-      <div className="absolute bottom-6 right-6 flex items-center gap-3 z-10">
+      <div className="absolute bottom-4 sm:bottom-6 right-4 sm:right-6 flex items-center gap-2 sm:gap-3 z-10">
         {['◁', 'ⓘ', '☺', '⚙', '⇥'].map((icon, i) => (
           <button
             key={i}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-lg opacity-60 hover:opacity-100 transition-opacity"
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-base sm:text-lg opacity-60 hover:opacity-100 transition-opacity"
             style={{ color: '#F2D27A', border: '1px solid rgba(242, 210, 122, 0.3)' }}
           >
             {icon}

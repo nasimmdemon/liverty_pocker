@@ -19,8 +19,10 @@ import PotDisplay from './PotDisplay';
 import ActionButtons from './ActionButtons';
 import PlayerPopup from './PlayerPopup';
 import ChipAnimation, { type ChipBet } from './ChipAnimation';
-import TipDealer from './TipDealer';
+import WinChipAnimation from './WinChipAnimation';
+import { BOT_CHAT_MESSAGES } from './GameChat';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { playFoldSound, playWinSound, playCardRevealSound } from '@/lib/sounds';
 
 // 6-player positions — zones and seats use IDENTICAL positions so avatars sit inside circles
 const SEAT_POSITIONS_DESKTOP = [
@@ -76,7 +78,25 @@ const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProp
     setTimer(TURN_DURATION);
   }, [initialBuyIn]);
 
-  const triggerChipAnimation = useCallback((playerIndex: number) => {
+  const chipsAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playChipsSound = useCallback(() => {
+    try {
+      const audio = new Audio('/chips_sound_effect.mp3');
+      audio.volume = 0.8;
+      audio.play().catch(() => {});
+    } catch (_) {}
+  }, []);
+
+  useEffect(() => {
+    const audio = new Audio('/chips_sound_effect.mp3');
+    audio.preload = 'auto';
+    audio.load();
+  }, []);
+
+  const triggerChipAnimation = useCallback((playerIndex: number, amount: number) => {
+    playChipsSound();
+
     const seatEl = document.querySelector(`[data-seat-index="${playerIndex}"]`);
     const potEl = document.querySelector('[data-pot-display]');
     if (seatEl && potEl) {
@@ -85,11 +105,11 @@ const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProp
         id: `${Date.now()}-${playerIndex}`,
         fromX: seatRect.left + seatRect.width / 2 - 28,
         fromY: seatRect.top + seatRect.height / 2,
-        amount: 0,
+        amount,
       };
       setChipBets(prev => [...prev, bet]);
     }
-  }, []);
+  }, [playChipsSound]);
 
   const handleChipAnimComplete = useCallback((id: string) => {
     setChipBets(prev => prev.filter(b => b.id !== id));
@@ -109,6 +129,41 @@ const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProp
       return s;
     }
     return { ...state, currentPlayerIndex: nextIdx };
+  }, []);
+
+  const [chatBubbles, setChatBubbles] = useState<Record<number, { id: number; text: string; playerName: string }>>({});
+  const chatBubbleTimeoutsRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+  const gameStateRef = useRef<GameState | null>(null);
+  const prevGameStateRef = useRef<GameState | null>(null);
+  const chatBubbleIdRef = useRef(0);
+  gameStateRef.current = gameState;
+
+  const [winAnimation, setWinAnimation] = useState<{ winnerSeatIndex: number; amount: number } | null>(null);
+
+  useEffect(() => {
+    if (gameState?.showdown && gameState.winnerId !== null && prevGameStateRef.current && !prevGameStateRef.current.showdown) {
+      const winnerSeatIndex = gameState.players.findIndex(p => p.id === gameState.winnerId);
+      if (winnerSeatIndex >= 0 && prevGameStateRef.current.pot > 0) {
+        setWinAnimation({ winnerSeatIndex, amount: prevGameStateRef.current.pot });
+        playWinSound();
+      }
+    }
+    prevGameStateRef.current = gameState ?? null;
+  }, [gameState]);
+
+  const showChatBubble = useCallback((playerId: number, text: string, playerName: string) => {
+    chatBubbleIdRef.current += 1;
+    const id = chatBubbleIdRef.current;
+    setChatBubbles(prev => ({ ...prev, [playerId]: { id, text, playerName } }));
+    if (chatBubbleTimeoutsRef.current[playerId]) clearTimeout(chatBubbleTimeoutsRef.current[playerId]);
+    chatBubbleTimeoutsRef.current[playerId] = setTimeout(() => {
+      setChatBubbles(prev => {
+        const next = { ...prev };
+        delete next[playerId];
+        return next;
+      });
+      delete chatBubbleTimeoutsRef.current[playerId];
+    }, 5000);
   }, []);
 
   useEffect(() => {
@@ -139,14 +194,22 @@ const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProp
       botTimeoutRef.current = setTimeout(() => {
         setGameState(prev => {
           if (!prev) return prev;
-          const { state: afterBot } = simulateBotAction(prev);
+          const { state: afterBot, action: botAction } = simulateBotAction(prev);
+          if (botAction === 'fold') playFoldSound();
           const betAmount = afterBot.players[prev.currentPlayerIndex].currentBet - prev.players[prev.currentPlayerIndex].currentBet;
-          if (betAmount > 0) triggerChipAnimation(prev.currentPlayerIndex);
+          if (betAmount > 0) triggerChipAnimation(prev.currentPlayerIndex, betAmount);
+          // Randomly show bot chat bubble (~20% chance)
+          if (Math.random() < 0.2) {
+            const bot = prev.players[prev.currentPlayerIndex];
+            const msg = BOT_CHAT_MESSAGES[Math.floor(Math.random() * BOT_CHAT_MESSAGES.length)];
+            showChatBubble(bot.id, msg, bot.name);
+          }
           return advanceTurn(afterBot);
         });
       }, BOT_DELAY + Math.random() * 1000);
     } else {
       botTimeoutRef.current = setTimeout(() => {
+        playFoldSound();
         setGameState(prev => {
           if (!prev) return prev;
           return advanceTurn(playerAction(prev, prev.currentPlayerIndex, 'fold'));
@@ -158,35 +221,26 @@ const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProp
       if (timerRef.current) clearInterval(timerRef.current);
       if (botTimeoutRef.current) clearTimeout(botTimeoutRef.current);
     };
-  }, [gameState?.currentPlayerIndex, gameState?.phase, gameState?.showdown, gameState?.roundNumber, advanceTurn, triggerChipAnimation]);
+  }, [gameState?.currentPlayerIndex, gameState?.phase, gameState?.showdown, gameState?.roundNumber, advanceTurn, triggerChipAnimation, showChatBubble]);
 
   const handleUserAction = useCallback((action: 'fold' | 'check' | 'call' | 'bet' | 'raise' | 'all-in', amount?: number) => {
+    if (action === 'fold') playFoldSound();
     setGameState(prev => {
       if (!prev) return prev;
       const current = prev.players[prev.currentPlayerIndex];
       if (!current?.isUser) return prev;
       const afterAction = playerAction(prev, prev.currentPlayerIndex, action, amount);
       const betAmount = afterAction.players[prev.currentPlayerIndex].currentBet - prev.players[prev.currentPlayerIndex].currentBet;
-      if (betAmount > 0) triggerChipAnimation(prev.currentPlayerIndex);
+      if (betAmount > 0) triggerChipAnimation(prev.currentPlayerIndex, betAmount);
       return advanceTurn(afterAction);
     });
   }, [advanceTurn, triggerChipAnimation]);
 
-  const handleTipDealer = useCallback((amount: number) => {
-    setGameState(prev => {
-      if (!prev) return prev;
-      const userIdx = prev.players.findIndex(p => p.isUser);
-      if (userIdx === -1) return prev;
-      const user = prev.players[userIdx];
-      if (user.chips < amount) return prev;
-      return {
-        ...prev,
-        players: prev.players.map((p, i) =>
-          i === userIdx ? { ...p, chips: p.chips - amount } : p
-        ),
-      };
-    });
-  }, []);
+  const handleSendMessage = useCallback((text: string) => {
+    const state = gameStateRef.current;
+    const userPlayer = state?.players.find(p => p.isUser);
+    if (userPlayer) showChatBubble(userPlayer.id, text, userPlayer.name);
+  }, [showChatBubble]);
 
   if (!gameState) return null;
 
@@ -242,7 +296,7 @@ const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProp
       </div>
 
       {/* Table area — centered with padding for seats that overflow */}
-      <div className="absolute inset-0 flex items-center justify-center" style={{ paddingBottom: isMobile ? '80px' : '90px', paddingTop: isMobile ? '55px' : '60px' }}>
+      <div className="absolute inset-0 flex items-center justify-center" style={{ paddingBottom: isMobile ? '110px' : '90px', paddingTop: isMobile ? '55px' : '60px' }}>
         <div
           ref={tableRef}
           className="poker-table-felt relative"
@@ -251,30 +305,22 @@ const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProp
           <div className="poker-table-inner" />
 
 
-          {/* Community cards zone — horizontal rectangle border */}
-          <div className="cards-position-zone absolute z-[1]" />
-
-          {/* Dedicated dealer space + clear tip button */}
-          <div className="dealer-station absolute z-30">
-            <span className="dealer-station-label">Dealer</span>
-            <TipDealer
-              chipCount={userPlayer?.chips ?? 0}
-              onTip={handleTipDealer}
-              isMobile={isMobile}
-              displayMode="button"
-            />
+          {/* Community cards — floating on felt with subtle shadow */}
+          <div className="community-cards-area absolute top-[42%] left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1.5 sm:gap-2">
+            {gameState.communityCards.map((card, i) => (
+              <Card
+                key={`${gameState.roundNumber}-${i}-${card.faceUp}`}
+                card={card}
+                delay={0.25 * i}
+                index={i}
+                onReveal={playCardRevealSound}
+              />
+            ))}
           </div>
 
           {/* Pot zone — above cards */}
           <div className="absolute top-[26%] left-1/2 -translate-x-1/2 z-20" data-pot-display>
             <PotDisplay pot={gameState.pot} />
-          </div>
-
-          {/* Community Cards — inside the rectangle zone */}
-          <div className="absolute top-[42%] left-1/2 -translate-x-1/2 flex gap-1 sm:gap-1.5 z-20">
-            {gameState.communityCards.map((card, i) => (
-              <Card key={`${gameState.roundNumber}-${i}`} card={card} delay={0.15 * i} index={i} />
-            ))}
           </div>
 
           {/* Winner announcement: between pot and cards */}
@@ -297,6 +343,13 @@ const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProp
             )}
           </AnimatePresence>
 
+          {/* Win chip animation - inside table so chips fly BEHIND player avatars (z-5 < z-10) */}
+          <WinChipAnimation
+            winnerSeatIndex={winAnimation?.winnerSeatIndex ?? null}
+            amount={winAnimation?.amount ?? 0}
+            onComplete={() => setWinAnimation(null)}
+          />
+
           {/* player-position-zone = circle border; avatar goes INSIDE it */}
           {seatPositions.map((pos, i) => {
             const player = playersWithTurn[i];
@@ -307,6 +360,7 @@ const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProp
                 className="player-position-zone absolute"
                 style={{ top: pos.top, left: pos.left }}
                 data-player-zone={i}
+                data-is-user={player.isUser ? 'true' : undefined}
               >
                 <PlayerSeat
                   player={player}
@@ -316,6 +370,7 @@ const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProp
                   isDealer={i === gameState.dealerIndex}
                   isWinner={gameState.showdown && player.id === gameState.winnerId}
                   isMobile={isMobile}
+                  chatBubble={chatBubbles[player.id] ?? null}
                 />
               </div>
             );
@@ -335,6 +390,7 @@ const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProp
         onBet={() => handleUserAction('bet', gameState.bigBlind)}
         onRaise={() => handleUserAction('raise', getMinRaiseTotal(gameState))}
         onAllIn={() => handleUserAction('all-in')}
+        onSendMessage={handleSendMessage}
         disabled={!isUserTurn}
         callAmount={callAmount}
         canCheck={canCheck}

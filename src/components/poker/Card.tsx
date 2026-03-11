@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useEffect } from 'react';
 import { PlayingCard as CardType } from '@/lib/gameTypes';
 import { isRedSuit } from '@/lib/gameLogic';
 
@@ -7,6 +8,7 @@ interface CardProps {
   delay?: number;
   index?: number;
   isPlayerCard?: boolean;
+  onReveal?: () => void;
 }
 
 const SUIT_SYMBOLS: Record<string, string> = {
@@ -16,7 +18,15 @@ const SUIT_SYMBOLS: Record<string, string> = {
   '♣': '♣',
 };
 
-const Card = ({ card, delay = 0, isPlayerCard = false }: CardProps) => {
+const Card = ({ card, delay = 0, isPlayerCard = false, onReveal }: CardProps) => {
+  // Play reveal sound when card flips to face-up (at animation start)
+  useEffect(() => {
+    if (card.faceUp && onReveal) {
+      const t = setTimeout(() => onReveal(), delay * 1000);
+      return () => clearTimeout(t);
+    }
+  }, [card.faceUp, delay, onReveal]);
+
   if (!card.faceUp) {
     return (
       <motion.div
@@ -42,10 +52,10 @@ const Card = ({ card, delay = 0, isPlayerCard = false }: CardProps) => {
   const colorClass = red ? 'text-red-600' : 'text-gray-900';
   const suit = SUIT_SYMBOLS[card.suit] || card.suit;
 
-  // Community cards get a dramatic spin; player cards get a simpler flip
+  // Community cards: flip one by one; player cards: deal flip
   const initialAnim = isPlayerCard
-    ? { rotateY: 180, scale: 0.5, opacity: 0 }
-    : { rotateY: 180, rotateZ: 90, scale: 0.3, opacity: 0 };
+    ? { rotateY: 180, scale: 0.3, opacity: 0 }
+    : { rotateY: 180, scale: 0.2, opacity: 0 };
   
   const animateAnim = { rotateY: 0, rotateZ: 0, scale: 1, opacity: 1 };
 
@@ -53,7 +63,7 @@ const Card = ({ card, delay = 0, isPlayerCard = false }: CardProps) => {
     <motion.div
       initial={initialAnim}
       animate={animateAnim}
-      transition={{ delay, duration: 0.8, type: 'spring', stiffness: 100, damping: 12 }}
+      transition={{ delay, duration: 0.6, type: 'spring', stiffness: 120, damping: 14 }}
       className="w-10 h-[56px] sm:w-[48px] sm:h-[66px] rounded-lg border border-gray-300 relative overflow-hidden select-none"
       style={{
         background: 'linear-gradient(180deg, #fefefe 0%, #f0ebe0 40%, #e8e0d0 100%)',
