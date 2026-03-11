@@ -1,5 +1,6 @@
 import { GameState, Player, PlayingCard, Suit, Rank, GamePhase } from './gameTypes';
 import { determineWinners } from './handEvaluator';
+import { calculateRake } from './rake';
 import avatar1 from '@/assets/avatar-1.png';
 import avatar2 from '@/assets/avatar-2.png';
 import avatar3 from '@/assets/avatar-3.png';
