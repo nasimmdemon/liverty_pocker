@@ -23,8 +23,8 @@ const TIERS: TierData[] = [
   {
     key: 'human', label: 'HUMAN', emoji: '🧑',
     tournamentEntrance: '11%', organizerProfit: 0, affiliateShare: 30,
-    sitAndGoOptions: ['0.01-0.02', '0.02-0.04', '0.04-0.08', '0.08-0.16'],
-    tournamentOptions: ['$0.15', '$0.30', '$0.60', '$1.20'],
+    sitAndGoOptions: ['FREE 0.01-0.02', '0.02-0.04', '0.04-0.08', '0.08-0.16'],
+    tournamentOptions: ['FREE $0.15', '$0.30', '$0.60', '$1.20'],
     color: '200 60% 50%',
   },
   {
