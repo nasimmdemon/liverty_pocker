@@ -22,6 +22,7 @@ export interface Player {
   isAllIn: boolean;
   currentBet: number;
   totalRoundBet: number;
+  totalHandBet: number; // Total contributed this hand (for side pots)
   status: PlayerStatus;
   rank?: string;
   netWorth?: number;

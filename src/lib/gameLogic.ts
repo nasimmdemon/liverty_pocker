@@ -42,6 +42,7 @@ export function createInitialGameState(buyIn: number = 1500): GameState {
     isAllIn: false,
     currentBet: 0,
     totalRoundBet: 0,
+    totalHandBet: 0,
     status: 'active',
     rank: RANKS_LIST[i],
     netWorth: Math.round(50 + Math.random() * 200),
@@ -97,7 +98,7 @@ export function startNewRound(state: GameState): GameState {
   let cardIndex = 0;
   const players = state.players.map((p, i) => {
     if (!p.isActive || p.chips <= 0) {
-      return { ...p, cards: [], hasFolded: true, isAllIn: false, currentBet: 0, totalRoundBet: 0, status: 'sitting-out' as const, lastAction: undefined, isTurn: false };
+      return { ...p, cards: [], hasFolded: true, isAllIn: false, currentBet: 0, totalRoundBet: 0, totalHandBet: 0, status: 'sitting-out' as const, lastAction: undefined, isTurn: false };
     }
     const cards: PlayingCard[] = [
       { ...deck[cardIndex++], faceUp: p.isUser },
@@ -128,6 +129,7 @@ export function startNewRound(state: GameState): GameState {
       chips,
       currentBet,
       totalRoundBet: currentBet,
+      totalHandBet: 0, // Accumulated in advancePhase before each new street
       hasFolded: false,
       isAllIn,
       isTurn: false,
@@ -200,10 +202,11 @@ export function advancePhase(state: GameState): GameState {
     return c;
   });
 
-  // Reset bets for new betting round (flop/turn/river)
+  // Reset bets for new betting round (flop/turn/river); accumulate totalHandBet for side pots
   const players = state.players.map(p => ({
     ...p,
     currentBet: 0,
+    totalHandBet: (p.totalHandBet ?? 0) + p.totalRoundBet,
     totalRoundBet: 0,
   }));
 
@@ -228,6 +231,33 @@ export function advancePhase(state: GameState): GameState {
   };
 }
 
+/** Build main pot + side pots. Each pot: { amount, eligiblePlayerIds }.
+ * Eligible = players who contributed to that pot and didn't fold.
+ * When a big stack all-in beats a short stack, the short stack wins main pot;
+ * the big stack gets their uncalled portion back (wins the side pot they're alone in). */
+function buildSidePots(players: Player[]): { amount: number; eligibleIds: number[] }[] {
+  const inHand = players.filter(p => p.isActive && !p.hasFolded);
+  if (inHand.length === 0) return [];
+
+  const totalBet = (p: Player) => (p.totalHandBet ?? 0) + p.totalRoundBet;
+  const levels = [...new Set(inHand.map(totalBet))].sort((a, b) => a - b);
+  const pots: { amount: number; eligibleIds: number[] }[] = [];
+  let prevLevel = 0;
+
+  for (const level of levels) {
+    const contributed = players.filter(p => totalBet(p) >= level && p.isActive && !p.hasFolded);
+    if (contributed.length === 0) continue;
+    const amount = (level - prevLevel) * contributed.length;
+    if (amount <= 0) continue;
+    pots.push({
+      amount,
+      eligibleIds: contributed.map(p => p.id),
+    });
+    prevLevel = level;
+  }
+  return pots;
+}
+
 function handleShowdown(state: GameState): GameState {
   const visibleCommunity = state.communityCards.map(c => ({ ...c, faceUp: true }));
   // Reveal all remaining players' cards
@@ -236,33 +266,56 @@ function handleShowdown(state: GameState): GameState {
     return { ...p, cards: p.cards.map(c => ({ ...c, faceUp: true })) };
   });
 
-  const winners = determineWinners(players, visibleCommunity);
-  if (winners.length === 0) return { ...state, players, communityCards: visibleCommunity, showdown: true };
+  const inHand = players.filter(p => p.isActive && !p.hasFolded && p.cards.length === 2);
+  if (inHand.length === 0) return { ...state, players, communityCards: visibleCommunity, showdown: true };
 
-  // Split pot: divide evenly, odd chips go to first winner (closest to dealer)
-  const potPerWinner = Math.floor(state.pot / winners.length);
-  const remainder = state.pot - potPerWinner * winners.length;
-  const winnerIdSet = new Set(winners.map(w => w.winnerId));
-  const winnerIds = winners.map(w => w.winnerId);
+  const pots = buildSidePots(players);
+  if (pots.length === 0) return { ...state, players, communityCards: visibleCommunity, showdown: true };
+
+  const chipGains = new Map<number, number>();
+  for (const p of players) chipGains.set(p.id, 0);
+
+  let primaryWinnerId: number | null = null;
+  const winnerIds: number[] = [];
+  let winnerHandDescription = '';
+
+  for (const pot of pots) {
+    const eligible = players.filter(p => pot.eligibleIds.includes(p.id) && !p.hasFolded && p.cards.length === 2);
+    if (eligible.length === 0) continue;
+
+    const potWinners = determineWinners(eligible, visibleCommunity);
+    if (potWinners.length === 0) continue;
+
+    if (!winnerHandDescription) winnerHandDescription = potWinners[0].hand.description;
+
+    const potPerWinner = Math.floor(pot.amount / potWinners.length);
+    const remainder = pot.amount - potPerWinner * potWinners.length;
+
+    for (let i = 0; i < potWinners.length; i++) {
+      const wid = potWinners[i].winnerId;
+      const extra = i < remainder ? 1 : 0;
+      chipGains.set(wid, (chipGains.get(wid) ?? 0) + potPerWinner + extra);
+      if (!primaryWinnerId) primaryWinnerId = wid;
+      if (!winnerIds.includes(wid)) winnerIds.push(wid);
+    }
+  }
 
   const finalPlayers = players.map(p => {
-    if (!winnerIdSet.has(p.id)) return p;
-    // First winner (by index in winners array) gets extra chip(s) if remainder
-    const winnerIndex = winners.findIndex(w => w.winnerId === p.id);
-    const extraChips = winnerIndex < remainder ? 1 : 0;
-    return { ...p, chips: p.chips + potPerWinner + extraChips, lastAction: '🏆 WINNER' };
+    const gain = chipGains.get(p.id) ?? 0;
+    if (gain <= 0) return p;
+    return { ...p, chips: p.chips + gain, lastAction: '🏆 WINNER' };
   });
 
-  const desc = winners.length > 1
-    ? `Split pot (${winners.length} winners)`
-    : winners[0].hand.description;
+  const desc = winnerIds.length > 1
+    ? `Split pot (${winnerIds.length} winners)`
+    : winnerHandDescription || 'Winner';
 
   return {
     ...state,
     players: finalPlayers,
     communityCards: visibleCommunity,
-    winnerId: winners[0].winnerId,
-    winnerIds,
+    winnerId: primaryWinnerId ?? winnerIds[0] ?? null,
+    winnerIds: winnerIds.length > 0 ? winnerIds : (primaryWinnerId ? [primaryWinnerId] : []),
     winnerHandDescription: desc,
     showdown: true,
     pot: 0,
