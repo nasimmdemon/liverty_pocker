@@ -149,29 +149,37 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
         />
       ))}
 
-      <div className="relative z-10 flex flex-col items-center gap-2 sm:gap-3 mb-[3vh] sm:mb-[5vh] w-full px-3 sm:px-8 max-w-xl">
-        {/* Did you know tip */}
-        <AnimatePresence>
-          {showTip && (
-            <motion.div
-              className="w-full max-w-md px-4 py-2 rounded-lg border border-primary/20 text-center"
-              style={{
-                background: 'hsl(0 0% 8% / 0.7)',
-                backdropFilter: 'blur(6px)',
-              }}
-              initial={{ opacity: 0, y: -20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+      {/* Fixed-height tip carousel at top */}
+      <div className="relative z-10 w-full px-3 sm:px-8 max-w-xl mt-auto">
+        <div
+          className="w-full max-w-md mx-auto px-4 py-2 rounded-lg border border-primary/20 text-center h-14 sm:h-12 flex flex-col items-center justify-center overflow-hidden"
+          style={{
+            background: 'hsl(0 0% 8% / 0.7)',
+            backdropFilter: 'blur(6px)',
+          }}
+        >
+          <span
+            className="text-[10px] sm:text-xs tracking-wider block mb-0.5"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
+          >
+            💡 DID YOU KNOW?
+          </span>
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={currentTip}
+              className="text-muted-foreground text-[9px] sm:text-[11px] block"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.35 }}
             >
-              <span
-                className="text-[10px] sm:text-xs tracking-wider block mb-0.5"
-                style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
-              >
-                💡 DID YOU KNOW?
-              </span>
-              <span className="text-muted-foreground text-[9px] sm:text-[11px]">
-                {DID_YOU_KNOW[tipIndex]}
+              {DID_YOU_KNOW[currentTip]}
+            </motion.span>
+          </AnimatePresence>
+        </div>
+      </div>
+
+      <div className="relative z-10 flex flex-col items-center gap-2 sm:gap-3 mb-[3vh] sm:mb-[5vh] w-full px-3 sm:px-8 max-w-xl mt-2">
               </span>
             </motion.div>
           )}
