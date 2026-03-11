@@ -313,9 +313,9 @@ function handleShowdown(state: GameState): GameState {
     }
   }
 
-  // Apply rake to total winnings
+  // Apply rake to total winnings (5% house rake)
   const totalWinnings = Array.from(chipGains.values()).reduce((a, b) => a + b, 0);
-  const { rakeAmount } = calculateRake(totalWinnings);
+  const { totalRake: rakeAmount } = calculateRake(totalWinnings);
   
   // Distribute rake proportionally from winners
   let rakeRemaining = rakeAmount;
