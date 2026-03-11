@@ -87,18 +87,21 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
   }, [visiblePotSteps, visibleRevenueSteps]);
 
   // Show banner after revenue is done
+  const [showBanner, setShowBanner] = useState(false);
+  const banner = BANNERS[Math.floor(Math.random() * BANNERS.length)];
+
   useEffect(() => {
     if (visibleRevenueSteps < REVENUE_STEPS.length) return;
     const id = setTimeout(() => setShowBanner(true), 600);
     return () => clearTimeout(id);
   }, [visibleRevenueSteps]);
 
-  // Show did-you-know tip early
+  // Cycle tips every 3s
   useEffect(() => {
-    const idx = Math.floor(Math.random() * DID_YOU_KNOW.length);
-    setTipIndex(idx);
-    const id = setTimeout(() => setShowTip(true), 400);
-    return () => clearTimeout(id);
+    const id = setInterval(() => {
+      setCurrentTip(prev => (prev + 1) % DID_YOU_KNOW.length);
+    }, 3000);
+    return () => clearInterval(id);
   }, []);
 
   const bgForRevenue = (type: string) => {
