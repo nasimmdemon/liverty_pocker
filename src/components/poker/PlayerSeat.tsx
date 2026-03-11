@@ -9,6 +9,8 @@ interface PlayerSeatProps {
   onClickAvatar: (player: Player) => void;
   timerProgress?: number;
   isDealer?: boolean;
+  isSmallBlind?: boolean;
+  isBigBlind?: boolean;
   isWinner?: boolean;
   isMobile?: boolean;
   isShowdown?: boolean;
