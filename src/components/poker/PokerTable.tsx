@@ -55,7 +55,7 @@ const SEAT_POSITIONS_MOBILE = [
   { top: '82%', left: '92%' },
 ];
 
-const TURN_DURATION = 30;
+const TURN_DURATION = 10;
 const BOT_DELAY = 1500;
 const SHOWDOWN_DELAY = 4000;
 
