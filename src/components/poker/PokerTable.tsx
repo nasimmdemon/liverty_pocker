@@ -216,8 +216,37 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
     if (timerRef.current) clearInterval(timerRef.current);
 
     if (gameState.showdown) {
+      // Check for eliminated players (0 chips) after showdown
+      const eliminated = gameState.players.filter(p => p.isActive && p.chips <= 0 && !eliminatedPlayer);
+      if (eliminated.length > 0) {
+        // Show elimination dialog for first eliminated player
+        const first = eliminated[0];
+        setTimeout(() => setEliminatedPlayer({ name: first.name, id: first.id, isUser: first.isUser }), 2000);
+      }
+
+      // Check if user is eliminated
+      const user = gameState.players.find(p => p.isUser);
+      if (user && user.chips <= 0 && !eliminatedPlayer) {
+        setTimeout(() => setEliminatedPlayer({ name: user.name, id: user.id, isUser: true }), 2000);
+      }
+
       botTimeoutRef.current = setTimeout(() => {
-        setGameState(prev => prev ? startNewRound(prev) : prev);
+        // Deactivate eliminated players before starting new round
+        setGameState(prev => {
+          if (!prev) return prev;
+          const updated = {
+            ...prev,
+            players: prev.players.map(p =>
+              p.chips <= 0 ? { ...p, isActive: false, status: 'sitting-out' as const } : p
+            ),
+          };
+          // Check if game is over (only 1 active player left)
+          const activePlayers = updated.players.filter(p => p.isActive && p.chips > 0);
+          if (activePlayers.length <= 1) {
+            return updated; // Game over — don't start new round
+          }
+          return startNewRound(updated);
+        });
         setTimer(TURN_DURATION);
       }, SHOWDOWN_DELAY);
       return () => { if (botTimeoutRef.current) clearTimeout(botTimeoutRef.current); };
