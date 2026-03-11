@@ -15,6 +15,7 @@ interface TableConfig {
   turnTimer?: number;
   botCount?: number;
   isTestingTable?: boolean;
+  isPublic?: boolean;
 }
 
 const Index = () => {
