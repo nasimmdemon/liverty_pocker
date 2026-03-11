@@ -382,8 +382,8 @@ export function playerAction(
       const remaining = newPlayers.filter(p => p.isActive && !p.hasFolded);
       if (remaining.length === 1) {
         const winner = remaining[0];
-        // Apply rake even on fold-win
-        const { rakeAmount, netPot } = calculateRake(pot);
+        // Apply 5% house rake even on fold-win
+        const { totalRake: rakeAmount, netPot } = calculateRake(pot);
         newPlayers = newPlayers.map(p => 
           p.id === winner.id 
             ? { ...p, chips: p.chips + netPot, lastAction: '🏆 WINNER' }
