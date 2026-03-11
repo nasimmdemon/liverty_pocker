@@ -42,6 +42,8 @@ export interface GameState {
   phase: GamePhase;
   tableId: string;
   dealerIndex: number;
+  smallBlindIndex: number;
+  bigBlindIndex: number;
   smallBlind: number;
   bigBlind: number;
   currentBet: number; // the current highest bet to match
@@ -55,4 +57,6 @@ export interface GameState {
   bettingRoundComplete: boolean;
   firstActorIndex: number; // first to act in current betting round
   actedCount: number; // how many have acted since last raise
+  rakeAmount: number; // rake taken from pot this round
+  totalRake: number; // total rake accumulated across rounds
 }
