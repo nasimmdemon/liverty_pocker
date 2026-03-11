@@ -382,7 +382,7 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
 
           {/* Pot zone — above cards */}
           <div className="absolute top-[26%] left-1/2 -translate-x-1/2 z-20" data-pot-display>
-            <PotDisplay pot={gameState.pot} />
+            <PotDisplay pot={gameState.pot} rakeAmount={gameState.rakeAmount} />
           </div>
 
           {/* Winner announcement: between pot and cards */}
