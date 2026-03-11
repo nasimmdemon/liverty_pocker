@@ -29,26 +29,30 @@ export function createDeck(): PlayingCard[] {
   return deck;
 }
 
-export function createInitialGameState(buyIn: number = 1500): GameState {
-  const players: Player[] = PLAYER_NAMES.map((name, i) => ({
-    id: i,
-    name,
-    chips: i === 0 ? buyIn : 1000 + Math.floor(Math.random() * 1000),
-    avatar: avatars[i % avatars.length],
-    cards: [],
-    isActive: true,
-    isTurn: false,
-    isUser: i === 0,
-    hasFolded: false,
-    isAllIn: false,
-    currentBet: 0,
-    totalRoundBet: 0,
-    totalHandBet: 0,
-    status: 'active',
-    rank: RANKS_LIST[i],
-    netWorth: Math.round(50 + Math.random() * 200),
-    invitedBy: i > 0 ? PLAYER_NAMES[Math.floor(Math.random() * i)] : undefined,
-  }));
+export function createInitialGameState(buyIn: number = 1500, botCount: number = 5, smallBlind: number = 5, bigBlind: number = 10): GameState {
+  const totalPlayers = Math.min(botCount + 1, 6); // user + bots, max 6
+  const players: Player[] = [];
+  for (let i = 0; i < totalPlayers; i++) {
+    players.push({
+      id: i,
+      name: PLAYER_NAMES[i] ?? `BOT_${i}`,
+      chips: buyIn, // ALL players (user + bots) get the same entrance amount
+      avatar: avatars[i % avatars.length],
+      cards: [],
+      isActive: true,
+      isTurn: false,
+      isUser: i === 0,
+      hasFolded: false,
+      isAllIn: false,
+      currentBet: 0,
+      totalRoundBet: 0,
+      totalHandBet: 0,
+      status: 'active',
+      rank: RANKS_LIST[i] ?? 'HUMEN',
+      netWorth: Math.round(50 + Math.random() * 200),
+      invitedBy: i > 0 ? PLAYER_NAMES[Math.floor(Math.random() * i)] : undefined,
+    });
+  }
 
   return {
     players,
@@ -61,8 +65,8 @@ export function createInitialGameState(buyIn: number = 1500): GameState {
     dealerIndex: 0,
     smallBlindIndex: 0,
     bigBlindIndex: 0,
-    smallBlind: 5,
-    bigBlind: 10,
+    smallBlind,
+    bigBlind,
     currentBet: 0,
     minRaise: 10,
     deck: [],

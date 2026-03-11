@@ -55,12 +55,16 @@ const SEAT_POSITIONS_MOBILE = [
   { top: '82%', left: '92%' },
 ];
 
-const TURN_DURATION = 10;
+const DEFAULT_TURN_DURATION = 10;
 const BOT_DELAY = 1500;
 const SHOWDOWN_DELAY = 4000;
 
 interface PokerTableProps {
   initialBuyIn?: number;
+  botCount?: number;
+  smallBlind?: number;
+  bigBlind?: number;
+  turnTimer?: number;
   onExit?: () => void;
   seatAnchorOverrides?: {
     desktop?: { top: string; left: string }[];
@@ -68,7 +72,8 @@ interface PokerTableProps {
   };
 }
 
-const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerTableProps) => {
+const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlind = 10, turnTimer: turnTimerProp, onExit, seatAnchorOverrides }: PokerTableProps) => {
+  const TURN_DURATION = turnTimerProp ?? DEFAULT_TURN_DURATION;
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [timer, setTimer] = useState(TURN_DURATION);
@@ -85,11 +90,11 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
   );
 
   useEffect(() => {
-    const initial = createInitialGameState(initialBuyIn);
+    const initial = createInitialGameState(initialBuyIn, botCount, smallBlind, bigBlind);
     const round = startNewRound(initial);
     setGameState(round);
     setTimer(TURN_DURATION);
-  }, [initialBuyIn]);
+  }, [initialBuyIn, botCount, smallBlind, bigBlind, TURN_DURATION]);
 
   const chipsAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioUnlockedRef = useRef(false);

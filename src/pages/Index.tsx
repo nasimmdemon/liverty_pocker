@@ -64,6 +64,10 @@ const Index = () => {
         <PokerTable
           key="table"
           initialBuyIn={tableConfig.buyIn}
+          botCount={tableConfig.botCount}
+          smallBlind={tableConfig.smallBlind}
+          bigBlind={tableConfig.bigBlind}
+          turnTimer={tableConfig.turnTimer}
           onExit={() => setScreen('start')}
         />
       )}
