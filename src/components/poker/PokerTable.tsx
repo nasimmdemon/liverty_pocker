@@ -72,7 +72,7 @@ interface PokerTableProps {
   };
 }
 
-const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerTableProps) => {
+const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlind = 10, turnTimer: turnTimerProp, onExit, seatAnchorOverrides }: PokerTableProps) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [timer, setTimer] = useState(TURN_DURATION);
