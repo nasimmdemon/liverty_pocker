@@ -356,12 +356,14 @@ export function playerAction(
       const remaining = newPlayers.filter(p => p.isActive && !p.hasFolded);
       if (remaining.length === 1) {
         const winner = remaining[0];
+        // Apply rake even on fold-win
+        const { rakeAmount, netPot } = calculateRake(pot);
         newPlayers = newPlayers.map(p => 
           p.id === winner.id 
-            ? { ...p, chips: p.chips + pot, lastAction: '🏆 WINNER' }
+            ? { ...p, chips: p.chips + netPot, lastAction: '🏆 WINNER' }
             : p
         );
-        return { ...state, players: newPlayers, pot: 0, winnerId: winner.id, winnerIds: [winner.id], winnerHandDescription: 'Last player standing', showdown: true, actedCount };
+        return { ...state, players: newPlayers, pot: 0, winnerId: winner.id, winnerIds: [winner.id], winnerHandDescription: 'Last player standing', showdown: true, actedCount, rakeAmount, totalRake: (state.totalRake ?? 0) + rakeAmount };
       }
       break;
     }
