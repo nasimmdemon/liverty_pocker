@@ -19,28 +19,26 @@ import PotDisplay from './PotDisplay';
 import ActionButtons from './ActionButtons';
 import PlayerPopup from './PlayerPopup';
 import ChipAnimation, { type ChipBet } from './ChipAnimation';
+import TipDealer from './TipDealer';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-// 6-player seats: positions are relative to the TABLE container
-// Desktop: table is ~70vw x 42vh centered
-// Mobile: table is ~92vw x 50vh (portrait) or 80vw x 55vh (landscape)
-// Seats sit ON the edge of the oval, not inside or far outside
+// 6-player positions — zones and seats use IDENTICAL positions so avatars sit inside circles
 const SEAT_POSITIONS_DESKTOP = [
-  { top: '105%', left: '50%' },   // 0: Bottom center (user) - below table
-  { top: '78%', left: '3%' },     // 1: Bottom left - on oval edge
-  { top: '22%', left: '3%' },     // 2: Top left - on oval edge
-  { top: '-15%', left: '50%' },   // 3: Top center - above table
-  { top: '22%', left: '97%' },    // 4: Top right - on oval edge
-  { top: '78%', left: '97%' },    // 5: Bottom right - on oval edge
+  { top: '95%', left: '50%' },   // 0: Bottom center (user)
+  { top: '80%', left: '10%' },   // 1: Bottom left
+  { top: '20%', left: '10%' },   // 2: Top left
+  { top: '8%', left: '50%' },    // 3: Top center
+  { top: '20%', left: '90%' },   // 4: Top right
+  { top: '80%', left: '90%' },   // 5: Bottom right
 ];
 
 const SEAT_POSITIONS_MOBILE = [
-  { top: '110%', left: '50%' },   // 0: Bottom center (user)
-  { top: '80%', left: '-4%' },    // 1: Bottom left
-  { top: '20%', left: '-4%' },    // 2: Top left
-  { top: '-18%', left: '50%' },   // 3: Top center
-  { top: '20%', left: '104%' },   // 4: Top right
-  { top: '80%', left: '104%' },   // 5: Bottom right
+  { top: '97%', left: '50%' },
+  { top: '82%', left: '8%' },
+  { top: '18%', left: '8%' },
+  { top: '6%', left: '50%' },
+  { top: '18%', left: '92%' },
+  { top: '82%', left: '92%' },
 ];
 
 const TURN_DURATION = 30;
@@ -49,9 +47,13 @@ const SHOWDOWN_DELAY = 4000;
 
 interface PokerTableProps {
   initialBuyIn?: number;
+  seatAnchorOverrides?: {
+    desktop?: { top: string; left: string }[];
+    mobile?: { top: string; left: string }[];
+  };
 }
 
-const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
+const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProps) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [timer, setTimer] = useState(TURN_DURATION);
@@ -61,7 +63,11 @@ const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
   const tableRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
-  const seatPositions = isMobile ? SEAT_POSITIONS_MOBILE : SEAT_POSITIONS_DESKTOP;
+  const seatPositions = (
+    isMobile
+      ? seatAnchorOverrides?.mobile ?? SEAT_POSITIONS_MOBILE
+      : seatAnchorOverrides?.desktop ?? SEAT_POSITIONS_DESKTOP
+  );
 
   useEffect(() => {
     const initial = createInitialGameState(initialBuyIn);
@@ -166,6 +172,22 @@ const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
     });
   }, [advanceTurn, triggerChipAnimation]);
 
+  const handleTipDealer = useCallback((amount: number) => {
+    setGameState(prev => {
+      if (!prev) return prev;
+      const userIdx = prev.players.findIndex(p => p.isUser);
+      if (userIdx === -1) return prev;
+      const user = prev.players[userIdx];
+      if (user.chips < amount) return prev;
+      return {
+        ...prev,
+        players: prev.players.map((p, i) =>
+          i === userIdx ? { ...p, chips: p.chips - amount } : p
+        ),
+      };
+    });
+  }, []);
+
   if (!gameState) return null;
 
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
@@ -182,11 +204,16 @@ const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background">
-      {/* Dark room background */}
+      {/* Premium room background — warm ambient lighting */}
       <div
         className="absolute inset-0"
         style={{
-          background: 'radial-gradient(ellipse at center, hsl(120 20% 10%) 0%, hsl(0 0% 5%) 70%, hsl(0 0% 3%) 100%)',
+          background: `
+            radial-gradient(ellipse 120% 80% at 50% 40%, hsl(120 25% 14%) 0%, transparent 50%),
+            radial-gradient(ellipse 80% 60% at 50% 50%, hsl(40 30% 8%) 0%, transparent 60%),
+            radial-gradient(ellipse at center, hsl(0 0% 4%) 0%, hsl(0 0% 2%) 100%)
+          `,
+          boxShadow: 'inset 0 0 120px rgba(0,0,0,0.3)',
         }}
       />
 
@@ -215,19 +242,36 @@ const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
       </div>
 
       {/* Table area — centered with padding for seats that overflow */}
-      <div className="absolute inset-0 flex items-center justify-center" style={{ paddingBottom: isMobile ? '70px' : '80px', paddingTop: '50px' }}>
+      <div className="absolute inset-0 flex items-center justify-center" style={{ paddingBottom: isMobile ? '80px' : '90px', paddingTop: isMobile ? '55px' : '60px' }}>
         <div
           ref={tableRef}
           className="poker-table-felt relative"
         >
-          {/* Inner table zones for layout reference */}
-          {/* Pot zone */}
-          <div className="absolute top-[28%] left-1/2 -translate-x-1/2 z-20" data-pot-display>
+          {/* Inner playing surface */}
+          <div className="poker-table-inner" />
+
+
+          {/* Community cards zone — horizontal rectangle border */}
+          <div className="cards-position-zone absolute z-[1]" />
+
+          {/* Dedicated dealer space + clear tip button */}
+          <div className="dealer-station absolute z-30">
+            <span className="dealer-station-label">Dealer</span>
+            <TipDealer
+              chipCount={userPlayer?.chips ?? 0}
+              onTip={handleTipDealer}
+              isMobile={isMobile}
+              displayMode="button"
+            />
+          </div>
+
+          {/* Pot zone — above cards */}
+          <div className="absolute top-[26%] left-1/2 -translate-x-1/2 z-20" data-pot-display>
             <PotDisplay pot={gameState.pot} />
           </div>
 
-          {/* Community Cards zone: center 40-55% */}
-          <div className="absolute top-[38%] left-1/2 -translate-x-1/2 flex gap-1 sm:gap-1.5 z-20">
+          {/* Community Cards — inside the rectangle zone */}
+          <div className="absolute top-[42%] left-1/2 -translate-x-1/2 flex gap-1 sm:gap-1.5 z-20">
             {gameState.communityCards.map((card, i) => (
               <Card key={`${gameState.roundNumber}-${i}`} card={card} delay={0.15 * i} index={i} />
             ))}
@@ -253,20 +297,29 @@ const PokerTable = ({ initialBuyIn = 1500 }: PokerTableProps) => {
             )}
           </AnimatePresence>
 
-          {/* Player seats — positioned relative to the table oval */}
-          {playersWithTurn.map((player, i) => (
-            <PlayerSeat
-              key={player.id}
-              player={player}
-              position={seatPositions[i]}
-              seatIndex={i}
-              onClickAvatar={setSelectedPlayer}
-              timerProgress={player.isTurn ? timerProgress : 0}
-              isDealer={i === gameState.dealerIndex}
-              isWinner={gameState.showdown && player.id === gameState.winnerId}
-              isMobile={isMobile}
-            />
-          ))}
+          {/* player-position-zone = circle border; avatar goes INSIDE it */}
+          {seatPositions.map((pos, i) => {
+            const player = playersWithTurn[i];
+            if (!player) return null;
+            return (
+              <div
+                key={`seat-${i}`}
+                className="player-position-zone absolute"
+                style={{ top: pos.top, left: pos.left }}
+                data-player-zone={i}
+              >
+                <PlayerSeat
+                  player={player}
+                  seatIndex={i}
+                  onClickAvatar={setSelectedPlayer}
+                  timerProgress={player.isTurn ? timerProgress : 0}
+                  isDealer={i === gameState.dealerIndex}
+                  isWinner={gameState.showdown && player.id === gameState.winnerId}
+                  isMobile={isMobile}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 

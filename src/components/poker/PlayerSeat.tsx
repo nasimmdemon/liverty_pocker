@@ -4,7 +4,6 @@ import Card from './Card';
 
 interface PlayerSeatProps {
   player: Player;
-  position: { top: string; left: string };
   seatIndex: number;
   onClickAvatar: (player: Player) => void;
   timerProgress?: number;
@@ -13,54 +12,124 @@ interface PlayerSeatProps {
   isMobile?: boolean;
 }
 
-const PlayerSeat = ({ player, position, seatIndex, onClickAvatar, timerProgress = 0, isDealer = false, isWinner = false, isMobile = false }: PlayerSeatProps) => {
+const NamePlate = ({ player, isTopSeat }: { player: Player; isTopSeat: boolean }) => (
+  <div
+    className="absolute left-1/2 px-1.5 py-0.5 sm:px-2 rounded-md flex flex-col items-center whitespace-nowrap"
+    style={{
+      background: 'hsl(var(--casino-dark) / 0.92)',
+      transform: 'translateX(-50%)',
+      zIndex: 20,
+      ...(isTopSeat ? { bottom: 'calc(100% + 30px)' } : { top: 'calc(100% + 6px)' }),
+    }}
+  >
+    <span
+      className="text-foreground text-[8px] sm:text-[10px] font-semibold truncate max-w-[64px] sm:max-w-[88px] tracking-wider"
+      style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+    >
+      {player.name}
+    </span>
+    <span
+      className="text-primary text-[8px] sm:text-[10px] font-bold"
+      style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+    >
+      ${player.chips.toLocaleString()}
+    </span>
+    {player.lastAction && (
+      <span className={`text-[7px] sm:text-[9px] font-bold tracking-wider ${
+        player.lastAction.includes('WINNER') ? 'text-primary' :
+        player.lastAction === 'FOLD' ? 'text-destructive' :
+        'text-muted-foreground'
+      }`}>
+        {player.lastAction}
+      </span>
+    )}
+  </div>
+);
+
+// PlayerSeat renders INSIDE player-position-zone. The avatar is a direct child of the zone.
+const PlayerSeat = ({
+  player, seatIndex, onClickAvatar,
+  timerProgress = 0, isDealer = false, isWinner = false, isMobile = false,
+}: PlayerSeatProps) => {
   const isTurn = player.isTurn;
   const hasFolded = player.hasFolded;
   const isUser = player.isUser;
   const showCards = isUser && player.cards.length > 0 && !hasFolded;
-
-  // User seat (index 0) is at bottom - cards go above avatar
-  // Top seats (2,3,4) - cards go below avatar
   const isTopSeat = seatIndex >= 2 && seatIndex <= 4;
 
-  // Avatar sizes
-  const avatarSize = isUser
-    ? isMobile ? 'w-[60px] h-[60px]' : 'w-[80px] h-[80px] lg:w-[100px] lg:h-[100px]'
-    : isMobile ? 'w-[44px] h-[44px]' : 'w-[60px] h-[60px] lg:w-[80px] lg:h-[80px]';
+  // Avatar fits inside the player-position-zone circle (88px desktop / 72px mobile)
+  const avatarSizePx = isUser
+    ? (isMobile ? 56 : 72)
+    : (isMobile ? 46 : 60);
+
+  const borderClass = isWinner
+    ? 'border-primary glow-gold'
+    : isUser
+      ? 'border-primary glow-gold'
+      : isTurn
+        ? 'border-primary glow-turn'
+        : hasFolded
+          ? 'border-muted opacity-50'
+          : 'border-primary/60';
 
   return (
     <motion.div
-      className="absolute flex flex-col items-center z-10"
-      style={{
-        top: position.top,
-        left: position.left,
-        transform: 'translate(-50%, -50%)',
-      }}
+      className="absolute inset-0 flex items-center justify-center"
       data-seat-index={seatIndex}
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.4, delay: seatIndex * 0.08, type: 'spring' }}
     >
-      {/* Cards above avatar for user/bottom seats */}
+      {/* User hole cards — fanned above avatar for bottom seats */}
       {showCards && !isTopSeat && (
-        <div className="flex gap-0.5 mb-[-4px] z-0">
+        <div
+          className="absolute"
+          style={{
+            bottom: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginBottom: 8,
+            width: isMobile ? 86 : 112,
+            height: isMobile ? 48 : 60,
+            perspective: 600,
+          }}
+        >
           {player.cards.map((card, i) => (
-            <div key={i} className={isMobile ? 'scale-[0.5]' : 'scale-[0.6] sm:scale-[0.7]'}>
+            <div
+              key={i}
+              className="absolute"
+              style={{
+                left: '50%',
+                bottom: 0,
+                transformOrigin: 'bottom center',
+                transform: `translateX(${i === 0 ? '-68%' : '-28%'}) rotate(${i === 0 ? -22 : 22}deg) scale(${isMobile ? 0.58 : 0.72})`,
+                zIndex: i,
+              }}
+            >
               <Card card={card} delay={0.3 + 0.15 * i} index={i} isPlayerCard />
             </div>
           ))}
         </div>
       )}
 
-      <div className="relative cursor-pointer group" onClick={() => onClickAvatar(player)}>
+      {/* Avatar */}
+      <div
+        className="relative cursor-pointer group"
+        style={{ zIndex: 10 }}
+        onClick={() => onClickAvatar(player)}
+      >
         {isDealer && (
-          <div className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-primary text-primary-foreground text-[8px] sm:text-[9px] font-bold flex items-center justify-center z-20 border border-border shadow-md">
+          <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[9px] font-black flex items-center justify-center z-20 border border-border shadow-lg">
             D
           </div>
         )}
 
         {isTurn && (
-          <svg className="absolute -inset-1 sm:-inset-1.5 w-[calc(100%+8px)] h-[calc(100%+8px)] sm:w-[calc(100%+12px)] sm:h-[calc(100%+12px)]" viewBox="0 0 100 100">
+          <svg
+            className="absolute"
+            style={{ inset: -7, width: 'calc(100% + 14px)', height: 'calc(100% + 14px)', zIndex: 5 }}
+            viewBox="0 0 100 100"
+          >
             <circle cx="50" cy="50" r="46" fill="none" stroke="hsl(var(--casino-gold))" strokeWidth="2.5" opacity="0.2" />
             <motion.circle
               cx="50" cy="50" r="46" fill="none"
@@ -84,20 +153,12 @@ const PlayerSeat = ({ player, position, seatIndex, onClickAvatar, timerProgress 
         )}
 
         <div
-          className={`rounded-full overflow-hidden border-[2px] sm:border-[3px] transition-all duration-300 group-hover:brightness-110 ${avatarSize} ${
-            isWinner
-              ? 'border-primary glow-gold'
-              : isUser
-                ? 'border-primary glow-gold'
-                : isTurn
-                  ? 'border-primary glow-turn'
-                  : hasFolded
-                    ? 'border-muted opacity-50'
-                    : 'border-primary/60'
-          }`}
+          className={`rounded-full overflow-hidden border-[2.5px] transition-all duration-300 group-hover:brightness-110 ${borderClass}`}
           style={{
+            width: avatarSizePx,
+            height: avatarSizePx,
             boxShadow: isUser && !isWinner
-              ? '0 0 20px hsla(40, 70%, 45%, 0.4), 0 4px 12px rgba(0,0,0,0.5)'
+              ? '0 0 20px hsla(40,70%,45%,0.4), 0 4px 12px rgba(0,0,0,0.5)'
               : !isWinner ? '0 4px 12px rgba(0,0,0,0.5)' : undefined,
           }}
         >
@@ -105,44 +166,22 @@ const PlayerSeat = ({ player, position, seatIndex, onClickAvatar, timerProgress 
         </div>
       </div>
 
-      {/* Cards below avatar for top seats */}
+      {/* Name plate */}
+      <NamePlate player={player} isTopSeat={isTopSeat} />
+
+      {/* Bot hole cards below avatar (only for top seats if user is at top — unlikely) */}
       {showCards && isTopSeat && (
-        <div className="flex gap-0.5 mt-[-4px] z-0">
+        <div
+          className="absolute flex gap-0.5"
+          style={{ top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 8, zIndex: 5 }}
+        >
           {player.cards.map((card, i) => (
-            <div key={i} className={isMobile ? 'scale-[0.5]' : 'scale-[0.6] sm:scale-[0.7]'}>
+            <div key={i} style={{ transform: `scale(${isMobile ? 0.5 : 0.62})`, transformOrigin: 'top center' }}>
               <Card card={card} delay={0.3 + 0.15 * i} index={i} isPlayerCard />
             </div>
           ))}
         </div>
       )}
-
-      {/* Name plate */}
-      <div
-        className="mt-0.5 px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-md flex flex-col items-center"
-        style={{ background: 'hsl(var(--casino-dark) / 0.9)' }}
-      >
-        <span
-          className="text-foreground text-[8px] sm:text-[10px] lg:text-xs font-semibold truncate max-w-[50px] sm:max-w-[80px] tracking-wider"
-          style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-        >
-          {player.name}
-        </span>
-        <span
-          className="text-primary text-[8px] sm:text-[10px] lg:text-xs font-bold"
-          style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-        >
-          ${player.chips.toLocaleString()}
-        </span>
-        {player.lastAction && (
-          <span className={`text-[7px] sm:text-[9px] font-bold tracking-wider ${
-            player.lastAction.includes('WINNER') ? 'text-primary' :
-            player.lastAction === 'FOLD' ? 'text-destructive' :
-            'text-muted-foreground'
-          }`}>
-            {player.lastAction}
-          </span>
-        )}
-      </div>
     </motion.div>
   );
 };
