@@ -151,6 +151,16 @@ const PlayerSeat = ({
             D
           </div>
         )}
+        {isSmallBlind && !isDealer && (
+          <div className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-blue-500 text-white text-[8px] font-black flex items-center justify-center z-20 border border-border shadow-lg">
+            SB
+          </div>
+        )}
+        {isBigBlind && !isDealer && (
+          <div className="absolute -bottom-1.5 -left-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[8px] font-black flex items-center justify-center z-20 border border-border shadow-lg">
+            BB
+          </div>
+        )}
 
         {isTurn && (
           <svg
