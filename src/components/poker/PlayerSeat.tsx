@@ -54,7 +54,8 @@ const NamePlate = ({ player, isTopSeat }: { player: Player; isTopSeat: boolean }
 // PlayerSeat renders INSIDE player-position-zone. The avatar is a direct child of the zone.
 const PlayerSeat = ({
   player, seatIndex, onClickAvatar,
-  timerProgress = 0, isDealer = false, isWinner = false, isMobile = false,
+  timerProgress = 0, isDealer = false, isSmallBlind = false, isBigBlind = false,
+  isWinner = false, isMobile = false,
   isShowdown = false, chatBubble = null,
 }: PlayerSeatProps) => {
   const isTurn = player.isTurn;
