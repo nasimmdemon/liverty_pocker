@@ -148,8 +148,10 @@ const TierPopup = ({
           </h3>
           <div className="flex flex-col gap-2">
             {options.map((opt, i) => {
-              // Parse the option
-              const parts = opt.replace('$', '').split('-');
+              // Parse the option - handle FREE prefix
+              const isFree = opt.startsWith('FREE ');
+              const cleanOpt = isFree ? opt.replace('FREE ', '') : opt;
+              const parts = cleanOpt.replace('$', '').split('-');
               const small = parseFloat(parts[0]);
               const big = parts.length > 1 ? parseFloat(parts[1]) : small;
               return (
@@ -157,22 +159,29 @@ const TierPopup = ({
                   key={i}
                   className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border-2 border-primary/30 hover:border-primary/70 transition-all"
                   style={{
-                    background: 'linear-gradient(180deg, hsl(0 0% 14%) 0%, hsl(0 0% 10%) 100%)',
+                    background: isFree
+                      ? 'linear-gradient(180deg, hsl(120 25% 16%) 0%, hsl(120 20% 10%) 100%)'
+                      : 'linear-gradient(180deg, hsl(0 0% 14%) 0%, hsl(0 0% 10%) 100%)',
                     fontFamily: "'Bebas Neue', sans-serif",
                   }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => onSelect(small, big)}
                 >
-                  <span className="text-foreground text-sm tracking-wider">
-                    {gameMode === 'sit-and-go' ? `${opt} (SB/BB)` : `${opt} Buy-in`}
+                  <span className="text-foreground text-sm tracking-wider flex items-center gap-2">
+                    {isFree && <span className="text-lg">🆓</span>}
+                    {gameMode === 'sit-and-go' ? `${cleanOpt} (SB/BB)` : `${cleanOpt} Buy-in`}
                   </span>
-                  <span
-                    className="text-xs px-3 py-1 rounded-full border border-primary/50"
-                    style={{ color: `hsl(${tier.color})` }}
-                  >
-                    SELECT
-                  </span>
+                  {isFree ? (
+                    <span className="bg-destructive text-destructive-foreground text-[10px] font-bold px-2 py-1 rounded-full">FREE</span>
+                  ) : (
+                    <span
+                      className="text-xs px-3 py-1 rounded-full border border-primary/50"
+                      style={{ color: `hsl(${tier.color})` }}
+                    >
+                      SELECT
+                    </span>
+                  )}
                 </motion.button>
               );
             })}
