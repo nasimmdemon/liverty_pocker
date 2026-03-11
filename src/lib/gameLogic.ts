@@ -468,12 +468,12 @@ export function playerAction(
 
   const result = { ...state, players: newPlayers, pot, currentBet, minRaise, actedCount };
   
-  // ── Chip conservation check ──
-  // Total chips in play = sum of all player chips + pot + rake taken this session
-  // This should remain constant throughout the game (except for rake deductions at showdown)
+  // ── Chip conservation check (debug mode) ──
+  // Total = sum(player.chips) + pot. currentBet is NOT added because
+  // those chips are already deducted from player.chips and included in pot.
   if (typeof window !== 'undefined' && (window as any).__POKER_DEBUG__) {
-    const totalChips = result.players.reduce((s, p) => s + p.chips + p.currentBet, 0) + result.pot;
-    console.log(`[CHIP CHECK] Action=${action} | Chips+Pot=${totalChips} | Pot=${result.pot}`);
+    const totalChips = result.players.reduce((s, p) => s + p.chips, 0) + result.pot;
+    console.log(`[CHIP CHECK] Action=${action} | Total=${totalChips} | Pot=${result.pot} | PlayerChips=${result.players.map(p => p.chips).join(',')}`);
   }
   
   return result;
