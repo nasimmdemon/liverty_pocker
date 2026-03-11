@@ -62,7 +62,7 @@ const Index = () => {
           onBack={() => setScreen('sitandgo')}
         />
       )}
-      {screen === 'loading' && <LoadingScreen key="loading" onComplete={handleLoadingComplete} />}
+      {screen === 'loading' && <LoadingScreen key="loading" onComplete={handleLoadingComplete} isPublic={tableConfig.isPublic} />}
       {screen === 'table' && (
         <PokerTable
           key="table"
