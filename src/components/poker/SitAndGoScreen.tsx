@@ -436,7 +436,9 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
                 <span className="text-sm sm:text-base tracking-wider" style={{ color: `hsl(${tier.color})` }}>
                   {tier.label}
                 </span>
-                <span className="text-muted-foreground text-[9px]">{tier.tournamentEntrance} fee</span>
+                <span className="text-muted-foreground text-[9px]">
+                  {tier.key === 'human' ? 'FREE option • ' : ''}{tier.tournamentEntrance} fee
+                </span>
                 <span
                   className="text-[9px] px-2 py-0.5 rounded-full border mt-0.5"
                   style={{ borderColor: `hsl(${tier.color} / 0.5)`, color: `hsl(${tier.color})` }}
