@@ -1,6 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Settings } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Player, GameState } from '@/lib/gameTypes';
 import {
   createInitialGameState,
@@ -142,6 +152,7 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
   gameStateRef.current = gameState;
 
   const [winAnimation, setWinAnimation] = useState<{ winnerSeatIndex: number; amount: number } | null>(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   useEffect(() => {
     if (gameState?.showdown && gameState.winnerId !== null && prevGameStateRef.current && !prevGameStateRef.current.showdown) {
@@ -280,18 +291,7 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
       <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-3 py-2 lg:px-4 lg:py-3">
         <button
           className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border-2 border-primary flex items-center justify-center bg-secondary hover:bg-primary/20 transition-colors"
-          onClick={() => {
-            const result = runAntiCheatOnExit(gameState);
-            if (result.triggered) {
-              const perPlayer = result.recipientCount > 0 ? Math.floor(result.penaltyAmount / result.recipientCount) : 0;
-              toast({
-                title: 'Anti-Cheat: Penalty Applied',
-                description: `You left during an active hand. $${result.penaltyAmount.toLocaleString()} has been returned to ${result.recipientNames.join(', ')}. They have been notified. You are aware this happened because you left the table without folding.`,
-                variant: 'destructive',
-              });
-            }
-            onExit?.();
-          }}
+          onClick={() => setShowLeaveConfirm(true)}
         >
           <ArrowLeft size={18} className="text-primary" />
         </button>
@@ -425,6 +425,37 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
 
       {/* Player Popup */}
       <PlayerPopup player={selectedPlayer} onClose={() => setSelectedPlayer(null)} />
+
+      {/* Leave / Back confirmation */}
+      <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave the table?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to leave? If you leave during an active hand without folding, a penalty will be applied and your chips will be returned to the players you played against.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                const result = runAntiCheatOnExit(gameState);
+                if (result.triggered) {
+                  toast({
+                    title: 'Anti-Cheat: Penalty Applied',
+                    description: `You left during an active hand. $${result.penaltyAmount.toLocaleString()} has been returned to ${result.recipientNames.join(', ')}. They have been notified.`,
+                    variant: 'destructive',
+                  });
+                }
+                onExit?.();
+              }}
+            >
+              Leave
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

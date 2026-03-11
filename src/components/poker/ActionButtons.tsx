@@ -65,16 +65,9 @@ const ActionButtons = ({
     >
       <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
         <div className="flex flex-col gap-3 max-w-2xl mx-auto">
-          {/* Row 1: Chat, Away, Chips, Fold, Check/Call, Bet, All In */}
+          {/* Row 1: Chat, Chips, Fold, Check/Call, Bet, All In */}
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
             <GameChat onSendMessage={onSendMessage} isMobile={isMobile} />
-            <button
-              className="shrink-0 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-bold border-2 border-primary/50 bg-muted/50 text-muted-foreground uppercase tracking-wider"
-              disabled
-              title="Away mode"
-            >
-              Away
-            </button>
             <div className="flex flex-col items-center shrink-0 px-2 sm:px-3 py-1.5 rounded-lg bg-background/80 border-2 border-primary/40">
               <span className="text-primary font-display text-sm sm:text-lg font-bold leading-tight">
                 ${chipCount.toLocaleString()}
