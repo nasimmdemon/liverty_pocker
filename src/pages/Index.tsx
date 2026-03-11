@@ -38,6 +38,7 @@ const Index = () => {
       bigBlind: config.bigBlind,
       turnTimer: config.turnTimer,
       botCount: config.botCount,
+      isTestingTable: true,
     });
     setScreen('loading');
   }, []);
