@@ -59,6 +59,8 @@ export function createInitialGameState(buyIn: number = 1500): GameState {
     phase: 'preflop',
     tableId: '4XGHE',
     dealerIndex: 0,
+    smallBlindIndex: 0,
+    bigBlindIndex: 0,
     smallBlind: 5,
     bigBlind: 10,
     currentBet: 0,
@@ -72,6 +74,8 @@ export function createInitialGameState(buyIn: number = 1500): GameState {
     bettingRoundComplete: false,
     firstActorIndex: 0,
     actedCount: 0,
+    rakeAmount: 0,
+    totalRake: 0,
   };
 }
 
