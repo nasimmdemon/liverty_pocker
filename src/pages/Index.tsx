@@ -26,7 +26,7 @@ const Index = () => {
   const handleLoadingComplete = useCallback(() => setScreen('table'), []);
 
   const handleJoinTable = useCallback((buyIn: number, smallBlind: number, bigBlind: number) => {
-    setTableConfig({ buyIn, smallBlind, bigBlind });
+    setTableConfig({ buyIn, smallBlind, bigBlind, isPublic: true });
     setScreen('loading');
   }, []);
 
