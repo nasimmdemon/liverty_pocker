@@ -14,6 +14,7 @@ interface TableConfig {
   bigBlind: number;
   turnTimer?: number;
   botCount?: number;
+  isTestingTable?: boolean;
 }
 
 const Index = () => {
@@ -37,6 +38,7 @@ const Index = () => {
       bigBlind: config.bigBlind,
       turnTimer: config.turnTimer,
       botCount: config.botCount,
+      isTestingTable: true,
     });
     setScreen('loading');
   }, []);
@@ -68,6 +70,7 @@ const Index = () => {
           smallBlind={tableConfig.smallBlind}
           bigBlind={tableConfig.bigBlind}
           turnTimer={tableConfig.turnTimer}
+          isTestingTable={tableConfig.isTestingTable}
           onExit={() => setScreen('start')}
         />
       )}
