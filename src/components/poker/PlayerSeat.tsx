@@ -2,7 +2,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Player } from '@/lib/gameTypes';
 import Card from './Card';
 import { ChatBubble } from './GameChat';
-import { playCardRevealSound } from '@/lib/sounds';
 
 interface PlayerSeatProps {
   player: Player;
@@ -123,7 +122,7 @@ const PlayerSeat = ({
                 zIndex: i,
               }}
             >
-              <Card card={card} delay={0.2 + 0.2 * i} index={i} isPlayerCard onReveal={playCardRevealSound} />
+              <Card card={card} delay={0.2 + 0.2 * i} index={i} isPlayerCard />
             </div>
           ))}
         </div>
@@ -203,7 +202,7 @@ const PlayerSeat = ({
         >
           {player.cards.map((card, i) => (
             <div key={i} style={{ transform: `scale(${isUser ? (isMobile ? 1.5 : 1.86) : (isMobile ? 0.5 : 0.62)})`, transformOrigin: 'top center' }}>
-              <Card card={card} delay={0.2 + 0.2 * i} index={i} isPlayerCard onReveal={playCardRevealSound} />
+              <Card card={card} delay={0.2 + 0.2 * i} index={i} isPlayerCard />
             </div>
           ))}
         </div>

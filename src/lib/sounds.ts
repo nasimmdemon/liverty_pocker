@@ -15,10 +15,19 @@ function getAudioContext(): AudioContext | null {
   }
 }
 
+/** Call on first user interaction to unlock audio (browsers block until then) */
+export function unlockAudio(): void {
+  const ctx = getAudioContext();
+  if (ctx?.state === 'suspended') {
+    ctx.resume().catch(() => {});
+  }
+}
+
 function playTone(freq: number, durationMs: number, volume = 0.3, type: OscillatorType = 'sine'): void {
   const ctx = getAudioContext();
   if (!ctx) return;
   try {
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
@@ -37,9 +46,20 @@ export function playFoldSound(): void {
   playTone(120, 80, 0.25, 'sine');
 }
 
-/** Card flip / reveal sound — short crisp tone */
+/** Card flip / reveal sound — short crisp tone (table/community cards only) */
 export function playCardRevealSound(): void {
   playTone(440, 60, 0.18, 'sine');
+}
+
+/** Your turn to act — gentle attention chime */
+export function playYourTurnSound(): void {
+  playTone(523.25, 100, 0.2, 'sine');
+  setTimeout(() => playTone(659.25, 80, 0.18, 'sine'), 80);
+}
+
+/** Check action — soft tap */
+export function playCheckSound(): void {
+  playTone(220, 50, 0.15, 'sine');
 }
 
 /** Win / jackpot sound — short rising fanfare */

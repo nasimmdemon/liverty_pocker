@@ -32,7 +32,7 @@ import ChipAnimation, { type ChipBet } from './ChipAnimation';
 import WinChipAnimation from './WinChipAnimation';
 import { BOT_CHAT_MESSAGES } from './GameChat';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { playFoldSound, playWinSound, playCardRevealSound } from '@/lib/sounds';
+import { playFoldSound, playWinSound, playCardRevealSound, playYourTurnSound, playCheckSound, unlockAudio } from '@/lib/sounds';
 import { runAntiCheatOnExit } from '@/lib/antiCheat';
 import { toast } from '@/hooks/use-toast';
 
@@ -92,6 +92,9 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
   }, [initialBuyIn]);
 
   const chipsAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUnlockedRef = useRef(false);
+  const phaseAdvanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevIsUserTurnRef = useRef(false);
 
   const playChipsSound = useCallback(() => {
     try {
@@ -152,6 +155,7 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
   gameStateRef.current = gameState;
 
   const [winAnimation, setWinAnimation] = useState<{ winnerSeatIndex: number; amount: number } | null>(null);
+  const [showWinDisplay, setShowWinDisplay] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   useEffect(() => {
@@ -160,12 +164,28 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
       const winnerCount = gameState.winnerIds?.length ?? 1;
       const amountPerWinner = Math.floor(prevGameStateRef.current.pot / winnerCount);
       if (winnerSeatIndex >= 0 && amountPerWinner > 0) {
-        setWinAnimation({ winnerSeatIndex, amount: amountPerWinner });
-        playWinSound();
+        const id = setTimeout(() => {
+          setWinAnimation({ winnerSeatIndex, amount: amountPerWinner });
+          setShowWinDisplay(true);
+          playWinSound();
+        }, 1500);
+        return () => clearTimeout(id);
       }
     }
+    if (!gameState?.showdown) setShowWinDisplay(false);
     prevGameStateRef.current = gameState ?? null;
   }, [gameState]);
+
+  useEffect(() => {
+    const isUserTurn = !!(
+      gameState?.players[gameState.currentPlayerIndex]?.isUser &&
+      !gameState.players[gameState.currentPlayerIndex].hasFolded &&
+      !gameState.players[gameState.currentPlayerIndex].isAllIn &&
+      !gameState.showdown
+    );
+    if (isUserTurn && !prevIsUserTurnRef.current) playYourTurnSound();
+    prevIsUserTurnRef.current = isUserTurn;
+  }, [gameState?.currentPlayerIndex, gameState?.showdown, gameState?.players]);
 
   const showChatBubble = useCallback((playerId: number, text: string, playerName: string) => {
     chatBubbleIdRef.current += 1;
@@ -197,6 +217,15 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
 
     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
     if (!currentPlayer || currentPlayer.hasFolded || currentPlayer.isAllIn) {
+      if (isBettingRoundComplete(gameState)) {
+        phaseAdvanceTimeoutRef.current = setTimeout(() => {
+          setGameState(prev => prev ? advancePhase(prev) : prev);
+          phaseAdvanceTimeoutRef.current = null;
+        }, 1000);
+        return () => {
+          if (phaseAdvanceTimeoutRef.current) clearTimeout(phaseAdvanceTimeoutRef.current);
+        };
+      }
       setGameState(prev => prev ? advanceTurn(prev) : prev);
       return;
     }
@@ -212,6 +241,7 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
           if (!prev) return prev;
           const { state: afterBot, action: botAction } = simulateBotAction(prev);
           if (botAction === 'fold') playFoldSound();
+          if (botAction === 'check') playCheckSound();
           const betAmount = afterBot.players[prev.currentPlayerIndex].currentBet - prev.players[prev.currentPlayerIndex].currentBet;
           if (betAmount > 0) triggerChipAnimation(prev.currentPlayerIndex, betAmount);
           // Randomly show bot chat bubble (~20% chance)
@@ -236,11 +266,17 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (botTimeoutRef.current) clearTimeout(botTimeoutRef.current);
+      if (phaseAdvanceTimeoutRef.current) clearTimeout(phaseAdvanceTimeoutRef.current);
     };
   }, [gameState?.currentPlayerIndex, gameState?.phase, gameState?.showdown, gameState?.roundNumber, advanceTurn, triggerChipAnimation, showChatBubble]);
 
   const handleUserAction = useCallback((action: 'fold' | 'check' | 'call' | 'bet' | 'raise' | 'all-in', amount?: number) => {
+    if (!audioUnlockedRef.current) {
+      audioUnlockedRef.current = true;
+      unlockAudio();
+    }
     if (action === 'fold') playFoldSound();
+    if (action === 'check') playCheckSound();
     setGameState(prev => {
       if (!prev) return prev;
       const current = prev.players[prev.currentPlayerIndex];
@@ -272,8 +308,15 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
     isTurn: i === gameState.currentPlayerIndex && !p.hasFolded && !p.isAllIn && !gameState.showdown,
   }));
 
+  const handleTableClick = useCallback(() => {
+    if (!audioUnlockedRef.current) {
+      audioUnlockedRef.current = true;
+      unlockAudio();
+    }
+  }, []);
+
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-background">
+    <div className="relative w-full h-screen overflow-hidden bg-background" onClick={handleTableClick}>
       {/* Premium room background — warm ambient lighting */}
       <div
         className="absolute inset-0"
@@ -344,7 +387,7 @@ const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerT
 
           {/* Winner announcement: between pot and cards */}
           <AnimatePresence>
-            {gameState.showdown && gameState.winnerId !== null && (
+            {showWinDisplay && gameState.showdown && gameState.winnerId !== null && (
               <motion.div
                 className="absolute top-[58%] left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-0.5"
                 initial={{ scale: 0, opacity: 0 }}
