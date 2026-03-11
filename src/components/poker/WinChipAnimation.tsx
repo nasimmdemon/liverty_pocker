@@ -8,21 +8,26 @@ interface WinChipAnimationProps {
   onComplete?: () => void;
 }
 
-const CHIP_COUNT = 12;
+const MIN_CHIPS = 12;
+const MAX_CHIPS = 36;
+const CHIPS_PER_100 = 1; // +1 chip per $100 won
 
 const FLY_DURATION = 1.2;
 const FADE_START = 1.5; // Start fading after chips arrive
 const FADE_DURATION = 0.6; // Fade out duration
 const TOTAL_DURATION = FADE_START + FADE_DURATION; // ~2.1s
-const MAX_CHIP_DELAY = (CHIP_COUNT - 1) * 0.06; // Last chip delay
-const UNMOUNT_AFTER = (TOTAL_DURATION + MAX_CHIP_DELAY + 0.1) * 1000; // ms
+const CHIP_DELAY = 0.05; // Delay between each chip
 
 const WinChipAnimation = ({ winnerSeatIndex, amount, onComplete }: WinChipAnimationProps) => {
+  const chipCount = Math.min(MAX_CHIPS, Math.max(MIN_CHIPS, MIN_CHIPS + Math.floor(amount / 100) * CHIPS_PER_100));
+  const maxChipDelay = (chipCount - 1) * CHIP_DELAY;
+  const unmountAfter = (TOTAL_DURATION + maxChipDelay + 0.1) * 1000;
+
   useEffect(() => {
     if (winnerSeatIndex === null || amount <= 0) return;
-    const t = setTimeout(() => onComplete?.(), UNMOUNT_AFTER);
+    const t = setTimeout(() => onComplete?.(), unmountAfter);
     return () => clearTimeout(t);
-  }, [winnerSeatIndex, amount, onComplete]);
+  }, [winnerSeatIndex, amount, onComplete, unmountAfter]);
 
   if (winnerSeatIndex === null || amount <= 0) return null;
 
@@ -39,8 +44,8 @@ const WinChipAnimation = ({ winnerSeatIndex, amount, onComplete }: WinChipAnimat
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[5] pointer-events-none">
-        {Array.from({ length: CHIP_COUNT }).map((_, i) => (
+      <div className="fixed inset-0 z-[25] pointer-events-none">
+        {Array.from({ length: chipCount }).map((_, i) => (
           <motion.div
             key={i}
             className="absolute flex items-center gap-1"
@@ -53,7 +58,7 @@ const WinChipAnimation = ({ winnerSeatIndex, amount, onComplete }: WinChipAnimat
             }}
             transition={{
               duration: TOTAL_DURATION,
-              delay: i * 0.06,
+              delay: i * CHIP_DELAY,
               ease: [0.25, 0.46, 0.45, 0.94],
               times: [0, 0.55, 0.7, 1], // opacity: 1 until 70%, then fade to 0
             }}
