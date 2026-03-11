@@ -409,31 +409,6 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
             SELECT TIER
           </h2>
 
-          {/* Free option */}
-          <motion.button
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all ${
-              selectedStake?.small === FREE_SIT_AND_GO.small && selectedStake?.big === FREE_SIT_AND_GO.big
-                ? 'border-primary shadow-[0_0_15px_hsl(var(--casino-gold)/0.4)]'
-                : 'border-primary/30 hover:border-primary/60'
-            }`}
-            style={{
-              background: 'linear-gradient(180deg, hsl(120 25% 16%) 0%, hsl(120 20% 10%) 100%)',
-              fontFamily: "'Bebas Neue', sans-serif",
-            }}
-            onClick={() => setSelectedStake(FREE_SIT_AND_GO)}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🆓</span>
-              <div className="text-left">
-                <span className="text-foreground text-sm tracking-wider block">FREE TABLE</span>
-                <span className="text-muted-foreground text-[10px]">0.01 / 0.02 blinds • No entry fee</span>
-              </div>
-            </div>
-            <span className="bg-destructive text-destructive-foreground text-[10px] font-bold px-2 py-1 rounded-full">FREE</span>
-          </motion.button>
-
           {/* Tier cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 w-full">
             {TIERS.map((tier) => (
