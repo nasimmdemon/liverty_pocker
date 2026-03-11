@@ -63,11 +63,7 @@ const BANNERS = [
 const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
   const [visiblePotSteps, setVisiblePotSteps] = useState(0);
   const [visibleRevenueSteps, setVisibleRevenueSteps] = useState(0);
-  const [showBanner, setShowBanner] = useState(false);
-  const [tipIndex, setTipIndex] = useState(0);
-  const [showTip, setShowTip] = useState(false);
-
-  const banner = BANNERS[Math.floor(Math.random() * BANNERS.length)];
+  const [currentTip, setCurrentTip] = useState(0);
 
   useEffect(() => {
     const timer = setTimeout(() => onComplete(), LOADING_DURATION * 1000);
