@@ -3,14 +3,17 @@ import { AnimatePresence } from 'framer-motion';
 import StartScreen from '@/components/poker/StartScreen';
 import LoadingScreen from '@/components/poker/LoadingScreen';
 import SitAndGoScreen from '@/components/poker/SitAndGoScreen';
+import TestingScreen, { type TestingConfig } from '@/components/poker/TestingScreen';
 import PokerTable from '@/components/poker/PokerTable';
 
-type Screen = 'start' | 'loading' | 'sitandgo' | 'table';
+type Screen = 'start' | 'loading' | 'sitandgo' | 'testing' | 'table';
 
 interface TableConfig {
   buyIn: number;
   smallBlind: number;
   bigBlind: number;
+  turnTimer?: number;
+  botCount?: number;
 }
 
 const Index = () => {
@@ -19,8 +22,22 @@ const Index = () => {
 
   const handlePlay = useCallback(() => setScreen('sitandgo'), []);
   const handleLoadingComplete = useCallback(() => setScreen('table'), []);
+
   const handleJoinTable = useCallback((buyIn: number, smallBlind: number, bigBlind: number) => {
     setTableConfig({ buyIn, smallBlind, bigBlind });
+    setScreen('loading');
+  }, []);
+
+  const handleTestingMode = useCallback(() => setScreen('testing'), []);
+
+  const handleStartTestGame = useCallback((config: TestingConfig) => {
+    setTableConfig({
+      buyIn: config.startingChips,
+      smallBlind: config.smallBlind,
+      bigBlind: config.bigBlind,
+      turnTimer: config.turnTimer,
+      botCount: config.botCount,
+    });
     setScreen('loading');
   }, []);
 
@@ -32,6 +49,14 @@ const Index = () => {
           key="sitandgo"
           onJoinTable={handleJoinTable}
           onBack={() => setScreen('start')}
+          onTestingMode={handleTestingMode}
+        />
+      )}
+      {screen === 'testing' && (
+        <TestingScreen
+          key="testing"
+          onStartGame={handleStartTestGame}
+          onBack={() => setScreen('sitandgo')}
         />
       )}
       {screen === 'loading' && <LoadingScreen key="loading" onComplete={handleLoadingComplete} />}
