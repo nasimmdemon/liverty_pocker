@@ -9,7 +9,6 @@ interface LoadingScreenProps {
 
 const LOADING_DURATION = 10;
 
-// Example pot simulation
 const EXAMPLE_POT = 200;
 const RAKE_PERCENT = 5;
 const rakeAmount = Math.floor(EXAMPLE_POT * RAKE_PERCENT / 100);
@@ -18,16 +17,16 @@ const hosterCut = Math.floor(rakeAmount * 10 / 100);
 const houseMoney = rakeAmount - affiliateCut - hosterCut;
 const winnerPot = EXAMPLE_POT - rakeAmount;
 
-// "Did you know" tips that cycle
 const DID_YOU_KNOW = [
   '🎯 The best poker players fold 70-80% of their hands.',
   '♠️ A Royal Flush has a 1 in 649,739 chance of being dealt.',
   '💡 Position is everything — late position wins more pots.',
   '🃏 Texas Hold\'em became popular after the 2003 WSOP.',
   '🧠 Reading opponents is more valuable than reading cards.',
+  '💰 Invite friends → Get 30% rake share for life.',
+  '🎩 Host games → Earn 10% from total table rake.',
 ];
 
-// Pot breakdown steps
 interface Step {
   label: string;
   value: string;
@@ -54,7 +53,6 @@ const REVENUE_STEPS: RevenueStep[] = [
   { label: 'PLAYER WINNINGS', value: `$${winnerPot}`, detail: 'Prize pool based on ranking', color: '50 90% 55%', icon: '🏆', type: 'winner' },
 ];
 
-// Marketing banners that pop in
 const BANNERS = [
   { title: 'Play. Invite. Earn.', lines: ['30% lifetime rake share from invited players', '10% host commission from total table rake'] },
   { title: 'Turn Your Table Into Income', lines: ['Invite players → 30% from rake on any hand they play — for life', 'Host tables → 10% commission from total rake'] },
@@ -64,24 +62,22 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
   const [visiblePotSteps, setVisiblePotSteps] = useState(0);
   const [visibleRevenueSteps, setVisibleRevenueSteps] = useState(0);
   const [showBanner, setShowBanner] = useState(false);
-  const [tipIndex, setTipIndex] = useState(0);
-  const [showTip, setShowTip] = useState(false);
-
-  const banner = BANNERS[Math.floor(Math.random() * BANNERS.length)];
+  const [currentTip, setCurrentTip] = useState(0);
+  const [banner] = useState(() => BANNERS[Math.floor(Math.random() * BANNERS.length)]);
 
   useEffect(() => {
     const timer = setTimeout(() => onComplete(), LOADING_DURATION * 1000);
     return () => clearTimeout(timer);
   }, [onComplete]);
 
-  // Reveal pot steps
+  // Pot steps
   useEffect(() => {
     if (visiblePotSteps >= POT_STEPS.length) return;
     const id = setTimeout(() => setVisiblePotSteps(v => v + 1), 800 + visiblePotSteps * 600);
     return () => clearTimeout(id);
   }, [visiblePotSteps]);
 
-  // Then revenue steps
+  // Revenue steps
   useEffect(() => {
     if (visiblePotSteps < POT_STEPS.length) return;
     if (visibleRevenueSteps >= REVENUE_STEPS.length) return;
@@ -90,19 +86,17 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
     return () => clearTimeout(id);
   }, [visiblePotSteps, visibleRevenueSteps]);
 
-  // Show banner after revenue is done
+  // Banner
   useEffect(() => {
     if (visibleRevenueSteps < REVENUE_STEPS.length) return;
     const id = setTimeout(() => setShowBanner(true), 600);
     return () => clearTimeout(id);
   }, [visibleRevenueSteps]);
 
-  // Show did-you-know tip early
+  // Cycle tips
   useEffect(() => {
-    const idx = Math.floor(Math.random() * DID_YOU_KNOW.length);
-    setTipIndex(idx);
-    const id = setTimeout(() => setShowTip(true), 400);
-    return () => clearTimeout(id);
+    const id = setInterval(() => setCurrentTip(p => (p + 1) % DID_YOU_KNOW.length), 3000);
+    return () => clearInterval(id);
   }, []);
 
   const bgForRevenue = (type: string) => {
@@ -116,13 +110,12 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
 
   return (
     <motion.div
-      className="fixed inset-0 flex flex-col items-center justify-end overflow-hidden"
+      className="fixed inset-0 flex flex-col items-center overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.8 }}
     >
-      {/* BG */}
       <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${charactersBg})` }} />
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/30" />
 
@@ -131,54 +124,48 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
         <motion.div
           key={i}
           className="absolute w-1 h-1 rounded-full"
-          style={{
-            background: 'hsl(var(--casino-gold) / 0.4)',
-            left: `${15 + i * 14}%`,
-            bottom: '10%',
-          }}
-          animate={{
-            y: [0, -120 - i * 30, -200],
-            opacity: [0, 0.8, 0],
-            scale: [0.5, 1.2, 0.3],
-          }}
-          transition={{
-            duration: 3 + i * 0.5,
-            repeat: Infinity,
-            delay: i * 0.7,
-            ease: 'easeOut',
-          }}
+          style={{ background: 'hsl(var(--casino-gold) / 0.4)', left: `${15 + i * 14}%`, bottom: '10%' }}
+          animate={{ y: [0, -120 - i * 30, -200], opacity: [0, 0.8, 0], scale: [0.5, 1.2, 0.3] }}
+          transition={{ duration: 3 + i * 0.5, repeat: Infinity, delay: i * 0.7, ease: 'easeOut' }}
         />
       ))}
 
-      <div className="relative z-10 flex flex-col items-center gap-2 sm:gap-3 mb-[3vh] sm:mb-[5vh] w-full px-3 sm:px-8 max-w-xl">
-        {/* Did you know tip */}
-        <AnimatePresence>
-          {showTip && (
-            <motion.div
-              className="w-full max-w-md px-4 py-2 rounded-lg border border-primary/20 text-center"
-              style={{
-                background: 'hsl(0 0% 8% / 0.7)',
-                backdropFilter: 'blur(6px)',
-              }}
-              initial={{ opacity: 0, y: -20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-            >
-              <span
-                className="text-[10px] sm:text-xs tracking-wider block mb-0.5"
-                style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
+      {/* ── Tip carousel at top (fixed height, no layout shift) ── */}
+      <div className="relative z-10 mt-auto w-full px-3 sm:px-8 max-w-xl">
+        <div
+          className="w-full max-w-md mx-auto px-4 py-2.5 rounded-lg border border-primary/20 text-center overflow-hidden"
+          style={{
+            background: 'hsl(0 0% 8% / 0.7)',
+            backdropFilter: 'blur(6px)',
+            height: '56px',
+          }}
+        >
+          <span
+            className="text-[10px] sm:text-xs tracking-wider block mb-0.5"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
+          >
+            💡 DID YOU KNOW?
+          </span>
+          <div className="relative h-4 overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={currentTip}
+                className="text-muted-foreground text-[9px] sm:text-[11px] absolute inset-x-0"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -14 }}
+                transition={{ duration: 0.35 }}
               >
-                💡 DID YOU KNOW?
-              </span>
-              <span className="text-muted-foreground text-[9px] sm:text-[11px]">
-                {DID_YOU_KNOW[tipIndex]}
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                {DID_YOU_KNOW[currentTip]}
+              </motion.span>
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
 
-        {/* Title with pop animation */}
+      {/* ── Main content area (bottom-aligned, stable) ── */}
+      <div className="relative z-10 flex flex-col items-center gap-2 sm:gap-3 mb-[3vh] sm:mb-[5vh] w-full px-3 sm:px-8 max-w-xl mt-3">
+        {/* Title */}
         <motion.h2
           className="text-lg sm:text-2xl md:text-3xl tracking-[0.12em] text-center"
           style={{
@@ -193,7 +180,7 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
           {isPublic ? 'FINDING TABLE FOR YOU' : 'CREATING TABLE FOR YOU'}
         </motion.h2>
 
-        {/* Pulsing dots under title */}
+        {/* Pulsing dots */}
         <div className="flex gap-1.5">
           {[0, 1, 2].map(i => (
             <motion.div
@@ -209,10 +196,7 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
         {/* Progress bar */}
         <div
           className="relative w-full max-w-sm h-2 sm:h-3 rounded-full overflow-hidden"
-          style={{
-            border: '1px solid hsl(var(--casino-gold) / 0.5)',
-            background: 'hsl(var(--casino-dark) / 0.6)',
-          }}
+          style={{ border: '1px solid hsl(var(--casino-gold) / 0.5)', background: 'hsl(var(--casino-dark) / 0.6)' }}
         >
           <motion.div
             className="absolute top-0 left-0 bottom-0 rounded-full"
@@ -224,18 +208,15 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
             animate={{ width: '100%' }}
             transition={{ duration: LOADING_DURATION, ease: 'linear' }}
           />
-          {/* Shimmer effect on progress bar */}
           <motion.div
             className="absolute top-0 bottom-0 w-12 rounded-full"
-            style={{
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
-            }}
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)' }}
             animate={{ left: ['-10%', '110%'] }}
             transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
           />
         </div>
 
-        {/* Pot Breakdown card — pops in */}
+        {/* Pot Breakdown */}
         <motion.div
           className="w-full mt-1 sm:mt-2 rounded-xl border border-primary/30 overflow-hidden"
           style={{ background: 'hsl(0 0% 5% / 0.85)', backdropFilter: 'blur(8px)' }}
@@ -244,25 +225,11 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
           transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.3 }}
         >
           <div className="px-3 py-2 border-b border-primary/20 flex items-center justify-between">
-            <motion.span
-              className="text-xs sm:text-sm tracking-wider"
-              style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
-              initial={{ x: -10, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
+            <span className="text-xs sm:text-sm tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}>
               💡 HOW THE POT WORKS
-            </motion.span>
-            <motion.span
-              className="text-muted-foreground text-[9px] sm:text-[10px]"
-              initial={{ x: 10, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              Example hand
-            </motion.span>
+            </span>
+            <span className="text-muted-foreground text-[9px] sm:text-[10px]">Example hand</span>
           </div>
-
           <div className="flex flex-col">
             {POT_STEPS.map((step, i) => (
               <AnimatePresence key={i}>
@@ -274,18 +241,11 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
                     transition={{ type: 'spring', stiffness: 250, damping: 18 }}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <motion.span
-                        className="text-sm sm:text-base shrink-0"
-                        animate={{ rotate: [0, -10, 10, 0] }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                      >
+                      <motion.span className="text-sm sm:text-base shrink-0" animate={{ rotate: [0, -10, 10, 0] }} transition={{ duration: 0.5, delay: 0.2 }}>
                         {step.icon}
                       </motion.span>
                       <div className="flex flex-col min-w-0">
-                        <span
-                          className="text-[10px] sm:text-xs tracking-wider truncate"
-                          style={{ fontFamily: "'Bebas Neue', sans-serif", color: `hsl(${step.color})` }}
-                        >
+                        <span className="text-[10px] sm:text-xs tracking-wider truncate" style={{ fontFamily: "'Bebas Neue', sans-serif", color: `hsl(${step.color})` }}>
                           {step.label}
                         </span>
                         <span className="text-muted-foreground text-[8px] sm:text-[9px] truncate">{step.detail}</span>
@@ -307,7 +267,7 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
           </div>
         </motion.div>
 
-        {/* Revenue Structure — pops in after pot */}
+        {/* Revenue Structure */}
         <AnimatePresence>
           {visiblePotSteps >= POT_STEPS.length && (
             <motion.div
@@ -318,15 +278,11 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
               transition={{ type: 'spring', stiffness: 200, damping: 18 }}
             >
               <div className="px-3 py-2 border-b border-primary/20 flex items-center justify-between">
-                <span
-                  className="text-xs sm:text-sm tracking-wider"
-                  style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
-                >
+                <span className="text-xs sm:text-sm tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}>
                   📊 REVENUE STRUCTURE
                 </span>
                 <span className="text-muted-foreground text-[9px] sm:text-[10px]">Per hand</span>
               </div>
-
               <div className="flex flex-col">
                 {REVENUE_STEPS.map((step, i) => (
                   <AnimatePresence key={i}>
@@ -384,7 +340,7 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
           )}
         </AnimatePresence>
 
-        {/* Marketing Banner — pops in at the end */}
+        {/* Marketing Banner */}
         <AnimatePresence>
           {showBanner && (
             <motion.div
