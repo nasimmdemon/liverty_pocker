@@ -538,6 +538,99 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Elimination / Anti-Cheat Dialog */}
+      <AlertDialog open={!!eliminatedPlayer} onOpenChange={(open) => { if (!open) setEliminatedPlayer(null); }}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-center">
+              {eliminatedPlayer?.isUser ? (
+                <span className="text-destructive">💀 YOU HAVE BEEN ELIMINATED</span>
+              ) : (
+                <span>🚫 {eliminatedPlayer?.name} ELIMINATED</span>
+              )}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center space-y-2">
+              <span className="block">
+                {eliminatedPlayer?.isUser
+                  ? 'You ran out of chips. Better luck next time!'
+                  : `${eliminatedPlayer?.name} has lost all their chips and is out of the game.`}
+              </span>
+              {isTestingTable && !eliminatedPlayer?.isUser && (
+                <span className="block text-muted-foreground text-xs mt-2 border-t border-border pt-2">
+                  🧪 <strong>Testing Mode:</strong> You can flag this player for anti-cheat review.
+                  {markedCheaters.has(eliminatedPlayer?.id ?? -1) && (
+                    <span className="block text-destructive font-bold mt-1">⚠️ Already marked as suspected cheater</span>
+                  )}
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            {isTestingTable && !eliminatedPlayer?.isUser && !markedCheaters.has(eliminatedPlayer?.id ?? -1) && (
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  if (eliminatedPlayer) {
+                    setMarkedCheaters(prev => new Set(prev).add(eliminatedPlayer.id));
+                    toast({
+                      title: '🚨 Anti-Cheat Flag',
+                      description: `${eliminatedPlayer.name} has been marked as a suspected cheater. This will be reviewed.`,
+                      variant: 'destructive',
+                    });
+                  }
+                  setEliminatedPlayer(null);
+                }}
+              >
+                🚨 Mark as Cheater
+              </AlertDialogAction>
+            )}
+            <AlertDialogAction
+              onClick={() => {
+                if (eliminatedPlayer?.isUser) {
+                  onExit?.();
+                }
+                setEliminatedPlayer(null);
+              }}
+            >
+              {eliminatedPlayer?.isUser ? 'Leave Table' : 'Continue'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Game Over overlay — only user left or user eliminated */}
+      {gameState && !gameState.showdown && (() => {
+        const activePlayers = gameState.players.filter(p => p.isActive && p.chips > 0);
+        const user = gameState.players.find(p => p.isUser);
+        if (activePlayers.length <= 1 && activePlayers[0]?.isUser) {
+          return (
+            <motion.div
+              className="absolute inset-0 z-50 flex items-center justify-center bg-black/70"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <div className="flex flex-col items-center gap-4 p-8 rounded-2xl border-2 border-primary" style={{ background: 'hsl(0 0% 8%)' }}>
+                <span className="text-4xl">🏆</span>
+                <h2 className="text-2xl text-primary font-display tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                  YOU WON THE GAME!
+                </h2>
+                <p className="text-muted-foreground text-sm">All opponents have been eliminated.</p>
+                <p className="text-primary font-bold text-xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                  Final chips: ${user?.chips.toLocaleString()}
+                </p>
+                <button
+                  className="casino-btn px-6 py-2 rounded-xl font-bold"
+                  onClick={() => onExit?.()}
+                >
+                  Exit to Lobby
+                </button>
+              </div>
+            </motion.div>
+          );
+        }
+        return null;
+      })()}
     </div>
   );
 };
