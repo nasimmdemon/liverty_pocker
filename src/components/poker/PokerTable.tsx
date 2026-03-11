@@ -65,6 +65,7 @@ interface PokerTableProps {
   smallBlind?: number;
   bigBlind?: number;
   turnTimer?: number;
+  isTestingTable?: boolean;
   onExit?: () => void;
   seatAnchorOverrides?: {
     desktop?: { top: string; left: string }[];
@@ -72,7 +73,7 @@ interface PokerTableProps {
   };
 }
 
-const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlind = 10, turnTimer: turnTimerProp, onExit, seatAnchorOverrides }: PokerTableProps) => {
+const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlind = 10, turnTimer: turnTimerProp, isTestingTable = false, onExit, seatAnchorOverrides }: PokerTableProps) => {
   const TURN_DURATION = turnTimerProp ?? DEFAULT_TURN_DURATION;
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
