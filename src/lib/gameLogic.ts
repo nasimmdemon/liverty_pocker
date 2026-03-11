@@ -64,6 +64,7 @@ export function createInitialGameState(buyIn: number = 1500): GameState {
     deck: [],
     roundNumber: 0,
     winnerId: null,
+    winnerIds: [],
     winnerHandDescription: '',
     showdown: false,
     bettingRoundComplete: false,
@@ -86,7 +87,10 @@ function getNextSeatIndex(fromIndex: number, players: Player[], skipFolded = tru
 
 export function startNewRound(state: GameState): GameState {
   const deck = createDeck();
-  const dealerIndex = state.roundNumber === 0 ? 0 : (state.dealerIndex + 1) % state.players.length;
+  // Texas Hold'em: dealer button moves to next active player each round
+  const dealerIndex = state.roundNumber === 0
+    ? 0
+    : getNextSeatIndex(state.dealerIndex, state.players, false);
   const sbIndex = getNextSeatIndex(dealerIndex, state.players, false);
   const bbIndex = getNextSeatIndex(sbIndex, state.players, false);
 
@@ -155,6 +159,7 @@ export function startNewRound(state: GameState): GameState {
     currentPlayerIndex: firstToAct,
     roundNumber: state.roundNumber + 1,
     winnerId: null,
+    winnerIds: [],
     winnerHandDescription: '',
     showdown: false,
     bettingRoundComplete: false,
@@ -195,13 +200,14 @@ export function advancePhase(state: GameState): GameState {
     return c;
   });
 
-  // Reset bets for new betting round
+  // Reset bets for new betting round (flop/turn/river)
   const players = state.players.map(p => ({
     ...p,
     currentBet: 0,
+    totalRoundBet: 0,
   }));
 
-  // First to act after flop is first active after dealer
+  // Texas Hold'em: post-flop, first to act is first active player to the left of the dealer (button)
   const firstToAct = getNextSeatIndex(state.dealerIndex, players);
 
   if (nextPhase === 'showdown') {
@@ -233,22 +239,31 @@ function handleShowdown(state: GameState): GameState {
   const winners = determineWinners(players, visibleCommunity);
   if (winners.length === 0) return { ...state, players, communityCards: visibleCommunity, showdown: true };
 
+  // Split pot: divide evenly, odd chips go to first winner (closest to dealer)
   const potPerWinner = Math.floor(state.pot / winners.length);
-  const winnerIds = new Set(winners.map(w => w.winnerId));
+  const remainder = state.pot - potPerWinner * winners.length;
+  const winnerIdSet = new Set(winners.map(w => w.winnerId));
+  const winnerIds = winners.map(w => w.winnerId);
 
   const finalPlayers = players.map(p => {
-    if (winnerIds.has(p.id)) {
-      return { ...p, chips: p.chips + potPerWinner, lastAction: '🏆 WINNER' };
-    }
-    return p;
+    if (!winnerIdSet.has(p.id)) return p;
+    // First winner (by index in winners array) gets extra chip(s) if remainder
+    const winnerIndex = winners.findIndex(w => w.winnerId === p.id);
+    const extraChips = winnerIndex < remainder ? 1 : 0;
+    return { ...p, chips: p.chips + potPerWinner + extraChips, lastAction: '🏆 WINNER' };
   });
+
+  const desc = winners.length > 1
+    ? `Split pot (${winners.length} winners)`
+    : winners[0].hand.description;
 
   return {
     ...state,
     players: finalPlayers,
     communityCards: visibleCommunity,
     winnerId: winners[0].winnerId,
-    winnerHandDescription: winners[0].hand.description,
+    winnerIds,
+    winnerHandDescription: desc,
     showdown: true,
     pot: 0,
   };
@@ -267,7 +282,10 @@ export function playerAction(
   let pot = state.pot;
   let currentBet = state.currentBet;
   let minRaise = state.minRaise;
-  let actedCount = state.actedCount + 1;
+  // actedCount: only count actions by players who remain active (can still act)
+  // Fold: no increment (player leaves). All-in: no increment (player leaves active set).
+  // Check/call: increment. Bet/raise: reset to 1.
+  let actedCount = state.actedCount;
 
   switch (action) {
     case 'fold': {
@@ -281,12 +299,13 @@ export function playerAction(
             ? { ...p, chips: p.chips + pot, lastAction: '🏆 WINNER' }
             : p
         );
-        return { ...state, players: newPlayers, pot: 0, winnerId: winner.id, winnerHandDescription: 'Last player standing', showdown: true, actedCount };
+        return { ...state, players: newPlayers, pot: 0, winnerId: winner.id, winnerIds: [winner.id], winnerHandDescription: 'Last player standing', showdown: true, actedCount };
       }
       break;
     }
     case 'check': {
       newPlayers[playerIndex] = { ...player, lastAction: 'CHECK' };
+      actedCount += 1;
       break;
     }
     case 'call': {
@@ -302,6 +321,7 @@ export function playerAction(
         lastAction: isAllIn ? 'ALL-IN' : 'CALL',
       };
       pot += callAmount;
+      actedCount += 1;
       break;
     }
     case 'bet':
@@ -337,10 +357,11 @@ export function playerAction(
         const raiseSize = newBet - currentBet;
         if (raiseSize >= minRaise) {
           minRaise = raiseSize;
-          actedCount = 1;
+          actedCount = 1; // All-in raise: everyone must act again
         }
         currentBet = newBet;
       }
+      // If all-in was a call (didn't raise), actedCount unchanged — all-in player leaves active set
       newPlayers[playerIndex] = {
         ...player,
         chips: 0,

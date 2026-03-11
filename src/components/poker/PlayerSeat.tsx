@@ -12,6 +12,7 @@ interface PlayerSeatProps {
   isDealer?: boolean;
   isWinner?: boolean;
   isMobile?: boolean;
+  isShowdown?: boolean;
   chatBubble?: { id: number; text: string; playerName: string } | null;
 }
 
@@ -53,13 +54,13 @@ const NamePlate = ({ player, isTopSeat }: { player: Player; isTopSeat: boolean }
 const PlayerSeat = ({
   player, seatIndex, onClickAvatar,
   timerProgress = 0, isDealer = false, isWinner = false, isMobile = false,
-  chatBubble = null,
+  isShowdown = false, chatBubble = null,
 }: PlayerSeatProps) => {
   const isTurn = player.isTurn;
   const hasFolded = player.hasFolded;
   const isUser = player.isUser;
-  // Show cards for all players: user sees own face-up; others see closed until showdown
-  const showCards = player.cards.length > 0 && !hasFolded;
+  // User sees own cards (face-up). Others: only visible at showdown
+  const showCards = player.cards.length > 0 && !hasFolded && (isUser || isShowdown);
   const isTopSeat = seatIndex >= 2 && seatIndex <= 4;
 
   // Avatar 2x bigger: was 56/72 (user) and 46/60 (others)

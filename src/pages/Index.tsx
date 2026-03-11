@@ -35,7 +35,13 @@ const Index = () => {
         />
       )}
       {screen === 'loading' && <LoadingScreen key="loading" onComplete={handleLoadingComplete} />}
-      {screen === 'table' && <PokerTable key="table" initialBuyIn={tableConfig.buyIn} />}
+      {screen === 'table' && (
+        <PokerTable
+          key="table"
+          initialBuyIn={tableConfig.buyIn}
+          onExit={() => setScreen('start')}
+        />
+      )}
     </AnimatePresence>
   );
 };

@@ -23,6 +23,8 @@ import WinChipAnimation from './WinChipAnimation';
 import { BOT_CHAT_MESSAGES } from './GameChat';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { playFoldSound, playWinSound, playCardRevealSound } from '@/lib/sounds';
+import { runAntiCheatOnExit } from '@/lib/antiCheat';
+import { toast } from '@/hooks/use-toast';
 
 // 6-player positions — zones and seats use IDENTICAL positions so avatars sit inside circles
 const SEAT_POSITIONS_DESKTOP = [
@@ -49,13 +51,14 @@ const SHOWDOWN_DELAY = 4000;
 
 interface PokerTableProps {
   initialBuyIn?: number;
+  onExit?: () => void;
   seatAnchorOverrides?: {
     desktop?: { top: string; left: string }[];
     mobile?: { top: string; left: string }[];
   };
 }
 
-const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProps) => {
+const PokerTable = ({ initialBuyIn = 1500, onExit, seatAnchorOverrides }: PokerTableProps) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [timer, setTimer] = useState(TURN_DURATION);
@@ -143,8 +146,10 @@ const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProp
   useEffect(() => {
     if (gameState?.showdown && gameState.winnerId !== null && prevGameStateRef.current && !prevGameStateRef.current.showdown) {
       const winnerSeatIndex = gameState.players.findIndex(p => p.id === gameState.winnerId);
-      if (winnerSeatIndex >= 0 && prevGameStateRef.current.pot > 0) {
-        setWinAnimation({ winnerSeatIndex, amount: prevGameStateRef.current.pot });
+      const winnerCount = gameState.winnerIds?.length ?? 1;
+      const amountPerWinner = Math.floor(prevGameStateRef.current.pot / winnerCount);
+      if (winnerSeatIndex >= 0 && amountPerWinner > 0) {
+        setWinAnimation({ winnerSeatIndex, amount: amountPerWinner });
         playWinSound();
       }
     }
@@ -273,7 +278,21 @@ const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProp
 
       {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-3 py-2 lg:px-4 lg:py-3">
-        <button className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border-2 border-primary flex items-center justify-center bg-secondary">
+        <button
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border-2 border-primary flex items-center justify-center bg-secondary hover:bg-primary/20 transition-colors"
+          onClick={() => {
+            const result = runAntiCheatOnExit(gameState);
+            if (result.triggered) {
+              const perPlayer = result.recipientCount > 0 ? Math.floor(result.penaltyAmount / result.recipientCount) : 0;
+              toast({
+                title: 'Anti-Cheat: Penalty Applied',
+                description: `You left during an active hand. $${result.penaltyAmount.toLocaleString()} has been returned to ${result.recipientNames.join(', ')}. They have been notified. You are aware this happened because you left the table without folding.`,
+                variant: 'destructive',
+              });
+            }
+            onExit?.();
+          }}
+        >
           <ArrowLeft size={18} className="text-primary" />
         </button>
         <div className="flex items-center gap-2 sm:gap-3">
@@ -335,7 +354,9 @@ const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProp
               >
                 <div className="bg-background/80 backdrop-blur-sm border-2 border-primary rounded-xl px-3 sm:px-5 py-1.5 sm:py-2 text-center whitespace-nowrap">
                   <div className="text-primary font-display text-xs sm:text-base tracking-wider">
-                    {gameState.players.find(p => p.id === gameState.winnerId)?.name} WINS!
+                    {(gameState.winnerIds?.length ?? 1) > 1
+                      ? `${gameState.winnerIds?.length} WINNERS - SPLIT POT!`
+                      : `${gameState.players.find(p => p.id === gameState.winnerId)?.name} WINS!`}
                   </div>
                   <div className="text-muted-foreground text-[8px] sm:text-xs mt-0.5">{gameState.winnerHandDescription}</div>
                 </div>
@@ -368,8 +389,9 @@ const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProp
                   onClickAvatar={setSelectedPlayer}
                   timerProgress={player.isTurn ? timerProgress : 0}
                   isDealer={i === gameState.dealerIndex}
-                  isWinner={gameState.showdown && player.id === gameState.winnerId}
+                  isWinner={gameState.showdown && (gameState.winnerIds?.includes(player.id) ?? player.id === gameState.winnerId)}
                   isMobile={isMobile}
+                  isShowdown={gameState.showdown}
                   chatBubble={chatBubbles[player.id] ?? null}
                 />
               </div>
@@ -381,14 +403,17 @@ const PokerTable = ({ initialBuyIn = 1500, seatAnchorOverrides }: PokerTableProp
       {/* Chip animations */}
       <ChipAnimation bets={chipBets} onComplete={handleChipAnimComplete} />
 
-      {/* Action Buttons */}
+      {/* Action Buttons — disabled when not user's turn */}
       <ActionButtons
         chipCount={userPlayer?.chips ?? 0}
+        pot={gameState.pot}
+        currentBet={userPlayer?.currentBet ?? 0}
+        bigBlind={gameState.bigBlind}
         onFold={() => handleUserAction('fold')}
         onCheck={() => handleUserAction('check')}
         onCall={() => handleUserAction('call')}
-        onBet={() => handleUserAction('bet', gameState.bigBlind)}
-        onRaise={() => handleUserAction('raise', getMinRaiseTotal(gameState))}
+        onBet={(amount) => handleUserAction('bet', amount)}
+        onRaise={(amount) => handleUserAction('raise', amount)}
         onAllIn={() => handleUserAction('all-in')}
         onSendMessage={handleSendMessage}
         disabled={!isUserTurn}

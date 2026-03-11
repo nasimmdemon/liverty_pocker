@@ -48,6 +48,7 @@ export interface GameState {
   deck: PlayingCard[];
   roundNumber: number;
   winnerId: number | null;
+  winnerIds: number[]; // All winners (for split pot)
   winnerHandDescription: string;
   showdown: boolean;
   bettingRoundComplete: boolean;
