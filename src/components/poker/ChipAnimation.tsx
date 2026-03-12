@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatChips } from '@/lib/formatChips';
 import ChipIcon from './ChipIcon';
 
 interface ChipBet {
@@ -36,7 +37,7 @@ const ChipAnimation = ({ bets, onComplete }: ChipAnimationProps) => {
             className="text-xs font-bold text-primary drop-shadow-md"
             style={{ fontFamily: "'Bebas Neue', sans-serif" }}
           >
-            ${bet.amount}
+            ${formatChips(bet.amount)}
           </span>
         </motion.div>
       ))}

@@ -18,6 +18,6 @@ Date: March 11, 2025
 15. Winning overlay redesign – show community + player cards, highlight winning hand cards, 5s duration, modern layout with spring animation
 16. Mobile add-to-home-screen prompt – when visiting in mobile browser, block game and show instructions to add as web app; detect iOS vs Android for platform-specific steps (Share → Add to Home Screen on iOS; Menu → Add to Home screen on Android); PWA manifest added for install support
 17. Disable zoom – viewport meta (maximum-scale=1, user-scalable=no) and touch-action: manipulation to prevent pinch/double-tap zoom on mobile and desktop
-18. Landscape mobile improvements – wider table (94vw) to reduce black bars; user cards repositioned to avoid action button overlap; top 3 players' cards scaled for visibility; lastAction amounts (RAISE, BET, ALL-IN) formatted to 1 decimal
-19. Sound effects reliability – defer play until AudioContext resume completes (fixes sounds stopping after main player call)
-20. Winning hand highlight – solid gold border, amber background tint, checkmark badge (✓) on cards; clearer than glow
+18. Disable landscape on mobile – game not playable in landscape; rotate-to-portrait overlay blocks play (browser + add-to-home-screen); manifest orientation: portrait; screen-orientation meta
+19. Sound effects always on – defer play until AudioContext resume; resume on visibility change (tab focus); unlock on first click/touch
+20. Winning hand highlight – only TABLE/community cards highlighted (not player cards); solid gold border, amber tint, checkmark (✓); chip animation decimals fixed (formatChips)

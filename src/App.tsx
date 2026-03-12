@@ -17,6 +17,12 @@ const App = () => {
     document.addEventListener('click', unlock, { once: true });
     document.addEventListener('touchstart', unlock, { once: true });
     document.addEventListener('keydown', unlock, { once: true });
+    // Resume AudioContext when tab becomes visible (fixes iOS suspending when app goes to background)
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') unlockAudio();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, []);
 
   return (

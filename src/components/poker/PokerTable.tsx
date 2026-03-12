@@ -687,7 +687,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
                 <div className="p-6 space-y-5">
                   {gameState.communityCards.length > 0 && (
                     <div>
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Community</p>
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Community (✓ = used in winning hand)</p>
                       <div className="flex gap-1.5 sm:gap-2 justify-center flex-wrap">
                         {gameState.communityCards.map((card, i) => (
                           <Card
@@ -712,12 +712,12 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
                             delay={0.2 + 0.1 * i}
                             index={i}
                             isPlayerCard
-                            isHighlighted={isInBestHand(card)}
+                            isHighlighted={false}
                           />
                         ))}
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                        Cards with ✓ form the winning hand
+                        Table cards with ✓ above form the winning hand
                       </p>
                     </div>
                   )}
