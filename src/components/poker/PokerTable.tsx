@@ -238,7 +238,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const chatBubbleIdRef = useRef(0);
   gameStateRef.current = gameState;
 
-  const [winAnimation, setWinAnimation] = useState<{ winnerSeatIndex: number; amount: number } | null>(null);
+  const [winAnimation, setWinAnimation] = useState<{ winnerSeatIndex: number; winnerPlayerId: number; amount: number } | null>(null);
   const [showWinDisplay, setShowWinDisplay] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [eliminatedPlayer, setEliminatedPlayer] = useState<{ name: string; id: number; isUser: boolean } | null>(null);
@@ -250,9 +250,9 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       const winnerSeatIndex = gameState.players.findIndex(p => p.id === gameState.winnerId);
       const winnerCount = gameState.winnerIds?.length ?? 1;
       const amountPerWinner = Math.floor(prevGameStateRef.current.pot / winnerCount);
-      if (winnerSeatIndex >= 0 && amountPerWinner > 0) {
+      if (winnerSeatIndex >= 0 && gameState.winnerId != null && amountPerWinner > 0) {
         const id = setTimeout(() => {
-          setWinAnimation({ winnerSeatIndex, amount: amountPerWinner });
+          setWinAnimation({ winnerSeatIndex, winnerPlayerId: gameState.winnerId!, amount: amountPerWinner });
           setShowWinDisplay(true);
           playWinSound();
         }, 1500);
@@ -607,6 +607,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           {/* Win chip animation - inside table so chips fly BEHIND player avatars (z-5 < z-10) */}
           <WinChipAnimation
             winnerSeatIndex={winAnimation?.winnerSeatIndex ?? null}
+            winnerPlayerId={winAnimation?.winnerPlayerId ?? null}
             amount={winAnimation?.amount ?? 0}
             onComplete={() => setWinAnimation(null)}
           />

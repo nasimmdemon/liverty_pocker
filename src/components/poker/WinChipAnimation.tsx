@@ -4,6 +4,7 @@ import ChipIcon from './ChipIcon';
 
 interface WinChipAnimationProps {
   winnerSeatIndex: number | null;
+  winnerPlayerId?: number | null; // Use player id for reliable DOM lookup (data-player-zone)
   amount: number;
   onComplete?: () => void;
 }
@@ -18,21 +19,25 @@ const FADE_DURATION = 0.6; // Fade out duration
 const TOTAL_DURATION = FADE_START + FADE_DURATION; // ~2.1s
 const CHIP_DELAY = 0.05; // Delay between each chip
 
-const WinChipAnimation = ({ winnerSeatIndex, amount, onComplete }: WinChipAnimationProps) => {
+const WinChipAnimation = ({ winnerSeatIndex, winnerPlayerId, amount, onComplete }: WinChipAnimationProps) => {
   const chipCount = Math.min(MAX_CHIPS, Math.max(MIN_CHIPS, MIN_CHIPS + Math.floor(amount / 100) * CHIPS_PER_100));
   const maxChipDelay = (chipCount - 1) * CHIP_DELAY;
   const unmountAfter = (TOTAL_DURATION + maxChipDelay + 0.1) * 1000;
 
   useEffect(() => {
-    if (winnerSeatIndex === null || amount <= 0) return;
+    if ((winnerSeatIndex === null && winnerPlayerId == null) || amount <= 0) return;
     const t = setTimeout(() => onComplete?.(), unmountAfter);
     return () => clearTimeout(t);
-  }, [winnerSeatIndex, amount, onComplete, unmountAfter]);
+  }, [winnerSeatIndex, winnerPlayerId, amount, onComplete, unmountAfter]);
 
-  if (winnerSeatIndex === null || amount <= 0) return null;
+  if ((winnerSeatIndex === null && winnerPlayerId == null) || amount <= 0) return null;
 
   const potEl = document.querySelector('[data-pot-display]');
-  const seatEl = document.querySelector(`[data-seat-index="${winnerSeatIndex}"]`);
+  // Use data-player-zone (unique per player) for reliable targeting - avoids wrong element on mobile
+  const targetId = winnerPlayerId ?? winnerSeatIndex;
+  const seatEl = targetId != null
+    ? (document.querySelector(`[data-player-zone="${targetId}"]`) ?? document.querySelector(`[data-seat-index="${targetId}"]`))
+    : null;
   if (!potEl || !seatEl) return null;
 
   const potRect = potEl.getBoundingClientRect();
