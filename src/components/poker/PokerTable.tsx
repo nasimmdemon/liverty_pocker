@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Settings } from 'lucide-react';
 import {
@@ -36,6 +36,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { playFoldSound, playWinSound, playCardRevealSound, playYourTurnSound, playCheckSound, playTickSound, unlockAudio } from '@/lib/sounds';
 import { runAntiCheatOnExit } from '@/lib/antiCheat';
 import { formatChips } from '@/lib/formatChips';
+import { calculateWinProbability } from '@/lib/winProbability';
 import { toast } from '@/hooks/use-toast';
 
 // 6-player positions — zones and seats use IDENTICAL positions so avatars sit inside circles
@@ -556,6 +557,17 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
 
   // Chat bubbles: single player = local state; multiplayer = from gameState (synced)
   const CHAT_BUBBLE_DURATION_MS = 5000;
+  // Win probability for main player (Monte Carlo, updates as community cards reveal)
+  const userWinChance = useMemo(() => {
+    const user = gameState.players.find(p => p.isUser);
+    if (!user || user.cards.length !== 2 || user.hasFolded) return undefined;
+    const opponents = gameState.players.filter(p => p.isActive && !p.hasFolded && !p.isUser);
+    return calculateWinProbability(user.cards, gameState.communityCards, opponents.length);
+  }, [
+    gameState.players,
+    gameState.communityCards,
+  ]);
+
   const displayedChatBubbles: Record<number, { id: number; text: string; playerName: string }> = isMultiplayer
     ? Object.fromEntries(
         Object.entries(gameState?.chatBubbles ?? {})
@@ -810,6 +822,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
                   isLandscapeMobile={isLandscapeMobile}
                   isShowdown={gameState.showdown}
                   chatBubble={displayedChatBubbles[player.id] ?? null}
+                  winChance={player.isUser ? userWinChance : undefined}
                 />
               </div>
             );

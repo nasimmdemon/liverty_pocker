@@ -3,6 +3,7 @@ import { Player } from '@/lib/gameTypes';
 import { formatChips } from '@/lib/formatChips';
 import Card from './Card';
 import { ChatBubble } from './GameChat';
+import WinningChanceBar from './WinningChanceBar';
 
 interface PlayerSeatProps {
   player: Player;
@@ -17,6 +18,7 @@ interface PlayerSeatProps {
   isLandscapeMobile?: boolean;
   isShowdown?: boolean;
   chatBubble?: { id: number; text: string; playerName: string } | null;
+  winChance?: number;
 }
 
 const NamePlate = ({ player, isTopSeat, isTurn }: { player: Player; isTopSeat: boolean; isTurn?: boolean }) => {
@@ -66,7 +68,7 @@ const PlayerSeat = ({
   player, seatIndex, onClickAvatar,
   timerProgress = 0, isDealer = false, isSmallBlind = false, isBigBlind = false,
   isWinner = false, isMobile = false, isLandscapeMobile = false,
-  isShowdown = false, chatBubble = null,
+  isShowdown = false, chatBubble = null, winChance,
 }: PlayerSeatProps) => {
   const isTurn = player.isTurn;
   const hasFolded = player.hasFolded;
@@ -232,6 +234,11 @@ const PlayerSeat = ({
 
       {/* Name plate */}
       <NamePlate player={player} isTopSeat={isTopSeat} isTurn={isTurn} />
+
+      {/* Winning chance bar — main player only, below name */}
+      {isUser && winChance != null && !hasFolded && !hasLeft && (
+        <WinningChanceBar percent={winChance} isMobile={isMobile} />
+      )}
 
       {/* Hole cards below avatar for top seats — same rotated fan as bottom seats */}
       {showCards && isTopSeat && (

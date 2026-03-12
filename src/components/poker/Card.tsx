@@ -94,15 +94,6 @@ const Card = ({ card, delay = 0, isPlayerCard = false, onReveal, isHighlighted =
 
       {/* Subtle inner border */}
       <div className="absolute inset-[2px] rounded-md border border-gray-200/50 pointer-events-none" />
-      {/* Winning hand badge — clear, modern indicator */}
-      {isHighlighted && (
-        <div
-          className="absolute -top-2 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black pointer-events-none"
-          style={{ background: 'hsl(var(--casino-gold))', color: 'hsl(0 0% 5%)', boxShadow: '0 1px 4px rgba(0,0,0,0.4)' }}
-        >
-          ✓
-        </div>
-      )}
     </motion.div>
   );
 };
