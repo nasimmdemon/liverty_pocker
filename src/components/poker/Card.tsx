@@ -67,9 +67,9 @@ const Card = ({ card, delay = 0, isPlayerCard = false, onReveal, isHighlighted =
       transition={{ delay, duration: 0.6, type: 'spring', stiffness: 120, damping: 14 }}
       className={`w-10 h-[56px] sm:w-[48px] sm:h-[66px] rounded-lg border relative overflow-hidden select-none ${isHighlighted ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background' : 'border-gray-300'}`}
       style={{
-        background: 'linear-gradient(180deg, #fefefe 0%, #f0ebe0 40%, #e8e0d0 100%)',
+        background: isHighlighted ? 'linear-gradient(180deg, #fef9e7 0%, #f5e6c8 40%, #e8d4a8 100%)' : 'linear-gradient(180deg, #fefefe 0%, #f0ebe0 40%, #e8e0d0 100%)',
         boxShadow: isHighlighted
-          ? '0 0 20px hsl(var(--casino-gold) / 0.6), 0 4px 14px rgba(0,0,0,0.35)'
+          ? '0 0 24px hsl(var(--casino-gold) / 0.8), 0 0 12px hsl(var(--casino-gold) / 0.5), 0 4px 14px rgba(0,0,0,0.35)'
           : '0 4px 14px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2)',
         transformStyle: 'preserve-3d',
         perspective: '800px',

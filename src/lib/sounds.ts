@@ -6,7 +6,8 @@
 let audioContext: AudioContext | null = null;
 
 function getAudioContext(): AudioContext | null {
-  if (audioContext) return audioContext;
+  if (audioContext && audioContext.state !== 'closed') return audioContext;
+  if (audioContext?.state === 'closed') audioContext = null;
   try {
     audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
     return audioContext;
@@ -18,8 +19,9 @@ function getAudioContext(): AudioContext | null {
 /** Call on first user interaction to unlock audio (browsers block until then) */
 export function unlockAudio(): void {
   const ctx = getAudioContext();
-  if (ctx?.state === 'suspended') {
-    ctx.resume().catch(() => {});
+  if (!ctx) return;
+  if (ctx.state === 'suspended') {
+    ctx.resume().then(() => {}).catch(() => {});
   }
 }
 
@@ -27,7 +29,9 @@ function playTone(freq: number, durationMs: number, volume = 0.3, type: Oscillat
   const ctx = getAudioContext();
   if (!ctx) return;
   try {
-    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(() => {}).catch(() => {});
+    }
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { formatChips } from '@/lib/formatChips';
 import pokerTableBg from '@/assets/poker-table-bg.png';
 import joinTableChip from '@/assets/join-table-chip.png';
 
@@ -547,7 +548,7 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
 
         <div className="w-full flex items-center gap-2 sm:gap-4">
           <span className="text-muted-foreground text-xs" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-            ${minEntrance.toLocaleString()}
+            ${formatChips(minEntrance)}
           </span>
           <input
             type="range"
@@ -562,7 +563,7 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
             }}
           />
           <span className="text-muted-foreground text-xs" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-            ${maxEntrance.toLocaleString()}
+            ${formatChips(maxEntrance)}
           </span>
         </div>
 
@@ -570,7 +571,7 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
           className="text-2xl sm:text-3xl tracking-wider"
           style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
         >
-          ${entranceAmount.toLocaleString()}
+          ${formatChips(entranceAmount)}
         </span>
       </motion.div>
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GameChat from './GameChat';
+import { formatChips } from '@/lib/formatChips';
 import { Minus, Plus, X } from 'lucide-react';
 
 interface ActionButtonsProps {
@@ -70,7 +71,7 @@ const ActionButtons = ({
             <GameChat onSendMessage={onSendMessage} isMobile={isMobile} />
             <div className="flex flex-col items-center shrink-0 px-2 sm:px-3 py-1.5 rounded-lg bg-background/80 border-2 border-primary/40">
               <span className="text-primary font-display text-sm sm:text-lg font-bold leading-tight">
-                ${chipCount.toLocaleString()}
+                ${formatChips(chipCount)}
               </span>
               <span className="text-muted-foreground text-[8px] sm:text-[9px] uppercase tracking-wider">Chips</span>
             </div>
@@ -84,7 +85,7 @@ const ActionButtons = ({
                 </button>
               ) : (
                 <button className={btnClass} onClick={onCall} disabled={disabled}>
-                  Call ${Number(callAmount.toFixed(1)).toLocaleString()}
+                  Call ${formatChips(callAmount)}
                 </button>
               )}
               <button
@@ -120,7 +121,7 @@ const ActionButtons = ({
                       <Minus size={16} className="text-primary" />
                     </button>
                     <span className="text-primary font-display font-bold text-sm sm:text-base min-w-[4rem] sm:min-w-[5rem] text-center">
-                      ${Math.min(betAmount, chipCount).toLocaleString()}
+                      ${formatChips(Math.min(betAmount, chipCount))}
                     </span>
                     <button
                       className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 disabled:opacity-50 transition-colors"

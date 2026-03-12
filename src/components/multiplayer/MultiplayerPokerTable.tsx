@@ -11,6 +11,7 @@ interface MultiplayerPokerTableProps {
   isHost: boolean;
   initialRoom: GameRoom;
   onExit: () => void;
+  isLandscapeMobile?: boolean;
 }
 
 export default function MultiplayerPokerTable({
@@ -19,6 +20,7 @@ export default function MultiplayerPokerTable({
   isHost,
   initialRoom,
   onExit,
+  isLandscapeMobile = false,
 }: MultiplayerPokerTableProps) {
   const [room, setRoom] = useState<GameRoom | null>(initialRoom);
 
@@ -57,6 +59,7 @@ export default function MultiplayerPokerTable({
       <PokerTable
         initialBuyIn={room.buyIn}
         onExit={handleExit}
+        isLandscapeMobile={isLandscapeMobile}
         multiplayer={{
         gameId,
         currentUserId,

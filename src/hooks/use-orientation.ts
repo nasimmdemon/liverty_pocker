@@ -7,7 +7,9 @@ export function useIsLandscapeOnMobile(): boolean {
 
   useEffect(() => {
     const check = () => {
-      const isMobile = window.innerWidth < MOBILE_BREAKPOINT;
+      // Use min dimension so phones are detected in both orientations (landscape width can exceed 768)
+      const shortSide = Math.min(window.innerWidth, window.innerHeight);
+      const isMobile = shortSide < MOBILE_BREAKPOINT;
       const isLandscape = window.matchMedia('(orientation: landscape)').matches;
       setIsLandscapeOnMobile(isMobile && isLandscape);
     };

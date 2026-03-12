@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect } from 'react';
+import { formatChips } from '@/lib/formatChips';
 import ChipIcon from './ChipIcon';
 
 interface WinChipAnimationProps {
@@ -91,7 +92,7 @@ const WinChipAnimation = ({ winnerSeatIndex, winnerPlayerId, amount, onComplete 
             className="text-lg font-bold text-primary drop-shadow-lg"
             style={{ fontFamily: "'Bebas Neue', sans-serif" }}
           >
-            +${amount.toLocaleString()}
+            +${formatChips(amount)}
           </span>
         </motion.div>
       </div>

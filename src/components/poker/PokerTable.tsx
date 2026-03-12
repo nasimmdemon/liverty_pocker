@@ -35,6 +35,7 @@ import { BOT_CHAT_MESSAGES } from './GameChat';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { playFoldSound, playWinSound, playCardRevealSound, playYourTurnSound, playCheckSound, playTickSound, unlockAudio } from '@/lib/sounds';
 import { runAntiCheatOnExit } from '@/lib/antiCheat';
+import { formatChips } from '@/lib/formatChips';
 import { toast } from '@/hooks/use-toast';
 
 // 6-player positions — zones and seats use IDENTICAL positions so avatars sit inside circles
@@ -115,6 +116,7 @@ interface PokerTableProps {
   turnTimer?: number;
   isTestingTable?: boolean;
   onExit?: () => void;
+  isLandscapeMobile?: boolean;
   seatAnchorOverrides?: {
     desktop?: { top: string; left: string }[];
     mobile?: { top: string; left: string }[];
@@ -122,7 +124,7 @@ interface PokerTableProps {
   multiplayer?: MultiplayerConfig;
 }
 
-const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlind = 10, turnTimer: turnTimerProp, isTestingTable = false, onExit, seatAnchorOverrides, multiplayer }: PokerTableProps) => {
+const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlind = 10, turnTimer: turnTimerProp, isTestingTable = false, onExit, isLandscapeMobile = false, seatAnchorOverrides, multiplayer }: PokerTableProps) => {
   const TURN_DURATION = turnTimerProp ?? DEFAULT_TURN_DURATION;
   const isMultiplayer = !!multiplayer;
   const [internalGameState, setInternalGameState] = useState<GameState | null>(null);
@@ -143,6 +145,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const botTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  const isCompact = isMobile || isLandscapeMobile; // landscape mobile = extra compact layout
 
   const seatPositions = (
     isMobile
@@ -727,24 +730,31 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
 
       {/* Blinds info */}
       <div className="absolute top-11 sm:top-14 left-1/2 -translate-x-1/2 z-30 flex gap-2 sm:gap-3">
-        <span className="text-[10px] sm:text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">SB: ${gameState.smallBlind}</span>
-        <span className="text-[10px] sm:text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">BB: ${gameState.bigBlind}</span>
+        <span className="text-[10px] sm:text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">SB: ${formatChips(gameState.smallBlind)}</span>
+        <span className="text-[10px] sm:text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">BB: ${formatChips(gameState.bigBlind)}</span>
       </div>
 
-      {/* Table area — centered with padding for seats and action bar; mobile: tighter padding for 100dvh fit */}
-      <div className="absolute inset-0 flex items-center justify-center flex-1 min-h-0" style={{ paddingBottom: isMobile ? '100px' : '90px', paddingTop: isMobile ? '48px' : '60px' }}>
+      {/* Table area — centered with padding; landscape mobile: extra compact */}
+      <div
+        className="absolute inset-0 flex items-center justify-center flex-1 min-h-0"
+        style={{
+          paddingBottom: isLandscapeMobile ? '72px' : isMobile ? '100px' : '90px',
+          paddingTop: isLandscapeMobile ? '32px' : isMobile ? '48px' : '60px',
+        }}
+        data-landscape-mobile={isLandscapeMobile ? 'true' : undefined}
+      >
         <div
           ref={tableRef}
-          className="poker-table-felt relative"
+          className={`poker-table-felt relative ${isLandscapeMobile ? 'poker-table-landscape' : ''}`}
         >
           {/* Inner playing surface */}
           <div className="poker-table-inner" />
 
 
-          {/* Community cards — floating on felt; mobile: lower to avoid pot overlap */}
+          {/* Community cards — floating on felt; compact: lower to avoid pot overlap */}
           <div
             className="community-cards-area absolute left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1.5 sm:gap-2"
-            style={{ top: isMobile ? '48%' : '42%' }}
+            style={{ top: isCompact ? '48%' : '42%' }}
           >
             {gameState.communityCards.map((card, i) => (
               <Card
@@ -757,10 +767,10 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
             ))}
           </div>
 
-          {/* Pot zone — above cards; mobile: higher for clear separation */}
+          {/* Pot zone — above cards; compact: higher for clear separation */}
           <div
             className="absolute left-1/2 -translate-x-1/2 z-20"
-            style={{ top: isMobile ? '20%' : '26%' }}
+            style={{ top: isCompact ? '20%' : '26%' }}
             data-pot-display
           >
             <PotDisplay pot={gameState.pot} rakeAmount={gameState.rakeAmount} />
@@ -796,7 +806,8 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
                   isSmallBlind={player.id === gameState.smallBlindIndex}
                   isBigBlind={player.id === gameState.bigBlindIndex}
                   isWinner={gameState.showdown && (gameState.winnerIds?.includes(player.id) ?? player.id === gameState.winnerId)}
-                  isMobile={isMobile}
+                  isMobile={isCompact}
+                  isLandscapeMobile={isLandscapeMobile}
                   isShowdown={gameState.showdown}
                   chatBubble={displayedChatBubbles[player.id] ?? null}
                 />
@@ -826,7 +837,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
         callAmount={callAmount}
         canCheck={canCheck}
         minRaise={getMinRaiseTotal(gameState) - (userPlayer?.currentBet ?? 0)}
-        isMobile={isMobile}
+        isMobile={isCompact}
       />
 
       {/* Player Popup */}
@@ -850,7 +861,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
                 if (result.triggered) {
                   toast({
                     title: 'Anti-Cheat: Penalty Applied',
-                    description: `You left during an active hand. $${result.penaltyAmount.toLocaleString()} has been returned to ${result.recipientNames.join(', ')}. They have been notified.`,
+                    description: `You left during an active hand. $${formatChips(result.penaltyAmount)} has been returned to ${result.recipientNames.join(', ')}. They have been notified.`,
                     variant: 'destructive',
                   });
                 }
@@ -883,7 +894,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
                 className="casino-btn px-4 py-2 text-sm"
                 onClick={() => handleRebuy(amt)}
               >
-                Add ${amt.toLocaleString()}
+                Add ${formatChips(amt)}
               </button>
             ))}
           </div>
@@ -973,7 +984,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
                 </h2>
                 <p className="text-muted-foreground text-sm">All opponents have been eliminated.</p>
                 <p className="text-primary font-bold text-xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                  Final chips: ${user?.chips.toLocaleString()}
+                  Final chips: ${user ? formatChips(user.chips) : '0'}
                 </p>
                 <button
                   className="casino-btn px-6 py-2 rounded-xl font-bold"

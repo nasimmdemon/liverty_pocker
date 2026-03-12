@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Player } from '@/lib/gameTypes';
+import { formatChips } from '@/lib/formatChips';
 import Card from './Card';
 import { ChatBubble } from './GameChat';
 
@@ -13,6 +14,7 @@ interface PlayerSeatProps {
   isBigBlind?: boolean;
   isWinner?: boolean;
   isMobile?: boolean;
+  isLandscapeMobile?: boolean;
   isShowdown?: boolean;
   chatBubble?: { id: number; text: string; playerName: string } | null;
 }
@@ -44,7 +46,7 @@ const NamePlate = ({ player, isTopSeat, isTurn }: { player: Player; isTopSeat: b
       className={`text-[8px] sm:text-[10px] font-bold ${hasLeft ? 'text-muted-foreground' : 'text-primary'}`}
       style={{ fontFamily: "'Bebas Neue', sans-serif" }}
     >
-      {hasLeft ? '—' : `$${player.chips.toLocaleString()}`}
+      {hasLeft ? '—' : `$${formatChips(player.chips)}`}
     </span>
     {!hasLeft && player.lastAction && (
       <span className={`text-[7px] sm:text-[9px] font-bold tracking-wider ${
@@ -63,7 +65,7 @@ const NamePlate = ({ player, isTopSeat, isTurn }: { player: Player; isTopSeat: b
 const PlayerSeat = ({
   player, seatIndex, onClickAvatar,
   timerProgress = 0, isDealer = false, isSmallBlind = false, isBigBlind = false,
-  isWinner = false, isMobile = false,
+  isWinner = false, isMobile = false, isLandscapeMobile = false,
   isShowdown = false, chatBubble = null,
 }: PlayerSeatProps) => {
   const isTurn = player.isTurn;
@@ -74,10 +76,10 @@ const PlayerSeat = ({
   const showCards = player.cards.length > 0 && !hasFolded && !hasLeft;
   const isTopSeat = seatIndex >= 2 && seatIndex <= 4;
 
-  // Avatar sizes: smaller on mobile for better fit
+  // Avatar sizes: smaller on mobile; extra small in landscape
   const avatarSizePx = isUser
-    ? (isMobile ? 72 : 144)
-    : (isMobile ? 56 : 120);
+    ? (isLandscapeMobile ? 54 : isMobile ? 72 : 144)
+    : (isLandscapeMobile ? 44 : isMobile ? 56 : 120);
 
   const borderClass = hasLeft
     ? 'border-muted opacity-30'
@@ -231,14 +233,33 @@ const PlayerSeat = ({
       {/* Name plate */}
       <NamePlate player={player} isTopSeat={isTopSeat} isTurn={isTurn} />
 
-      {/* Hole cards below avatar for top seats */}
+      {/* Hole cards below avatar for top seats — same rotated fan as bottom seats */}
       {showCards && isTopSeat && (
         <div
-          className="absolute flex gap-0.5"
-          style={{ top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 8, zIndex: 5 }}
+          className="absolute"
+          style={{
+            top: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginTop: isMobile ? 6 : 8,
+            perspective: 600,
+            zIndex: 5,
+            width: isMobile ? 80 : 160,
+            height: isMobile ? 48 : 96,
+          }}
         >
           {player.cards.map((card, i) => (
-            <div key={i} style={{ transform: `scale(${isUser ? (isMobile ? 1.1 : 1.86) : (isMobile ? 0.45 : 0.62)})`, transformOrigin: 'top center' }}>
+            <div
+              key={i}
+              className="absolute"
+              style={{
+                left: '50%',
+                top: 0,
+                transformOrigin: 'top center',
+                transform: `translateX(${i === 0 ? '-68%' : '-28%'}) rotate(${i === 0 ? 18 : -18}deg) scale(${isUser ? (isMobile ? 0.9 : 1.5) : (isMobile ? 0.4 : 0.6)})`,
+                zIndex: i,
+              }}
+            >
               <Card card={card} delay={0.2 + 0.2 * i} index={i} isPlayerCard />
             </div>
           ))}

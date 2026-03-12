@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatChips } from '@/lib/formatChips';
 
 interface BuyInModalProps {
   onConfirm: (amount: number) => void;
@@ -39,7 +40,7 @@ const BuyInModal = ({ onConfirm }: BuyInModalProps) => {
                     : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50'
                 }`}
               >
-                ${amount.toLocaleString()}
+                ${formatChips(amount)}
               </button>
             ))}
           </div>

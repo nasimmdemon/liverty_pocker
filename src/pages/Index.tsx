@@ -1,10 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { RotateCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIsLandscapeOnMobile } from '@/hooks/use-orientation';
 import { useAddToHomeScreen } from '@/hooks/use-add-to-home-screen';
+import { useIsLandscapeOnMobile } from '@/hooks/use-orientation';
 import AddToHomeScreenOverlay from '@/components/AddToHomeScreenOverlay';
 import LoginScreen from '@/components/auth/LoginScreen';
 import StartScreen from '@/components/poker/StartScreen';
@@ -37,8 +36,8 @@ interface MultiplayerConfig {
 
 const Index = () => {
   const [searchParams] = useSearchParams();
-  const isLandscapeOnMobile = useIsLandscapeOnMobile();
   const { showPrompt: showAddToHomeScreen, platform } = useAddToHomeScreen();
+  const isLandscapeOnMobile = useIsLandscapeOnMobile();
   const joinCodeFromUrl = searchParams.get('join');
   const { user, loading, incrementBotMatches, canInviteFriends, profile } = useAuth();
   const [screen, setScreen] = useState<Screen>('start');
@@ -129,17 +128,6 @@ const Index = () => {
 
   return (
     <div className="min-h-[100dvh] h-[100dvh] overflow-hidden flex flex-col">
-      {isLandscapeOnMobile && (
-        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6 text-center">
-          <RotateCw className="w-16 h-16 text-primary mb-4 animate-pulse" />
-          <h2 className="text-xl font-bold text-primary mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-            Please rotate your device
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            Liberty Poker is best played in portrait mode. Please rotate your device to continue.
-          </p>
-        </div>
-      )}
     <AnimatePresence mode="wait">
       {screen === 'start' && (
         <StartScreen
@@ -178,6 +166,7 @@ const Index = () => {
           turnTimer={tableConfig.turnTimer}
           isTestingTable={tableConfig.isTestingTable}
           onExit={handleExitTable}
+          isLandscapeMobile={isLandscapeOnMobile}
         />
       )}
       {screen === 'multiplayer-lobby' && multiplayerConfig && (
@@ -204,6 +193,7 @@ const Index = () => {
           isHost={multiplayerConfig.isHost}
           initialRoom={multiplayerConfig.room!}
           onExit={() => { setScreen('start'); setMultiplayerConfig(null); }}
+          isLandscapeMobile={isLandscapeOnMobile}
         />
       )}
     </AnimatePresence>

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { calculateRake } from '@/lib/rake';
+import { formatChips } from '@/lib/formatChips';
 
 interface PotDisplayProps {
   pot: number;
@@ -21,17 +22,17 @@ const PotDisplay = ({ pot, rakeAmount = 0 }: PotDisplayProps) => {
       animate={{ opacity: 1, y: 0 }}
     >
       <span className="text-primary font-display text-sm sm:text-base lg:text-xl font-bold drop-shadow-lg tracking-wider">
-        ${pot.toLocaleString()}
+        ${formatChips(pot)}
       </span>
       <span className="text-muted-foreground text-[9px] sm:text-[10px] uppercase tracking-widest">Pot</span>
       {/* Show rake info */}
       {rakeAmount > 0 ? (
         <span className="text-destructive text-[8px] sm:text-[9px] uppercase tracking-wider mt-0.5">
-          Rake: ${rakeAmount} (5%)
+          Rake: ${formatChips(rakeAmount)} (5%)
         </span>
       ) : liveRake && pot > 0 ? (
         <span className="text-muted-foreground/60 text-[7px] sm:text-[8px] uppercase tracking-wider mt-0.5">
-          Est. rake: ${liveRake.totalRake}
+          Est. rake: ${formatChips(liveRake.totalRake)}
         </span>
       ) : null}
     </motion.div>
