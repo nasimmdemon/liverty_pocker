@@ -133,6 +133,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
     }
   }, [isMultiplayer, multiplayer]);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [showRebuyDialog, setShowRebuyDialog] = useState(false);
   const [timer, setTimer] = useState(TURN_DURATION);
   const [chipBets, setChipBets] = useState<ChipBet[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -146,9 +147,9 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       : seatAnchorOverrides?.desktop ?? SEAT_POSITIONS_DESKTOP
   );
 
-  // Multiplayer: active players only, user always at bottom center, dynamic positions
+  // Multiplayer: active players only, user always at bottom center, dynamic positions (include user with 0 chips so they stay visible for rebuy)
   const getMultiplayerDisplay = useCallback((state: GameState) => {
-    const active = state.players.filter(p => p.isActive && p.chips > 0);
+    const active = state.players.filter(p => p.isActive && (p.chips > 0 || p.isUser));
     if (active.length === 0) return { displayPlayers: [], displayPositions: [] };
     const userIdx = active.findIndex(p => p.isUser);
     const rotated = userIdx >= 0
@@ -318,24 +319,34 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
     if (isMultiplayer && !multiplayer!.isHost) return;
 
     if (gameState.showdown) {
-      // Check for eliminated players (0 chips) after showdown
-      const eliminated = gameState.players.filter(p => p.isActive && p.chips <= 0 && !eliminatedPlayer);
-      if (eliminated.length > 0) {
-        const first = eliminated[0];
-        setTimeout(() => setEliminatedPlayer({ name: first.name, id: first.id, isUser: first.isUser }), 2000);
-      }
       const userPlayer = gameState.players.find(p => p.isUser);
-      if (userPlayer && userPlayer.chips <= 0 && !eliminatedPlayer) {
-        setTimeout(() => setEliminatedPlayer({ name: userPlayer.name, id: userPlayer.id, isUser: true }), 2000);
+      const userHasZeroChips = userPlayer && userPlayer.chips <= 0;
+
+      // User ran out of chips: show rebuy popup, don't advance until they add chips
+      if (userHasZeroChips) {
+        if (!showRebuyDialog) {
+          botTimeoutRef.current = setTimeout(() => setShowRebuyDialog(true), 2000);
+        }
+        return () => {
+          if (botTimeoutRef.current) clearTimeout(botTimeoutRef.current);
+        };
+      }
+
+      // Check for eliminated bots (0 chips) after showdown
+      const eliminatedBots = gameState.players.filter(p => p.isActive && p.chips <= 0 && !p.isUser && !eliminatedPlayer);
+      if (eliminatedBots.length > 0) {
+        const first = eliminatedBots[0];
+        setTimeout(() => setEliminatedPlayer({ name: first.name, id: first.id, isUser: false }), 2000);
       }
 
       botTimeoutRef.current = setTimeout(() => {
         setGameState(prev => {
           if (!prev) return prev;
+          // Only deactivate bots with 0 chips; user stays at table (can rebuy)
           const updated = {
             ...prev,
             players: prev.players.map(p =>
-              p.chips <= 0 ? { ...p, isActive: false, status: 'sitting-out' as const } : p
+              p.chips <= 0 && !p.isUser ? { ...p, isActive: false, status: 'sitting-out' as const } : p
             ),
           };
           const activePlayers = updated.players.filter(p => p.isActive && p.chips > 0);
@@ -452,6 +463,33 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
     const userPlayer = state?.players.find(p => p.isUser);
     if (userPlayer) showChatBubble(userPlayer.id, text, userPlayer.name);
   }, [showChatBubble]);
+
+  const handleRebuy = useCallback((amount: number) => {
+    setShowRebuyDialog(false);
+    setGameState(prev => {
+      if (!prev) return prev;
+      const updated = {
+        ...prev,
+        players: prev.players.map(p =>
+          p.isUser ? { ...p, chips: p.chips + amount } : p
+        ),
+      };
+      // Deactivate bots with 0 chips, then start new round
+      const withDeactivated = {
+        ...updated,
+        players: updated.players.map(p =>
+          p.chips <= 0 && !p.isUser ? { ...p, isActive: false, status: 'sitting-out' as const } : p
+        ),
+      };
+      const activePlayers = withDeactivated.players.filter(p => p.isActive && p.chips > 0);
+      if (activePlayers.length <= 1) return withDeactivated;
+      const next = startNewRound(withDeactivated);
+      const withChips = getPlayersWithChips(next);
+      setUserAlone(withChips.length <= 1);
+      return next;
+    });
+    setTimer(TURN_DURATION);
+  }, [setGameState, setUserAlone]);
 
   const handleTableClick = useCallback(() => {
     if (!audioUnlockedRef.current) {
@@ -697,6 +735,38 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
             >
               Leave
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Rebuy Dialog — when user goes all-in and loses */}
+      <AlertDialog open={showRebuyDialog} onOpenChange={(open) => { if (!open) setShowRebuyDialog(false); }}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-center">
+              Add Chips to Continue
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center space-y-2">
+              <span className="block">
+                You ran out of chips this round. Add chips to stay in the game and keep playing.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-wrap justify-center gap-2 py-4">
+            {[500, 1000, initialBuyIn].filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b).map((amt) => (
+              <button
+                key={amt}
+                className="casino-btn px-4 py-2 text-sm"
+                onClick={() => handleRebuy(amt)}
+              >
+                Add ${amt.toLocaleString()}
+              </button>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setShowRebuyDialog(false); onExit?.(); }}>
+              Leave Table
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
