@@ -29,9 +29,8 @@ export default function MultiplayerPokerTable({
     updateGameState(gameId, state);
   }, [gameId]);
 
+  const gameState = room?.gameState;
   if (!room || !gameState) return null;
-
-  const gameState = room.gameState;
   const stateWithUser: GameState = {
     ...gameState,
     players: gameState.players.map(p => ({

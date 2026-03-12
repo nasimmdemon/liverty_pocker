@@ -140,8 +140,8 @@ export async function getGameByCode(inviteCode: string): Promise<GameRoom | null
   );
   const snap = await getDocs(q);
   if (snap.empty) return null;
-  const doc = snap.docs[0];
-  return { id: doc.id, ...doc.data() } as GameRoom;
+  const gameDoc = snap.docs[0];
+  return { id: gameDoc.id, ...gameDoc.data() } as GameRoom;
 }
 
 export async function startGame(gameId: string): Promise<boolean> {
