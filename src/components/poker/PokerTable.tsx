@@ -234,6 +234,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const chatBubbleTimeoutsRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
   const gameStateRef = useRef<GameState | null>(null);
   const prevGameStateRef = useRef<GameState | null>(null);
+  const prevForBetDetectionRef = useRef<GameState | null>(null);
   const chatBubbleIdRef = useRef(0);
   gameStateRef.current = gameState;
 
@@ -242,7 +243,6 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [eliminatedPlayer, setEliminatedPlayer] = useState<{ name: string; id: number; isUser: boolean } | null>(null);
   const [markedCheaters, setMarkedCheaters] = useState<Set<number>>(new Set());
-  const [roundCountdown, setRoundCountdown] = useState<number | null>(null);
   const [userAlone, setUserAlone] = useState(false);
 
   useEffect(() => {
@@ -273,6 +273,25 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
     if (isUserTurn && !prevIsUserTurnRef.current) playYourTurnSound();
     prevIsUserTurnRef.current = isUserTurn;
   }, [gameState?.currentPlayerIndex, gameState?.showdown, gameState?.players]);
+
+  // Chip animation + sound when other players bet (multiplayer: receive remote state)
+  useEffect(() => {
+    if (!gameState || !isMultiplayer) return;
+    const prev = prevForBetDetectionRef.current;
+    prevForBetDetectionRef.current = gameState;
+    if (!prev) return;
+    if (prev.roundNumber !== gameState.roundNumber || prev.phase !== gameState.phase) return;
+    for (let i = 0; i < gameState.players.length; i++) {
+      const p = gameState.players[i];
+      const prevP = prev.players[i];
+      if (!p || !prevP || p.isUser) continue;
+      const betDelta = p.currentBet - prevP.currentBet;
+      if (betDelta > 0) {
+        triggerChipAnimation(p.id, betDelta);
+        break;
+      }
+    }
+  }, [gameState, isMultiplayer, triggerChipAnimation]);
 
   const showChatBubble = useCallback((playerId: number, text: string, playerName: string) => {
     chatBubbleIdRef.current += 1;
@@ -310,19 +329,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
         setTimeout(() => setEliminatedPlayer({ name: userPlayer.name, id: userPlayer.id, isUser: true }), 2000);
       }
 
-      let count = 5;
-      setRoundCountdown(count);
-      const countdownInterval = setInterval(() => {
-        count -= 1;
-        setRoundCountdown(count);
-        if (count <= 0) {
-          clearInterval(countdownInterval);
-          setRoundCountdown(null);
-        }
-      }, 1000);
       botTimeoutRef.current = setTimeout(() => {
-        clearInterval(countdownInterval);
-        setRoundCountdown(null);
         setGameState(prev => {
           if (!prev) return prev;
           const updated = {
@@ -343,7 +350,6 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
         setTimer(TURN_DURATION);
       }, SHOWDOWN_DELAY);
       return () => {
-        clearInterval(countdownInterval);
         if (botTimeoutRef.current) clearTimeout(botTimeoutRef.current);
       };
     }
@@ -492,7 +498,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
         <button
           className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border-2 border-primary flex items-center justify-center bg-secondary hover:bg-primary/20 transition-colors"
           onClick={() => {
-            const canLeaveNoPenalty = userAlone || gameState?.showdown || roundCountdown !== null;
+            const canLeaveNoPenalty = userAlone || gameState?.showdown;
             if (canLeaveNoPenalty) {
               onExit?.();
             } else {
@@ -514,26 +520,6 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           <Settings size={18} className="text-primary" />
         </button>
       </div>
-
-      {/* Round countdown overlay — between rounds */}
-      <AnimatePresence>
-        {roundCountdown !== null && (
-          <motion.div
-            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <div className="bg-background/95 border-2 border-primary rounded-2xl px-8 py-6 text-center">
-              <p className="text-muted-foreground text-sm mb-2">Next round in</p>
-              <p className="text-4xl sm:text-6xl font-display text-primary" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                {roundCountdown}
-              </p>
-              <p className="text-muted-foreground text-xs mt-2">You can leave without penalty during this time</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* User alone overlay */}
       <AnimatePresence>
