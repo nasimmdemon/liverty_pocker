@@ -17,7 +17,9 @@ interface PlayerSeatProps {
   chatBubble?: { id: number; text: string; playerName: string } | null;
 }
 
-const NamePlate = ({ player, isTopSeat }: { player: Player; isTopSeat: boolean }) => (
+const NamePlate = ({ player, isTopSeat }: { player: Player; isTopSeat: boolean }) => {
+  const hasLeft = !player.isActive && player.chips <= 0;
+  return (
   <div
     className="absolute left-1/2 px-1.5 py-0.5 sm:px-2 rounded-md flex flex-col items-center whitespace-nowrap"
     style={{
@@ -28,18 +30,18 @@ const NamePlate = ({ player, isTopSeat }: { player: Player; isTopSeat: boolean }
     }}
   >
     <span
-      className="text-foreground text-[8px] sm:text-[10px] font-semibold truncate max-w-[64px] sm:max-w-[88px] tracking-wider"
+      className={`text-[8px] sm:text-[10px] font-semibold truncate max-w-[64px] sm:max-w-[88px] tracking-wider ${hasLeft ? 'text-muted-foreground' : 'text-foreground'}`}
       style={{ fontFamily: "'Bebas Neue', sans-serif" }}
     >
-      {player.name}
+      {hasLeft ? 'LEFT' : player.name}
     </span>
     <span
-      className="text-primary text-[8px] sm:text-[10px] font-bold"
+      className={`text-[8px] sm:text-[10px] font-bold ${hasLeft ? 'text-muted-foreground' : 'text-primary'}`}
       style={{ fontFamily: "'Bebas Neue', sans-serif" }}
     >
-      ${player.chips.toLocaleString()}
+      {hasLeft ? '—' : `$${player.chips.toLocaleString()}`}
     </span>
-    {player.lastAction && (
+    {!hasLeft && player.lastAction && (
       <span className={`text-[7px] sm:text-[9px] font-bold tracking-wider ${
         player.lastAction.includes('WINNER') ? 'text-primary' :
         player.lastAction === 'FOLD' ? 'text-destructive' :
@@ -49,7 +51,8 @@ const NamePlate = ({ player, isTopSeat }: { player: Player; isTopSeat: boolean }
       </span>
     )}
   </div>
-);
+  );
+};
 
 // PlayerSeat renders INSIDE player-position-zone. The avatar is a direct child of the zone.
 const PlayerSeat = ({
@@ -61,8 +64,9 @@ const PlayerSeat = ({
   const isTurn = player.isTurn;
   const hasFolded = player.hasFolded;
   const isUser = player.isUser;
+  const hasLeft = !player.isActive && player.chips <= 0;
   // User sees own cards (face-up). Others: show closed cards during hand, face-up at showdown
-  const showCards = player.cards.length > 0 && !hasFolded;
+  const showCards = player.cards.length > 0 && !hasFolded && !hasLeft;
   const isTopSeat = seatIndex >= 2 && seatIndex <= 4;
 
   // Avatar 2x bigger: was 56/72 (user) and 46/60 (others)
@@ -70,15 +74,17 @@ const PlayerSeat = ({
     ? (isMobile ? 112 : 144)
     : (isMobile ? 92 : 120);
 
-  const borderClass = isWinner
-    ? 'border-primary glow-gold'
-    : isUser
+  const borderClass = hasLeft
+    ? 'border-muted opacity-30'
+    : isWinner
       ? 'border-primary glow-gold'
-      : isTurn
-        ? 'border-primary glow-turn'
-        : hasFolded
-          ? 'border-muted opacity-50'
-          : 'border-primary/60';
+      : isUser
+        ? 'border-primary glow-gold'
+        : isTurn
+          ? 'border-primary glow-turn'
+          : hasFolded
+            ? 'border-muted opacity-50'
+            : 'border-primary/60';
 
   return (
     <motion.div

@@ -107,7 +107,7 @@ export function startNewRound(state: GameState): GameState {
   let cardIndex = 0;
   const players = state.players.map((p, i) => {
     if (!p.isActive || p.chips <= 0) {
-      return { ...p, cards: [], hasFolded: true, isAllIn: false, currentBet: 0, totalRoundBet: 0, totalHandBet: 0, status: 'sitting-out' as const, lastAction: undefined, isTurn: false };
+      return { ...p, cards: [], hasFolded: true, isAllIn: false, currentBet: 0, totalRoundBet: 0, totalHandBet: 0, isActive: false, status: 'sitting-out' as const, lastAction: undefined, isTurn: false };
     }
     const cards: PlayingCard[] = [
       { ...deck[cardIndex++], faceUp: p.isUser },
@@ -189,6 +189,11 @@ export function getActivePlayers(state: GameState): Player[] {
 
 export function getActiveAndAllInPlayers(state: GameState): Player[] {
   return state.players.filter(p => p.isActive && !p.hasFolded);
+}
+
+/** Players who have chips and are still at the table */
+export function getPlayersWithChips(state: GameState): Player[] {
+  return state.players.filter(p => p.isActive && p.chips > 0);
 }
 
 export function isBettingRoundComplete(state: GameState): boolean {

@@ -22,6 +22,7 @@ import {
   playerAction,
   getCallAmount,
   getMinRaiseTotal,
+  getPlayersWithChips,
 } from '@/lib/gameLogic';
 import PlayerSeat from './PlayerSeat';
 import Card from './Card';
@@ -57,7 +58,15 @@ const SEAT_POSITIONS_MOBILE = [
 
 const DEFAULT_TURN_DURATION = 10;
 const BOT_DELAY = 1500;
-const SHOWDOWN_DELAY = 4000;
+const SHOWDOWN_DELAY = 5000;
+
+interface MultiplayerConfig {
+  gameId: string;
+  currentUserId: string;
+  isHost: boolean;
+  gameState: GameState | null;
+  onUpdate: (state: GameState) => void;
+}
 
 interface PokerTableProps {
   initialBuyIn?: number;
@@ -71,11 +80,22 @@ interface PokerTableProps {
     desktop?: { top: string; left: string }[];
     mobile?: { top: string; left: string }[];
   };
+  multiplayer?: MultiplayerConfig;
 }
 
-const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlind = 10, turnTimer: turnTimerProp, isTestingTable = false, onExit, seatAnchorOverrides }: PokerTableProps) => {
+const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlind = 10, turnTimer: turnTimerProp, isTestingTable = false, onExit, seatAnchorOverrides, multiplayer }: PokerTableProps) => {
   const TURN_DURATION = turnTimerProp ?? DEFAULT_TURN_DURATION;
-  const [gameState, setGameState] = useState<GameState | null>(null);
+  const isMultiplayer = !!multiplayer;
+  const [internalGameState, setInternalGameState] = useState<GameState | null>(null);
+  const gameState = isMultiplayer ? multiplayer!.gameState : internalGameState;
+  const setGameState = useCallback((updater: GameState | ((prev: GameState | null) => GameState | null)) => {
+    if (isMultiplayer && multiplayer) {
+      const next = typeof updater === 'function' ? updater(multiplayer.gameState) : updater;
+      if (next) multiplayer.onUpdate(next);
+    } else {
+      setInternalGameState(updater as GameState | ((prev: GameState | null) => GameState | null));
+    }
+  }, [isMultiplayer, multiplayer]);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [timer, setTimer] = useState(TURN_DURATION);
   const [chipBets, setChipBets] = useState<ChipBet[]>([]);
@@ -91,11 +111,12 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   );
 
   useEffect(() => {
+    if (isMultiplayer) return;
     const initial = createInitialGameState(initialBuyIn, botCount, smallBlind, bigBlind);
     const round = startNewRound(initial);
-    setGameState(round);
+    setInternalGameState(round);
     setTimer(TURN_DURATION);
-  }, [initialBuyIn, botCount, smallBlind, bigBlind, TURN_DURATION]);
+  }, [initialBuyIn, botCount, smallBlind, bigBlind, TURN_DURATION, isMultiplayer]);
 
   const chipsAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioUnlockedRef = useRef(false);
@@ -165,6 +186,8 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [eliminatedPlayer, setEliminatedPlayer] = useState<{ name: string; id: number; isUser: boolean } | null>(null);
   const [markedCheaters, setMarkedCheaters] = useState<Set<number>>(new Set());
+  const [roundCountdown, setRoundCountdown] = useState<number | null>(null);
+  const [userAlone, setUserAlone] = useState(false);
 
   useEffect(() => {
     if (gameState?.showdown && gameState.winnerId !== null && prevGameStateRef.current && !prevGameStateRef.current.showdown) {
@@ -215,23 +238,35 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
     if (botTimeoutRef.current) clearTimeout(botTimeoutRef.current);
     if (timerRef.current) clearInterval(timerRef.current);
 
+    if (userAlone) return;
+
+    if (isMultiplayer && !multiplayer!.isHost) return;
+
     if (gameState.showdown) {
       // Check for eliminated players (0 chips) after showdown
       const eliminated = gameState.players.filter(p => p.isActive && p.chips <= 0 && !eliminatedPlayer);
       if (eliminated.length > 0) {
-        // Show elimination dialog for first eliminated player
         const first = eliminated[0];
         setTimeout(() => setEliminatedPlayer({ name: first.name, id: first.id, isUser: first.isUser }), 2000);
       }
-
-      // Check if user is eliminated
-      const user = gameState.players.find(p => p.isUser);
-      if (user && user.chips <= 0 && !eliminatedPlayer) {
-        setTimeout(() => setEliminatedPlayer({ name: user.name, id: user.id, isUser: true }), 2000);
+      const userPlayer = gameState.players.find(p => p.isUser);
+      if (userPlayer && userPlayer.chips <= 0 && !eliminatedPlayer) {
+        setTimeout(() => setEliminatedPlayer({ name: userPlayer.name, id: userPlayer.id, isUser: true }), 2000);
       }
 
+      let count = 5;
+      setRoundCountdown(count);
+      const countdownInterval = setInterval(() => {
+        count -= 1;
+        setRoundCountdown(count);
+        if (count <= 0) {
+          clearInterval(countdownInterval);
+          setRoundCountdown(null);
+        }
+      }, 1000);
       botTimeoutRef.current = setTimeout(() => {
-        // Deactivate eliminated players before starting new round
+        clearInterval(countdownInterval);
+        setRoundCountdown(null);
         setGameState(prev => {
           if (!prev) return prev;
           const updated = {
@@ -240,32 +275,53 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
               p.chips <= 0 ? { ...p, isActive: false, status: 'sitting-out' as const } : p
             ),
           };
-          // Check if game is over (only 1 active player left)
           const activePlayers = updated.players.filter(p => p.isActive && p.chips > 0);
           if (activePlayers.length <= 1) {
-            return updated; // Game over — don't start new round
+            return updated;
           }
-          return startNewRound(updated);
+          const next = startNewRound(updated);
+          const withChips = getPlayersWithChips(next);
+          setUserAlone(withChips.length <= 1);
+          return next;
         });
         setTimer(TURN_DURATION);
       }, SHOWDOWN_DELAY);
-      return () => { if (botTimeoutRef.current) clearTimeout(botTimeoutRef.current); };
+      return () => {
+        clearInterval(countdownInterval);
+        if (botTimeoutRef.current) clearTimeout(botTimeoutRef.current);
+      };
     }
 
     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
     if (!currentPlayer || currentPlayer.hasFolded || currentPlayer.isAllIn) {
       if (isBettingRoundComplete(gameState)) {
         phaseAdvanceTimeoutRef.current = setTimeout(() => {
-          setGameState(prev => prev ? advancePhase(prev) : prev);
+          const state = gameStateRef.current;
+          if (!state) return;
+          const next = advancePhase(state);
+          if (isMultiplayer && multiplayer) {
+            multiplayer.onUpdate(next);
+          } else {
+            setInternalGameState(next);
+          }
           phaseAdvanceTimeoutRef.current = null;
         }, 1000);
         return () => {
           if (phaseAdvanceTimeoutRef.current) clearTimeout(phaseAdvanceTimeoutRef.current);
         };
       }
-      setGameState(prev => prev ? advanceTurn(prev) : prev);
+      const state = gameStateRef.current;
+      if (!state) return;
+      const next = advanceTurn(state);
+      if (isMultiplayer && multiplayer) {
+        multiplayer.onUpdate(next);
+      } else {
+        setInternalGameState(next);
+      }
       return;
     }
+
+    if (isMultiplayer && !currentPlayer.isUser) return;
 
     setTimer(TURN_DURATION);
     timerRef.current = setInterval(() => {
@@ -305,7 +361,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       if (botTimeoutRef.current) clearTimeout(botTimeoutRef.current);
       if (phaseAdvanceTimeoutRef.current) clearTimeout(phaseAdvanceTimeoutRef.current);
     };
-  }, [gameState?.currentPlayerIndex, gameState?.phase, gameState?.showdown, gameState?.roundNumber, advanceTurn, triggerChipAnimation, showChatBubble]);
+  }, [gameState?.currentPlayerIndex, gameState?.phase, gameState?.showdown, gameState?.roundNumber, userAlone, isMultiplayer, multiplayer, advanceTurn, triggerChipAnimation, showChatBubble]);
 
   const handleUserAction = useCallback((action: 'fold' | 'check' | 'call' | 'bet' | 'raise' | 'all-in', amount?: number) => {
     if (!audioUnlockedRef.current) {
@@ -314,16 +370,20 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
     }
     if (action === 'fold') playFoldSound();
     if (action === 'check') playCheckSound();
-    setGameState(prev => {
-      if (!prev) return prev;
-      const current = prev.players[prev.currentPlayerIndex];
-      if (!current?.isUser) return prev;
-      const afterAction = playerAction(prev, prev.currentPlayerIndex, action, amount);
-      const betAmount = afterAction.players[prev.currentPlayerIndex].currentBet - prev.players[prev.currentPlayerIndex].currentBet;
-      if (betAmount > 0) triggerChipAnimation(prev.currentPlayerIndex, betAmount);
-      return advanceTurn(afterAction);
-    });
-  }, [advanceTurn, triggerChipAnimation]);
+    const prev = gameStateRef.current;
+    if (!prev) return;
+    const current = prev.players[prev.currentPlayerIndex];
+    if (!current?.isUser) return;
+    const afterAction = playerAction(prev, prev.currentPlayerIndex, action, amount);
+    const betAmount = afterAction.players[prev.currentPlayerIndex].currentBet - prev.players[prev.currentPlayerIndex].currentBet;
+    if (betAmount > 0) triggerChipAnimation(prev.currentPlayerIndex, betAmount);
+    const next = advanceTurn(afterAction);
+    if (isMultiplayer && multiplayer) {
+      multiplayer.onUpdate(next);
+    } else {
+      setInternalGameState(next);
+    }
+  }, [advanceTurn, triggerChipAnimation, isMultiplayer, multiplayer]);
 
   const handleSendMessage = useCallback((text: string) => {
     const state = gameStateRef.current;
@@ -371,7 +431,14 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-3 py-2 lg:px-4 lg:py-3">
         <button
           className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border-2 border-primary flex items-center justify-center bg-secondary hover:bg-primary/20 transition-colors"
-          onClick={() => setShowLeaveConfirm(true)}
+          onClick={() => {
+            const canLeaveNoPenalty = userAlone || gameState?.showdown || roundCountdown !== null;
+            if (canLeaveNoPenalty) {
+              onExit?.();
+            } else {
+              setShowLeaveConfirm(true);
+            }
+          }}
         >
           <ArrowLeft size={18} className="text-primary" />
         </button>
@@ -387,6 +454,53 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           <Settings size={18} className="text-primary" />
         </button>
       </div>
+
+      {/* Round countdown overlay — between rounds */}
+      <AnimatePresence>
+        {roundCountdown !== null && (
+          <motion.div
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="bg-background/95 border-2 border-primary rounded-2xl px-8 py-6 text-center">
+              <p className="text-muted-foreground text-sm mb-2">Next round in</p>
+              <p className="text-4xl sm:text-6xl font-display text-primary" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                {roundCountdown}
+              </p>
+              <p className="text-muted-foreground text-xs mt-2">You can leave without penalty during this time</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* User alone overlay */}
+      <AnimatePresence>
+        {userAlone && (
+          <motion.div
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="bg-background/95 border-2 border-primary rounded-2xl px-8 py-6 text-center max-w-sm mx-4">
+              <p className="text-primary font-display text-xl sm:text-2xl mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                You&apos;re the only player
+              </p>
+              <p className="text-muted-foreground text-sm mb-4">
+                All other players have left the table. You can leave without any penalty.
+              </p>
+              <button
+                className="casino-btn px-6 py-3"
+                onClick={() => onExit?.()}
+              >
+                Leave Table
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Blinds info */}
       <div className="absolute top-11 sm:top-14 left-1/2 -translate-x-1/2 z-30 flex gap-2 sm:gap-3">

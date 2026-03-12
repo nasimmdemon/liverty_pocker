@@ -28,6 +28,7 @@ export interface Player {
   netWorth?: number;
   invitedBy?: string;
   lastAction?: string;
+  userId?: string; // Firebase UID for multiplayer
 }
 
 export type GamePhase = 'preflop' | 'flop' | 'turn' | 'river' | 'showdown';
