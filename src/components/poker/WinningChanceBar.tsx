@@ -3,16 +3,20 @@ import { motion } from 'framer-motion';
 interface WinningChanceBarProps {
   percent: number;
   isMobile?: boolean;
+  isLandscapeMobile?: boolean;
 }
 
-export default function WinningChanceBar({ percent, isMobile = false }: WinningChanceBarProps) {
+export default function WinningChanceBar({ percent, isMobile = false, isLandscapeMobile = false }: WinningChanceBarProps) {
   const clamped = Math.min(100, Math.max(0, percent));
+  // Position below avatar + name plate: responsive offsets
+  const topOffset = isLandscapeMobile ? 44 : isMobile ? 52 : 72;
+  const barWidth = isLandscapeMobile ? 48 : isMobile ? 60 : 80;
   return (
     <div
       className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-0.5"
       style={{
-        top: 'calc(100% + 38px)',
-        width: isMobile ? 56 : 80,
+        top: `calc(100% + ${topOffset}px)`,
+        width: barWidth,
         zIndex: 15,
       }}
     >

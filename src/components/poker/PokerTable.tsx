@@ -417,10 +417,11 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
     timerRef.current = setInterval(() => {
       setTimer(prev => {
         const next = prev <= 0 ? 0 : prev - 0.1;
+        // Tick only in last 10 seconds, once per second when crossing a second boundary
         if (next <= 10 && next > 0) {
           const sec = Math.ceil(next);
           const prevSec = Math.ceil(prev);
-          if (prevSec !== sec) playTickSound();
+          if (prevSec !== sec && sec >= 1 && sec <= 10) playTickSound();
         }
         return next;
       });
@@ -537,6 +538,15 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
     }
   }, []);
 
+  // Win probability for main player — must be before early return to satisfy Rules of Hooks
+  const userWinChance = useMemo(() => {
+    if (!gameState) return undefined;
+    const user = gameState.players.find(p => p.isUser);
+    if (!user || user.cards.length !== 2 || user.hasFolded) return undefined;
+    const opponents = gameState.players.filter(p => p.isActive && !p.hasFolded && !p.isUser);
+    return calculateWinProbability(user.cards, gameState.communityCards, opponents.length);
+  }, [gameState]);
+
   if (!gameState) return null;
 
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
@@ -557,16 +567,6 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
 
   // Chat bubbles: single player = local state; multiplayer = from gameState (synced)
   const CHAT_BUBBLE_DURATION_MS = 5000;
-  // Win probability for main player (Monte Carlo, updates as community cards reveal)
-  const userWinChance = useMemo(() => {
-    const user = gameState.players.find(p => p.isUser);
-    if (!user || user.cards.length !== 2 || user.hasFolded) return undefined;
-    const opponents = gameState.players.filter(p => p.isActive && !p.hasFolded && !p.isUser);
-    return calculateWinProbability(user.cards, gameState.communityCards, opponents.length);
-  }, [
-    gameState.players,
-    gameState.communityCards,
-  ]);
 
   const displayedChatBubbles: Record<number, { id: number; text: string; playerName: string }> = isMultiplayer
     ? Object.fromEntries(

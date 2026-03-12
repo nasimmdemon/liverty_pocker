@@ -235,9 +235,9 @@ const PlayerSeat = ({
       {/* Name plate */}
       <NamePlate player={player} isTopSeat={isTopSeat} isTurn={isTurn} />
 
-      {/* Winning chance bar — main player only, below name */}
+      {/* Winning chance bar — main player only, below name plate */}
       {isUser && winChance != null && !hasFolded && !hasLeft && (
-        <WinningChanceBar percent={winChance} isMobile={isMobile} />
+        <WinningChanceBar percent={winChance} isMobile={isMobile} isLandscapeMobile={isLandscapeMobile} />
       )}
 
       {/* Hole cards below avatar for top seats — same rotated fan as bottom seats */}
