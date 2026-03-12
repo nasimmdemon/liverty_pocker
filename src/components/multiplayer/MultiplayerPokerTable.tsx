@@ -36,6 +36,11 @@ export default function MultiplayerPokerTable({
     players: gameState.players.map(p => ({
       ...p,
       isUser: p.userId === currentUserId,
+      // Only current user sees their own cards until showdown
+      cards: p.cards.map(c => ({
+        ...c,
+        faceUp: p.userId === currentUserId || gameState.showdown,
+      })),
     })),
   };
 

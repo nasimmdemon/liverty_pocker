@@ -56,6 +56,42 @@ const SEAT_POSITIONS_MOBILE = [
   { top: '82%', left: '92%' },
 ];
 
+// Multiplayer: 2 players opposite each other (user bottom, opponent top)
+const MP_2_DESKTOP = [
+  { top: '95%', left: '50%', isTopSeat: false },
+  { top: '8%', left: '50%', isTopSeat: true },
+];
+const MP_2_MOBILE = [
+  { top: '97%', left: '50%', isTopSeat: false },
+  { top: '6%', left: '50%', isTopSeat: true },
+];
+
+// Multiplayer: 3 players — user bottom, others left and top
+const MP_3_DESKTOP = [
+  { top: '95%', left: '50%', isTopSeat: false },
+  { top: '80%', left: '10%', isTopSeat: false },
+  { top: '8%', left: '50%', isTopSeat: true },
+];
+const MP_3_MOBILE = [
+  { top: '97%', left: '50%', isTopSeat: false },
+  { top: '82%', left: '8%', isTopSeat: false },
+  { top: '6%', left: '50%', isTopSeat: true },
+];
+
+// Multiplayer: 4 players — corners
+const MP_4_DESKTOP = [
+  { top: '95%', left: '50%', isTopSeat: false },
+  { top: '80%', left: '10%', isTopSeat: false },
+  { top: '8%', left: '50%', isTopSeat: true },
+  { top: '80%', left: '90%', isTopSeat: false },
+];
+const MP_4_MOBILE = [
+  { top: '97%', left: '50%', isTopSeat: false },
+  { top: '82%', left: '8%', isTopSeat: false },
+  { top: '6%', left: '50%', isTopSeat: true },
+  { top: '82%', left: '92%', isTopSeat: false },
+];
+
 const DEFAULT_TURN_DURATION = 10;
 const BOT_DELAY = 1500;
 const SHOWDOWN_DELAY = 5000;
@@ -109,6 +145,26 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       ? seatAnchorOverrides?.mobile ?? SEAT_POSITIONS_MOBILE
       : seatAnchorOverrides?.desktop ?? SEAT_POSITIONS_DESKTOP
   );
+
+  // Multiplayer: active players only, user always at bottom center, dynamic positions
+  const getMultiplayerDisplay = useCallback((state: GameState) => {
+    const active = state.players.filter(p => p.isActive && p.chips > 0);
+    if (active.length === 0) return { displayPlayers: [], displayPositions: [] };
+    const userIdx = active.findIndex(p => p.isUser);
+    const rotated = userIdx >= 0
+      ? [...active.slice(userIdx), ...active.slice(0, userIdx)]
+      : active;
+    const n = rotated.length;
+    let positions: { top: string; left: string; isTopSeat?: boolean }[];
+    if (n === 2) positions = isMobile ? MP_2_MOBILE : MP_2_DESKTOP;
+    else if (n === 3) positions = isMobile ? MP_3_MOBILE : MP_3_DESKTOP;
+    else if (n === 4) positions = isMobile ? MP_4_MOBILE : MP_4_DESKTOP;
+    else {
+      const base = isMobile ? SEAT_POSITIONS_MOBILE : SEAT_POSITIONS_DESKTOP;
+      positions = base.slice(0, n).map((p, i) => ({ ...p, isTopSeat: i >= 2 && i <= 4 }));
+    }
+    return { displayPlayers: rotated, displayPositions: positions };
+  }, [isMobile]);
 
   useEffect(() => {
     if (isMultiplayer) return;
@@ -412,6 +468,10 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
     isTurn: i === gameState.currentPlayerIndex && !p.hasFolded && !p.isAllIn && !gameState.showdown,
   }));
 
+  const { displayPlayers, displayPositions } = isMultiplayer
+    ? getMultiplayerDisplay(gameState)
+    : { displayPlayers: playersWithTurn, displayPositions: seatPositions };
+
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background" onClick={handleTableClick}>
       {/* Premium room background — warm ambient lighting */}
@@ -566,25 +626,26 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           />
 
           {/* player-position-zone = circle border; avatar goes INSIDE it */}
-          {seatPositions.map((pos, i) => {
-            const player = playersWithTurn[i];
+          {displayPositions.map((pos, i) => {
+            const player = displayPlayers[i];
             if (!player) return null;
             return (
               <div
-                key={`seat-${i}`}
+                key={`seat-${player.id}`}
                 className="player-position-zone absolute"
                 style={{ top: pos.top, left: pos.left }}
-                data-player-zone={i}
+                data-seat-index={player.id}
+                data-player-zone={player.id}
                 data-is-user={player.isUser ? 'true' : undefined}
               >
                 <PlayerSeat
                   player={player}
-                  seatIndex={i}
+                  seatIndex={'isTopSeat' in pos && pos.isTopSeat ? 3 : i}
                   onClickAvatar={setSelectedPlayer}
                   timerProgress={player.isTurn ? timerProgress : 0}
-                  isDealer={i === gameState.dealerIndex}
-                  isSmallBlind={i === gameState.smallBlindIndex}
-                  isBigBlind={i === gameState.bigBlindIndex}
+                  isDealer={player.id === gameState.dealerIndex}
+                  isSmallBlind={player.id === gameState.smallBlindIndex}
+                  isBigBlind={player.id === gameState.bigBlindIndex}
                   isWinner={gameState.showdown && (gameState.winnerIds?.includes(player.id) ?? player.id === gameState.winnerId)}
                   isMobile={isMobile}
                   isShowdown={gameState.showdown}
