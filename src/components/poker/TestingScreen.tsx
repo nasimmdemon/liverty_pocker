@@ -21,7 +21,7 @@ const TestingScreen = ({ onStartGame, onBack }: TestingScreenProps) => {
   const [smallBlind, setSmallBlind] = useState(5);
   const [bigBlind, setBigBlind] = useState(10);
   const [startingChips, setStartingChips] = useState(1500);
-  const [turnTimer, setTurnTimer] = useState(10);
+  const [turnTimer, setTurnTimer] = useState(30);
   const [copied, setCopied] = useState(false);
 
   const shareLink = `${window.location.origin}?table=test-${Date.now()}`;

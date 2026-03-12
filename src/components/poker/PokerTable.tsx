@@ -94,7 +94,7 @@ const MP_4_MOBILE = [
   { top: '82%', left: '92%', isTopSeat: false },
 ];
 
-const DEFAULT_TURN_DURATION = 25;
+const DEFAULT_TURN_DURATION = 30;
 const BOT_DELAY = 1500;
 const WINNER_OVERLAY_DELAY = 800;   // ms before showing winner overlay (let cards reveal)
 const WINNER_OVERLAY_DURATION = 5000; // ms to show winner overlay (longer for card review)
@@ -538,14 +538,18 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
     }
   }, []);
 
-  // Win probability for main player — must be before early return to satisfy Rules of Hooks
+  // Win probability for main player — only updates when cards change (flop/turn/river), not on call/fold
   const userWinChance = useMemo(() => {
     if (!gameState) return undefined;
     const user = gameState.players.find(p => p.isUser);
     if (!user || user.cards.length !== 2 || user.hasFolded) return undefined;
     const opponents = gameState.players.filter(p => p.isActive && !p.hasFolded && !p.isUser);
     return calculateWinProbability(user.cards, gameState.communityCards, opponents.length);
-  }, [gameState]);
+  }, [
+    // Only recalc when visible cards change — not on call/fold/bet
+    gameState?.players?.find(p => p.isUser)?.cards?.map(c => `${c.rank}${c.suit}`).sort().join(',') ?? '',
+    gameState?.communityCards?.filter(c => c.faceUp).map(c => `${c.rank}${c.suit}`).sort().join(',') ?? '',
+  ]);
 
   if (!gameState) return null;
 
