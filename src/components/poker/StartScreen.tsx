@@ -20,7 +20,7 @@ interface StartScreenProps {
   canInviteFriends?: boolean;
   botMatchesPlayed?: number;
   onMultiplayerCreate?: (room: import('@/lib/multiplayer').GameRoom) => void;
-  onMultiplayerJoin?: (gameId: string) => void;
+  onMultiplayerJoin?: (gameId: string, room?: any) => void;
   joinCodeFromUrl?: string | null;
 }
 
