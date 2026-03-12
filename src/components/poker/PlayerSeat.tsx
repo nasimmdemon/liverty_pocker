@@ -84,7 +84,7 @@ const PlayerSeat = ({
     : isWinner
       ? 'border-primary glow-gold'
       : isUser && isTurn
-        ? 'border-4 border-primary glow-your-turn'
+        ? (isMobile ? 'border-2' : 'border-4') + ' border-primary glow-your-turn'
         : isUser
           ? 'border-primary glow-gold'
           : isTurn
@@ -178,7 +178,7 @@ const PlayerSeat = ({
         {isTurn && (
           <svg
             className="absolute"
-            style={{ inset: -7, width: 'calc(100% + 14px)', height: 'calc(100% + 14px)', zIndex: 5 }}
+            style={{ inset: isMobile ? -1 : -7, width: isMobile ? 'calc(100% + 2px)' : 'calc(100% + 14px)', height: isMobile ? 'calc(100% + 2px)' : 'calc(100% + 14px)', zIndex: 5 }}
             viewBox="0 0 100 100"
           >
             <circle cx="50" cy="50" r="46" fill="none" stroke="hsl(var(--casino-gold))" strokeWidth="2.5" opacity="0.2" />
@@ -197,7 +197,7 @@ const PlayerSeat = ({
         {isUser && isTurn && (
           <motion.div
             className="absolute rounded-full border-2 border-primary pointer-events-none"
-            style={{ inset: -6, zIndex: 4 }}
+            style={{ inset: isMobile ? -1 : -6, zIndex: 4 }}
             animate={{ scale: [1, 1.35, 1], opacity: [0.5, 0, 0.5] }}
             transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
           />
@@ -205,7 +205,7 @@ const PlayerSeat = ({
 
         {isWinner && (
           <motion.div
-            className="absolute -inset-2 rounded-full"
+            className={`absolute rounded-full ${isMobile ? '-inset-0.5' : '-inset-2'}`}
             style={{ boxShadow: '0 0 25px hsl(var(--casino-gold) / 0.8), 0 0 50px hsl(var(--casino-gold) / 0.4)' }}
             animate={{ opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 1.5, repeat: Infinity }}
@@ -213,13 +213,13 @@ const PlayerSeat = ({
         )}
 
         <motion.div
-          className={`rounded-full overflow-hidden border-[2.5px] transition-all duration-300 group-hover:brightness-110 ${borderClass}`}
+          className={`rounded-full overflow-hidden transition-all duration-300 group-hover:brightness-110 ${isMobile ? 'border-[1.5px]' : 'border-[2.5px]'} ${borderClass}`}
           style={{
             width: avatarSizePx,
             height: avatarSizePx,
             boxShadow: isUser && !isWinner
-              ? '0 0 20px hsla(40,70%,45%,0.4), 0 4px 12px rgba(0,0,0,0.5)'
-              : !isWinner ? '0 4px 12px rgba(0,0,0,0.5)' : undefined,
+              ? isMobile ? '0 0 8px hsla(40,70%,45%,0.35), 0 2px 8px rgba(0,0,0,0.4)' : '0 0 20px hsla(40,70%,45%,0.4), 0 4px 12px rgba(0,0,0,0.5)'
+              : !isWinner ? (isMobile ? '0 2px 8px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.5)') : undefined,
           }}
           animate={!isUser && isTurn ? { scale: [1, 1.04, 1] } : {}}
           transition={!isUser && isTurn ? { duration: 1, repeat: Infinity, ease: 'easeInOut' } : {}}

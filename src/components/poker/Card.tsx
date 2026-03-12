@@ -9,6 +9,7 @@ interface CardProps {
   index?: number;
   isPlayerCard?: boolean;
   onReveal?: () => void;
+  isHighlighted?: boolean; // highlight when part of winning hand
 }
 
 const SUIT_SYMBOLS: Record<string, string> = {
@@ -18,7 +19,7 @@ const SUIT_SYMBOLS: Record<string, string> = {
   '♣': '♣',
 };
 
-const Card = ({ card, delay = 0, isPlayerCard = false, onReveal }: CardProps) => {
+const Card = ({ card, delay = 0, isPlayerCard = false, onReveal, isHighlighted = false }: CardProps) => {
   // Play reveal sound when card flips to face-up (at animation start)
   useEffect(() => {
     if (card.faceUp && onReveal) {
@@ -64,10 +65,12 @@ const Card = ({ card, delay = 0, isPlayerCard = false, onReveal }: CardProps) =>
       initial={initialAnim}
       animate={animateAnim}
       transition={{ delay, duration: 0.6, type: 'spring', stiffness: 120, damping: 14 }}
-      className="w-10 h-[56px] sm:w-[48px] sm:h-[66px] rounded-lg border border-gray-300 relative overflow-hidden select-none"
+      className={`w-10 h-[56px] sm:w-[48px] sm:h-[66px] rounded-lg border relative overflow-hidden select-none ${isHighlighted ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background' : 'border-gray-300'}`}
       style={{
         background: 'linear-gradient(180deg, #fefefe 0%, #f0ebe0 40%, #e8e0d0 100%)',
-        boxShadow: '0 4px 14px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2)',
+        boxShadow: isHighlighted
+          ? '0 0 20px hsl(var(--casino-gold) / 0.6), 0 4px 14px rgba(0,0,0,0.35)'
+          : '0 4px 14px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2)',
         transformStyle: 'preserve-3d',
         perspective: '800px',
       }}

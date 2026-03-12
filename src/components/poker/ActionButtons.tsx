@@ -84,7 +84,7 @@ const ActionButtons = ({
                 </button>
               ) : (
                 <button className={btnClass} onClick={onCall} disabled={disabled}>
-                  Call ${callAmount}
+                  Call ${Number(callAmount.toFixed(1)).toLocaleString()}
                 </button>
               )}
               <button

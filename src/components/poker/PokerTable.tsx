@@ -95,7 +95,7 @@ const MP_4_MOBILE = [
 const DEFAULT_TURN_DURATION = 25;
 const BOT_DELAY = 1500;
 const WINNER_OVERLAY_DELAY = 800;   // ms before showing winner overlay (let cards reveal)
-const WINNER_OVERLAY_DURATION = 2000; // ms to show blurred overlay
+const WINNER_OVERLAY_DURATION = 5000; // ms to show winner overlay (longer for card review)
 const CHIP_ANIM_DURATION = 2500;    // chip fly duration
 const SHOWDOWN_DELAY = WINNER_OVERLAY_DELAY + WINNER_OVERLAY_DURATION + CHIP_ANIM_DURATION + 500; // ~5.8s
 
@@ -485,8 +485,19 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const handleSendMessage = useCallback((text: string) => {
     const state = gameStateRef.current;
     const userPlayer = state?.players.find(p => p.isUser);
-    if (userPlayer) showChatBubble(userPlayer.id, text, userPlayer.name);
-  }, [showChatBubble]);
+    if (!userPlayer) return;
+    if (isMultiplayer && multiplayer) {
+      setGameState(prev => prev ? {
+        ...prev,
+        chatBubbles: {
+          ...prev.chatBubbles,
+          [userPlayer.id]: { text, playerName: userPlayer.name, timestamp: Date.now() },
+        },
+      } : prev);
+    } else {
+      showChatBubble(userPlayer.id, text, userPlayer.name);
+    }
+  }, [showChatBubble, isMultiplayer, multiplayer, setGameState]);
 
   const handleRebuy = useCallback((amount: number) => {
     setShowRebuyDialog(false);
@@ -539,6 +550,16 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const { displayPlayers, displayPositions } = isMultiplayer
     ? getMultiplayerDisplay(gameState)
     : { displayPlayers: playersWithTurn, displayPositions: seatPositions };
+
+  // Chat bubbles: single player = local state; multiplayer = from gameState (synced)
+  const CHAT_BUBBLE_DURATION_MS = 5000;
+  const displayedChatBubbles: Record<number, { id: number; text: string; playerName: string }> = isMultiplayer
+    ? Object.fromEntries(
+        Object.entries(gameState?.chatBubbles ?? {})
+          .filter(([, v]) => Date.now() - v.timestamp < CHAT_BUBBLE_DURATION_MS)
+          .map(([k, v]) => [Number(k), { id: v.timestamp, text: v.text, playerName: v.playerName }])
+      )
+    : chatBubbles;
 
   return (
     <div className="relative w-full min-h-[100dvh] h-[100dvh] max-h-[100dvh] overflow-hidden bg-background flex flex-col" onClick={handleTableClick}>
@@ -610,45 +631,94 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
         )}
       </AnimatePresence>
 
-      {/* Winner overlay — full-screen blur, winner message + cards, auto-closes after 2s */}
+      {/* Winner overlay — modern layout: community cards, player cards, highlighted winning hand */}
       <AnimatePresence>
         {showWinnerOverlay && gameState.showdown && gameState.winnerId !== null && (() => {
           const winner = gameState.players.find(p => p.id === gameState.winnerId);
           const winnerCount = gameState.winnerIds?.length ?? 1;
+          const bestCards = gameState.winnerBestCards ?? [];
+          const isInBestHand = (c: { rank: string; suit: string }) =>
+            bestCards.some(b => b.rank === c.rank && b.suit === c.suit);
           return (
             <motion.div
-              className="fixed inset-0 z-[60] flex items-center justify-center"
+              className="fixed inset-0 z-[60] flex items-center justify-center p-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.4 }}
             >
-              <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-lg" />
               <motion.div
-                className="relative z-10 flex flex-col items-center gap-4 px-6 py-8 rounded-2xl border-2 border-primary max-w-sm mx-4"
-                style={{ background: 'hsl(var(--casino-dark) / 0.98)', boxShadow: '0 0 60px hsl(var(--casino-gold) / 0.3)' }}
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                className="relative z-10 w-full max-w-md rounded-2xl overflow-hidden"
+                style={{
+                  background: 'linear-gradient(180deg, hsl(var(--casino-dark) 0.98) 0%, hsl(0 0% 4% / 0.98) 100%)',
+                  boxShadow: '0 0 80px hsl(var(--casino-gold) / 0.35), 0 25px 50px -12px rgba(0,0,0,0.6), inset 0 1px 0 hsl(var(--casino-gold) / 0.2)',
+                  border: '2px solid hsl(var(--casino-gold) / 0.6)',
+                }}
+                initial={{ scale: 0.85, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 24, mass: 0.8 }}
               >
-                <span className="text-4xl">🏆</span>
-                <div className="text-center">
+                {/* Header */}
+                <div className="pt-6 pb-4 px-6 text-center border-b border-primary/20">
+                  <motion.span
+                    className="inline-block text-5xl mb-2"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: 'spring', stiffness: 300 }}
+                  >
+                    🏆
+                  </motion.span>
                   <h2 className="text-xl sm:text-2xl font-bold tracking-wider text-primary" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                     {winnerCount > 1
                       ? `${winnerCount} WINNERS - SPLIT POT!`
                       : `${winner?.name ?? 'Winner'} WINS!`}
                   </h2>
-                  <p className="text-sm sm:text-base text-muted-foreground mt-1">
+                  <p className="text-sm text-muted-foreground mt-1.5">
                     {gameState.winnerHandDescription}
                   </p>
                 </div>
-                {winner && winner.cards.length >= 2 && (
-                  <div className="flex gap-2 justify-center">
-                    {winner.cards.map((card, i) => (
-                      <Card key={i} card={{ ...card, faceUp: true }} delay={0.1 * i} index={i} />
-                    ))}
-                  </div>
-                )}
+
+                {/* Community cards + winner hole cards */}
+                <div className="p-6 space-y-5">
+                  {gameState.communityCards.length > 0 && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Community</p>
+                      <div className="flex gap-1.5 sm:gap-2 justify-center flex-wrap">
+                        {gameState.communityCards.map((card, i) => (
+                          <Card
+                            key={i}
+                            card={{ ...card, faceUp: true }}
+                            delay={0.15 * i}
+                            index={i}
+                            isHighlighted={isInBestHand(card)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {winner && winner.cards.length >= 2 && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">{winner.name}&apos;s Cards</p>
+                      <div className="flex gap-1.5 sm:gap-2 justify-center">
+                        {winner.cards.map((card, i) => (
+                          <Card
+                            key={i}
+                            card={{ ...card, faceUp: true }}
+                            delay={0.2 + 0.1 * i}
+                            index={i}
+                            isPlayerCard
+                            isHighlighted={isInBestHand(card)}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-2 text-center">
+                        Highlighted cards form the winning hand
+                      </p>
+                    </div>
+                  )}
+                </div>
               </motion.div>
             </motion.div>
           );
@@ -671,8 +741,11 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           <div className="poker-table-inner" />
 
 
-          {/* Community cards — floating on felt with subtle shadow */}
-          <div className="community-cards-area absolute top-[42%] left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1.5 sm:gap-2">
+          {/* Community cards — floating on felt; mobile: lower to avoid pot overlap */}
+          <div
+            className="community-cards-area absolute left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1.5 sm:gap-2"
+            style={{ top: isMobile ? '48%' : '42%' }}
+          >
             {gameState.communityCards.map((card, i) => (
               <Card
                 key={`${gameState.roundNumber}-${i}-${card.faceUp}`}
@@ -684,8 +757,12 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
             ))}
           </div>
 
-          {/* Pot zone — above cards */}
-          <div className="absolute top-[26%] left-1/2 -translate-x-1/2 z-20" data-pot-display>
+          {/* Pot zone — above cards; mobile: higher for clear separation */}
+          <div
+            className="absolute left-1/2 -translate-x-1/2 z-20"
+            style={{ top: isMobile ? '20%' : '26%' }}
+            data-pot-display
+          >
             <PotDisplay pot={gameState.pot} rakeAmount={gameState.rakeAmount} />
           </div>
 
@@ -721,7 +798,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
                   isWinner={gameState.showdown && (gameState.winnerIds?.includes(player.id) ?? player.id === gameState.winnerId)}
                   isMobile={isMobile}
                   isShowdown={gameState.showdown}
-                  chatBubble={chatBubbles[player.id] ?? null}
+                  chatBubble={displayedChatBubbles[player.id] ?? null}
                 />
               </div>
             );

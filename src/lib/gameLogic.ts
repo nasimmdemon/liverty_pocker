@@ -294,6 +294,7 @@ function handleShowdown(state: GameState): GameState {
   for (const p of players) chipGains.set(p.id, 0);
 
   let primaryWinnerId: number | null = null;
+  let primaryWinnerBestCards: PlayingCard[] = [];
   const winnerIds: number[] = [];
   let winnerHandDescription = '';
 
@@ -305,6 +306,10 @@ function handleShowdown(state: GameState): GameState {
     if (potWinners.length === 0) continue;
 
     if (!winnerHandDescription) winnerHandDescription = potWinners[0].hand.description;
+    if (!primaryWinnerId) {
+      primaryWinnerId = potWinners[0].winnerId;
+      primaryWinnerBestCards = potWinners[0].hand.bestCards ?? [];
+    }
 
     const potPerWinner = Math.floor(pot.amount / potWinners.length);
     const remainder = pot.amount - potPerWinner * potWinners.length;
@@ -348,13 +353,16 @@ function handleShowdown(state: GameState): GameState {
     ? `Split pot (${winnerIds.length} winners)`
     : winnerHandDescription || 'Winner';
 
+  const primaryWinner = primaryWinnerId ?? winnerIds[0];
+
   return {
     ...state,
     players: finalPlayers,
     communityCards: visibleCommunity,
-    winnerId: primaryWinnerId ?? winnerIds[0] ?? null,
-    winnerIds: winnerIds.length > 0 ? winnerIds : (primaryWinnerId ? [primaryWinnerId] : []),
+    winnerId: primaryWinner ?? null,
+    winnerIds: winnerIds.length > 0 ? winnerIds : (primaryWinner != null ? [primaryWinner] : []),
     winnerHandDescription: desc,
+    winnerBestCards: primaryWinnerBestCards,
     showdown: true,
     pot: 0,
     rakeAmount,
@@ -394,7 +402,7 @@ export function playerAction(
             ? { ...p, chips: p.chips + netPot, lastAction: '🏆 WINNER' }
             : p
         );
-        return { ...state, players: newPlayers, pot: 0, winnerId: winner.id, winnerIds: [winner.id], winnerHandDescription: 'Last player standing', showdown: true, actedCount, rakeAmount, totalRake: (state.totalRake ?? 0) + rakeAmount };
+        return { ...state, players: newPlayers, pot: 0, winnerId: winner.id, winnerIds: [winner.id], winnerHandDescription: 'Last player standing', winnerBestCards: winner.cards, showdown: true, actedCount, rakeAmount, totalRake: (state.totalRake ?? 0) + rakeAmount };
       }
       break;
     }

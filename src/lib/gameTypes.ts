@@ -60,4 +60,6 @@ export interface GameState {
   actedCount: number; // how many have acted since last raise
   rakeAmount: number; // rake taken from pot this round
   totalRake: number; // total rake accumulated across rounds
+  chatBubbles?: Record<number, { text: string; playerName: string; timestamp: number }>;
+  winnerBestCards?: PlayingCard[]; // 5 cards that form the winning hand (for overlay highlight)
 }
