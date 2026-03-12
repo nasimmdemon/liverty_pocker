@@ -4,6 +4,8 @@ import { AnimatePresence } from 'framer-motion';
 import { RotateCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsLandscapeOnMobile } from '@/hooks/use-orientation';
+import { useAddToHomeScreen } from '@/hooks/use-add-to-home-screen';
+import AddToHomeScreenOverlay from '@/components/AddToHomeScreenOverlay';
 import LoginScreen from '@/components/auth/LoginScreen';
 import StartScreen from '@/components/poker/StartScreen';
 import LoadingScreen from '@/components/poker/LoadingScreen';
@@ -36,6 +38,7 @@ interface MultiplayerConfig {
 const Index = () => {
   const [searchParams] = useSearchParams();
   const isLandscapeOnMobile = useIsLandscapeOnMobile();
+  const { showPrompt: showAddToHomeScreen, platform } = useAddToHomeScreen();
   const joinCodeFromUrl = searchParams.get('join');
   const { user, loading, incrementBotMatches, canInviteFriends, profile } = useAuth();
   const [screen, setScreen] = useState<Screen>('start');
@@ -113,6 +116,11 @@ const Index = () => {
         <div className="animate-pulse text-primary font-display text-xl">Loading...</div>
       </div>
     );
+  }
+
+  // Mobile browser: require add-to-home-screen for full web app experience
+  if (showAddToHomeScreen && platform) {
+    return <AddToHomeScreenOverlay platform={platform} />;
   }
 
   if (!user) {
