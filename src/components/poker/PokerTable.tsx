@@ -717,7 +717,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
                         ))}
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                        Highlighted cards form the winning hand
+                        Cards with ✓ form the winning hand
                       </p>
                     </div>
                   )}
@@ -734,12 +734,12 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
         <span className="text-[10px] sm:text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">BB: ${formatChips(gameState.bigBlind)}</span>
       </div>
 
-      {/* Table area — centered with padding; landscape mobile: extra compact */}
+      {/* Table area — centered with padding; landscape mobile: extra compact, more bottom padding so user cards don't overlap buttons */}
       <div
         className="absolute inset-0 flex items-center justify-center flex-1 min-h-0"
         style={{
-          paddingBottom: isLandscapeMobile ? '72px' : isMobile ? '100px' : '90px',
-          paddingTop: isLandscapeMobile ? '32px' : isMobile ? '48px' : '60px',
+          paddingBottom: isLandscapeMobile ? '88px' : isMobile ? '100px' : '90px',
+          paddingTop: isLandscapeMobile ? '28px' : isMobile ? '48px' : '60px',
         }}
         data-landscape-mobile={isLandscapeMobile ? 'true' : undefined}
       >

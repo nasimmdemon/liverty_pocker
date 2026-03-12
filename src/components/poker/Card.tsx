@@ -65,11 +65,11 @@ const Card = ({ card, delay = 0, isPlayerCard = false, onReveal, isHighlighted =
       initial={initialAnim}
       animate={animateAnim}
       transition={{ delay, duration: 0.6, type: 'spring', stiffness: 120, damping: 14 }}
-      className={`w-10 h-[56px] sm:w-[48px] sm:h-[66px] rounded-lg border relative overflow-hidden select-none ${isHighlighted ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background' : 'border-gray-300'}`}
+      className={`w-10 h-[56px] sm:w-[48px] sm:h-[66px] rounded-lg border relative overflow-hidden select-none ${isHighlighted ? 'border-[3px] border-primary' : 'border-gray-300'}`}
       style={{
-        background: isHighlighted ? 'linear-gradient(180deg, #fef9e7 0%, #f5e6c8 40%, #e8d4a8 100%)' : 'linear-gradient(180deg, #fefefe 0%, #f0ebe0 40%, #e8e0d0 100%)',
+        background: isHighlighted ? 'linear-gradient(180deg, #fff8e1 0%, #ffecb3 40%, #ffe082 100%)' : 'linear-gradient(180deg, #fefefe 0%, #f0ebe0 40%, #e8e0d0 100%)',
         boxShadow: isHighlighted
-          ? '0 0 24px hsl(var(--casino-gold) / 0.8), 0 0 12px hsl(var(--casino-gold) / 0.5), 0 4px 14px rgba(0,0,0,0.35)'
+          ? '0 0 0 2px hsl(var(--casino-gold)), inset 0 0 0 1px rgba(255,255,255,0.5), 0 4px 14px rgba(0,0,0,0.35)'
           : '0 4px 14px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2)',
         transformStyle: 'preserve-3d',
         perspective: '800px',
@@ -94,6 +94,15 @@ const Card = ({ card, delay = 0, isPlayerCard = false, onReveal, isHighlighted =
 
       {/* Subtle inner border */}
       <div className="absolute inset-[2px] rounded-md border border-gray-200/50 pointer-events-none" />
+      {/* Winning hand badge — clear, modern indicator */}
+      {isHighlighted && (
+        <div
+          className="absolute -top-2 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black pointer-events-none"
+          style={{ background: 'hsl(var(--casino-gold))', color: 'hsl(0 0% 5%)', boxShadow: '0 1px 4px rgba(0,0,0,0.4)' }}
+        >
+          ✓
+        </div>
+      )}
     </motion.div>
   );
 };

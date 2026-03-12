@@ -25,13 +25,8 @@ export function unlockAudio(): void {
   }
 }
 
-function playTone(freq: number, durationMs: number, volume = 0.3, type: OscillatorType = 'sine'): void {
-  const ctx = getAudioContext();
-  if (!ctx) return;
+function playToneInternal(ctx: AudioContext, freq: number, durationMs: number, volume: number, type: OscillatorType): void {
   try {
-    if (ctx.state === 'suspended') {
-      ctx.resume().then(() => {}).catch(() => {});
-    }
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
@@ -43,6 +38,16 @@ function playTone(freq: number, durationMs: number, volume = 0.3, type: Oscillat
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + durationMs / 1000);
   } catch (_) {}
+}
+
+function playTone(freq: number, durationMs: number, volume = 0.3, type: OscillatorType = 'sine'): void {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') {
+    ctx.resume().then(() => playToneInternal(ctx, freq, durationMs, volume, type)).catch(() => {});
+    return;
+  }
+  playToneInternal(ctx, freq, durationMs, volume, type);
 }
 
 /** Card fold / discard sound — short low thud */

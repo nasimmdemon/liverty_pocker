@@ -350,7 +350,7 @@
     }
   }
 
-  /* Landscape mobile extra compact — smaller avatars, cards, buttons */
+  /* Landscape mobile extra compact — smaller avatars, wider table to reduce black bars */
   [data-landscape-mobile="true"] .player-position-zone {
     width: 48px !important;
     height: 48px !important;
@@ -360,8 +360,8 @@
     height: 58px !important;
   }
   [data-landscape-mobile="true"] .poker-table-felt {
-    width: 85vw !important;
-    height: 55vh !important;
+    width: 94vw !important;
+    height: 58vh !important;
   }
 
   /* Small desktop */

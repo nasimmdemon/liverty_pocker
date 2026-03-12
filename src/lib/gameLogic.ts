@@ -1,6 +1,7 @@
 import { GameState, Player, PlayingCard, Suit, Rank, GamePhase } from './gameTypes';
 import { determineWinners } from './handEvaluator';
 import { calculateRake } from './rake';
+import { formatChips } from './formatChips';
 import avatar1 from '@/assets/avatar-1.png';
 import avatar2 from '@/assets/avatar-2.png';
 import avatar3 from '@/assets/avatar-3.png';
@@ -446,7 +447,7 @@ export function playerAction(
         totalRoundBet: player.totalRoundBet + totalNeeded,
         isAllIn,
         status: isAllIn ? 'all-in' : 'active',
-        lastAction: isAllIn ? 'ALL-IN' : action === 'bet' ? `BET $${totalNeeded}` : `RAISE $${totalNeeded}`,
+        lastAction: isAllIn ? 'ALL-IN' : action === 'bet' ? `BET $${formatChips(totalNeeded)}` : `RAISE $${formatChips(totalNeeded)}`,
       };
       pot += totalNeeded;
       currentBet = actualBet;
@@ -472,7 +473,7 @@ export function playerAction(
         totalRoundBet: player.totalRoundBet + allInAmount,
         isAllIn: true,
         status: 'all-in',
-        lastAction: `ALL-IN $${allInAmount}`,
+        lastAction: `ALL-IN $${formatChips(allInAmount)}`,
       };
       pot += allInAmount;
       break;
