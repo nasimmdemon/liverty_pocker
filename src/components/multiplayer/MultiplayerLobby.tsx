@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Users, Play, ArrowLeft } from 'lucide-react';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
 import type { GameRoom } from '@/lib/multiplayer';
 import { startGame, joinGameRoom } from '@/lib/multiplayer';
 import { Button } from '@/components/ui/button';
