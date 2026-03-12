@@ -17,18 +17,23 @@ interface PlayerSeatProps {
   chatBubble?: { id: number; text: string; playerName: string } | null;
 }
 
-const NamePlate = ({ player, isTopSeat }: { player: Player; isTopSeat: boolean }) => {
+const NamePlate = ({ player, isTopSeat, isTurn }: { player: Player; isTopSeat: boolean; isTurn?: boolean }) => {
   const hasLeft = !player.isActive && player.chips <= 0;
   return (
   <div
-    className="absolute left-1/2 px-1.5 py-0.5 sm:px-2 rounded-md flex flex-col items-center whitespace-nowrap"
+    className={`absolute left-1/2 px-1.5 py-0.5 sm:px-2 rounded-md flex flex-col items-center whitespace-nowrap transition-all duration-300 ${isTurn ? 'ring-2 ring-primary ring-offset-2 ring-offset-transparent' : ''}`}
     style={{
-      background: 'hsl(var(--casino-dark) / 0.92)',
+      background: isTurn ? 'hsl(var(--casino-gold) / 0.2)' : 'hsl(var(--casino-dark) / 0.92)',
       transform: 'translateX(-50%)',
       zIndex: 20,
       ...(isTopSeat ? { bottom: 'calc(100% + 30px)' } : { top: 'calc(100% + 6px)' }),
     }}
   >
+    {isTurn && (
+      <span className="text-[7px] sm:text-[8px] font-bold tracking-widest text-primary mb-0.5" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+        ● TURN
+      </span>
+    )}
     <span
       className={`text-[8px] sm:text-[10px] font-semibold truncate max-w-[64px] sm:max-w-[88px] tracking-wider ${hasLeft ? 'text-muted-foreground' : 'text-foreground'}`}
       style={{ fontFamily: "'Bebas Neue', sans-serif" }}
@@ -69,22 +74,24 @@ const PlayerSeat = ({
   const showCards = player.cards.length > 0 && !hasFolded && !hasLeft;
   const isTopSeat = seatIndex >= 2 && seatIndex <= 4;
 
-  // Avatar 2x bigger: was 56/72 (user) and 46/60 (others)
+  // Avatar sizes: smaller on mobile for better fit
   const avatarSizePx = isUser
-    ? (isMobile ? 112 : 144)
-    : (isMobile ? 92 : 120);
+    ? (isMobile ? 72 : 144)
+    : (isMobile ? 56 : 120);
 
   const borderClass = hasLeft
     ? 'border-muted opacity-30'
     : isWinner
       ? 'border-primary glow-gold'
-      : isUser
-        ? 'border-primary glow-gold'
-        : isTurn
-          ? 'border-primary glow-turn'
-          : hasFolded
-            ? 'border-muted opacity-50'
-            : 'border-primary/60';
+      : isUser && isTurn
+        ? 'border-4 border-primary glow-your-turn'
+        : isUser
+          ? 'border-primary glow-gold'
+          : isTurn
+            ? 'border-primary glow-turn'
+            : hasFolded
+              ? 'border-muted opacity-50'
+              : 'border-primary/60';
 
   return (
     <motion.div
@@ -107,15 +114,15 @@ const PlayerSeat = ({
             ...(isUser
               ? {
                   bottom: '100%',
-                  marginBottom: isMobile ? -18 : -32, // ~25% behind avatar so more card visible
-                  width: isMobile ? 150 : 240,
-                  height: isMobile ? 88 : 128,
+                  marginBottom: isMobile ? -12 : -32, // ~25% behind avatar so more card visible
+                  width: isMobile ? 110 : 240,
+                  height: isMobile ? 64 : 128,
                 }
               : {
                   bottom: '100%',
-                  marginBottom: 8,
-                  width: isMobile ? 86 : 112,
-                  height: isMobile ? 48 : 60,
+                  marginBottom: isMobile ? 4 : 8,
+                  width: isMobile ? 56 : 112,
+                  height: isMobile ? 32 : 60,
                 }),
           }}
         >
@@ -127,7 +134,7 @@ const PlayerSeat = ({
                 left: '50%',
                 bottom: 0,
                 transformOrigin: 'bottom center',
-                transform: `translateX(${i === 0 ? '-68%' : '-28%'}) rotate(${i === 0 ? -18 : 18}deg) scale(${isUser ? (isMobile ? 1.28 : 1.58) : (isMobile ? 0.58 : 0.72)})`,
+                transform: `translateX(${i === 0 ? '-68%' : '-28%'}) rotate(${i === 0 ? -18 : 18}deg) scale(${isUser ? (isMobile ? 1 : 1.58) : (isMobile ? 0.5 : 0.72)})`,
                 zIndex: i,
               }}
             >
@@ -187,6 +194,15 @@ const PlayerSeat = ({
           </svg>
         )}
 
+        {isUser && isTurn && (
+          <motion.div
+            className="absolute rounded-full border-2 border-primary pointer-events-none"
+            style={{ inset: -6, zIndex: 4 }}
+            animate={{ scale: [1, 1.35, 1], opacity: [0.5, 0, 0.5] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+          />
+        )}
+
         {isWinner && (
           <motion.div
             className="absolute -inset-2 rounded-full"
@@ -196,7 +212,7 @@ const PlayerSeat = ({
           />
         )}
 
-        <div
+        <motion.div
           className={`rounded-full overflow-hidden border-[2.5px] transition-all duration-300 group-hover:brightness-110 ${borderClass}`}
           style={{
             width: avatarSizePx,
@@ -205,13 +221,15 @@ const PlayerSeat = ({
               ? '0 0 20px hsla(40,70%,45%,0.4), 0 4px 12px rgba(0,0,0,0.5)'
               : !isWinner ? '0 4px 12px rgba(0,0,0,0.5)' : undefined,
           }}
+          animate={!isUser && isTurn ? { scale: [1, 1.04, 1] } : {}}
+          transition={!isUser && isTurn ? { duration: 1, repeat: Infinity, ease: 'easeInOut' } : {}}
         >
           <img src={player.avatar} alt={player.name} className="w-full h-full object-cover" loading="lazy" />
-        </div>
+        </motion.div>
       </div>
 
       {/* Name plate */}
-      <NamePlate player={player} isTopSeat={isTopSeat} />
+      <NamePlate player={player} isTopSeat={isTopSeat} isTurn={isTurn} />
 
       {/* Hole cards below avatar for top seats */}
       {showCards && isTopSeat && (
@@ -220,7 +238,7 @@ const PlayerSeat = ({
           style={{ top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 8, zIndex: 5 }}
         >
           {player.cards.map((card, i) => (
-            <div key={i} style={{ transform: `scale(${isUser ? (isMobile ? 1.5 : 1.86) : (isMobile ? 0.5 : 0.62)})`, transformOrigin: 'top center' }}>
+            <div key={i} style={{ transform: `scale(${isUser ? (isMobile ? 1.1 : 1.86) : (isMobile ? 0.45 : 0.62)})`, transformOrigin: 'top center' }}>
               <Card card={card} delay={0.2 + 0.2 * i} index={i} isPlayerCard />
             </div>
           ))}

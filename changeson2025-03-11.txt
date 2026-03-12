@@ -1,0 +1,13 @@
+Liberty Poker - Completed Tasks
+Date: March 11, 2025
+
+1. Rebuy popup for all-in losers – players stay at the table and can add chips instead of being eliminated
+2. Meta title, favicon, and SEO icon updated to use Liberty Poker logo for all platforms
+3. Multiplayer turn timer – visible countdown for every player's turn
+4. Multiplayer turn highlighting – clear indication of whose turn it is for all players
+5. Winning animation – full-screen blurred overlay with winner message, hand description, and winning cards; auto-closes after 2 seconds; chip animation flies to winner's avatar
+6. Table close when host leaves or not enough players – shows "Table Closed" message; "Host has left. At least two players are required to play the game." when host leaves
+7. Remove leaving players from table – when a player leaves during a game (4, 5, or 6 players), they are removed from the table and game continues
+8. Mobile portrait-only mode – when device is rotated to landscape on mobile, show message to rotate to portrait
+9. Responsive mobile layout – 100dvh height, no scrolling; action buttons always visible without scroll
+10. Stopwatch tick sound – plays every second in the last 10 seconds of turn timer for all players including main player

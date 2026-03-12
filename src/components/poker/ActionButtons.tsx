@@ -52,8 +52,8 @@ const ActionButtons = ({
     setShowBetBar(true);
   };
 
-  const btnClass = 'casino-btn text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold min-h-[40px] sm:min-h-[44px]';
-  const goldBtnClass = 'casino-btn-mobile-gold text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold min-h-[40px] sm:min-h-[44px]';
+  const btnClass = 'casino-btn text-[11px] sm:text-sm px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl font-bold min-h-[36px] sm:min-h-[44px]';
+  const goldBtnClass = 'casino-btn-mobile-gold text-[11px] sm:text-sm px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl font-bold min-h-[36px] sm:min-h-[44px]';
 
   return (
     <motion.div
@@ -63,7 +63,7 @@ const ActionButtons = ({
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 0.5 }}
     >
-      <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
+      <div className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4">
         <div className="flex flex-col gap-3 max-w-2xl mx-auto">
           {/* Row 1: Chat, Chips, Fold, Check/Call, Bet, All In */}
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">

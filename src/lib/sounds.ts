@@ -69,3 +69,8 @@ export function playWinSound(): void {
     setTimeout(() => playTone(freq, 150, 0.22, 'sine'), i * 90);
   });
 }
+
+/** Stopwatch tick — plays in last 10 seconds of turn timer */
+export function playTickSound(): void {
+  playTone(880, 40, 0.15, 'sine');
+}

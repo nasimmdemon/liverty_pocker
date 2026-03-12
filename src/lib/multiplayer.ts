@@ -37,7 +37,7 @@ export interface GameRoom {
   inviteCode: string;
   hostId: string;
   hostName: string;
-  status: 'waiting' | 'playing';
+  status: 'waiting' | 'playing' | 'ended';
   players: GameRoomPlayer[];
   buyIn: number;
   smallBlind: number;
@@ -220,6 +220,47 @@ export async function updateGameState(gameId: string, gameState: GameState): Pro
     gameState: gameStateToFirestore(gameState),
     updatedAt: serverTimestamp(),
   });
+}
+
+export type LeaveReason = 'host-left' | 'not-enough-players' | null;
+
+export async function leaveGameRoom(gameId: string, userId: string): Promise<LeaveReason> {
+  const roomRef = doc(db, 'games', gameId);
+  const snap = await getDoc(roomRef);
+  if (!snap.exists()) return null;
+  const data = snap.data();
+  const room = { id: snap.id, ...data } as GameRoom;
+  const isHost = room.hostId === userId;
+
+  let newPlayers = (room.players as GameRoomPlayer[]).filter(p => p.userId !== userId);
+  let newStatus = room.status;
+  let newGameState = room.gameState ? firestoreToGameState(room.gameState as Record<string, unknown>) : null;
+
+  if (isHost) {
+    newStatus = 'ended';
+  } else if (newStatus === 'playing' && newGameState) {
+    newGameState = {
+      ...newGameState,
+      players: newGameState.players.map(p =>
+        p.userId === userId ? { ...p, isActive: false, status: 'sitting-out' as const } : p
+      ),
+    };
+  }
+
+  if (newPlayers.length < 2 && newStatus === 'playing') {
+    newStatus = 'ended';
+  }
+
+  await updateDoc(roomRef, {
+    players: newPlayers,
+    status: newStatus,
+    ...(newGameState && { gameState: gameStateToFirestore(newGameState) }),
+    updatedAt: serverTimestamp(),
+  });
+
+  if (isHost) return 'host-left';
+  if (newPlayers.length < 2) return 'not-enough-players';
+  return null;
 }
 
 export function subscribeToGame(

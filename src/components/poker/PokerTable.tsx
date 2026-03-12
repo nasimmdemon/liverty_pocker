@@ -33,7 +33,7 @@ import ChipAnimation, { type ChipBet } from './ChipAnimation';
 import WinChipAnimation from './WinChipAnimation';
 import { BOT_CHAT_MESSAGES } from './GameChat';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { playFoldSound, playWinSound, playCardRevealSound, playYourTurnSound, playCheckSound, unlockAudio } from '@/lib/sounds';
+import { playFoldSound, playWinSound, playCardRevealSound, playYourTurnSound, playCheckSound, playTickSound, unlockAudio } from '@/lib/sounds';
 import { runAntiCheatOnExit } from '@/lib/antiCheat';
 import { toast } from '@/hooks/use-toast';
 
@@ -92,9 +92,12 @@ const MP_4_MOBILE = [
   { top: '82%', left: '92%', isTopSeat: false },
 ];
 
-const DEFAULT_TURN_DURATION = 10;
+const DEFAULT_TURN_DURATION = 25;
 const BOT_DELAY = 1500;
-const SHOWDOWN_DELAY = 5000;
+const WINNER_OVERLAY_DELAY = 800;   // ms before showing winner overlay (let cards reveal)
+const WINNER_OVERLAY_DURATION = 2000; // ms to show blurred overlay
+const CHIP_ANIM_DURATION = 2500;    // chip fly duration
+const SHOWDOWN_DELAY = WINNER_OVERLAY_DELAY + WINNER_OVERLAY_DURATION + CHIP_ANIM_DURATION + 500; // ~5.8s
 
 interface MultiplayerConfig {
   gameId: string;
@@ -151,11 +154,17 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const getMultiplayerDisplay = useCallback((state: GameState) => {
     const active = state.players.filter(p => p.isActive && (p.chips > 0 || p.isUser));
     if (active.length === 0) return { displayPlayers: [], displayPositions: [] };
+    const currentPlayer = state.players[state.currentPlayerIndex];
+    const currentPlayerId = currentPlayer?.id;
     const userIdx = active.findIndex(p => p.isUser);
     const rotated = userIdx >= 0
       ? [...active.slice(userIdx), ...active.slice(0, userIdx)]
       : active;
-    const n = rotated.length;
+    const displayPlayers = rotated.map(p => ({
+      ...p,
+      isTurn: p.id === currentPlayerId && !p.hasFolded && !p.isAllIn && !state.showdown,
+    }));
+    const n = displayPlayers.length;
     let positions: { top: string; left: string; isTopSeat?: boolean }[];
     if (n === 2) positions = isMobile ? MP_2_MOBILE : MP_2_DESKTOP;
     else if (n === 3) positions = isMobile ? MP_3_MOBILE : MP_3_DESKTOP;
@@ -164,7 +173,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       const base = isMobile ? SEAT_POSITIONS_MOBILE : SEAT_POSITIONS_DESKTOP;
       positions = base.slice(0, n).map((p, i) => ({ ...p, isTopSeat: i >= 2 && i <= 4 }));
     }
-    return { displayPlayers: rotated, displayPositions: positions };
+    return { displayPlayers, displayPositions: positions };
   }, [isMobile]);
 
   useEffect(() => {
@@ -240,7 +249,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   gameStateRef.current = gameState;
 
   const [winAnimation, setWinAnimation] = useState<{ winnerSeatIndex: number; winnerPlayerId: number; amount: number } | null>(null);
-  const [showWinDisplay, setShowWinDisplay] = useState(false);
+  const [showWinnerOverlay, setShowWinnerOverlay] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [eliminatedPlayer, setEliminatedPlayer] = useState<{ name: string; id: number; isUser: boolean } | null>(null);
   const [markedCheaters, setMarkedCheaters] = useState<Set<number>>(new Set());
@@ -251,16 +260,21 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       const winnerSeatIndex = gameState.players.findIndex(p => p.id === gameState.winnerId);
       const winnerCount = gameState.winnerIds?.length ?? 1;
       const amountPerWinner = Math.floor(prevGameStateRef.current.pot / winnerCount);
-      if (winnerSeatIndex >= 0 && gameState.winnerId != null && amountPerWinner > 0) {
-        const id = setTimeout(() => {
-          setWinAnimation({ winnerSeatIndex, winnerPlayerId: gameState.winnerId!, amount: amountPerWinner });
-          setShowWinDisplay(true);
+      if (winnerSeatIndex >= 0 && gameState.winnerId != null) {
+        const t1 = setTimeout(() => {
+          setShowWinnerOverlay(true);
           playWinSound();
-        }, 1500);
-        return () => clearTimeout(id);
+        }, WINNER_OVERLAY_DELAY);
+        const t2 = setTimeout(() => {
+          setShowWinnerOverlay(false);
+          if (amountPerWinner > 0) {
+            setWinAnimation({ winnerSeatIndex, winnerPlayerId: gameState.winnerId!, amount: amountPerWinner });
+          }
+        }, WINNER_OVERLAY_DELAY + WINNER_OVERLAY_DURATION);
+        return () => { clearTimeout(t1); clearTimeout(t2); };
       }
     }
-    if (!gameState?.showdown) setShowWinDisplay(false);
+    if (!gameState?.showdown) setShowWinnerOverlay(false);
     prevGameStateRef.current = gameState ?? null;
   }, [gameState]);
 
@@ -394,31 +408,41 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       return;
     }
 
-    if (isMultiplayer && !currentPlayer.isUser) return;
-
+    // Timer runs for ALL players (multiplayer + single) so everyone sees the countdown
     setTimer(TURN_DURATION);
     timerRef.current = setInterval(() => {
-      setTimer(prev => (prev <= 0 ? 0 : prev - 0.1));
+      setTimer(prev => {
+        const next = prev <= 0 ? 0 : prev - 0.1;
+        if (next <= 10 && next > 0) {
+          const sec = Math.ceil(next);
+          const prevSec = Math.ceil(prev);
+          if (prevSec !== sec) playTickSound();
+        }
+        return next;
+      });
     }, 100);
 
     if (!currentPlayer.isUser) {
-      botTimeoutRef.current = setTimeout(() => {
-        setGameState(prev => {
-          if (!prev) return prev;
-          const { state: afterBot, action: botAction } = simulateBotAction(prev);
-          if (botAction === 'fold') playFoldSound();
-          if (botAction === 'check') playCheckSound();
-          const betAmount = afterBot.players[prev.currentPlayerIndex].currentBet - prev.players[prev.currentPlayerIndex].currentBet;
-          if (betAmount > 0) triggerChipAnimation(prev.currentPlayerIndex, betAmount);
-          // Randomly show bot chat bubble (~20% chance)
-          if (Math.random() < 0.2) {
-            const bot = prev.players[prev.currentPlayerIndex];
-            const msg = BOT_CHAT_MESSAGES[Math.floor(Math.random() * BOT_CHAT_MESSAGES.length)];
-            showChatBubble(bot.id, msg, bot.name);
-          }
-          return advanceTurn(afterBot);
-        });
-      }, BOT_DELAY + Math.random() * 1000);
+      if (isMultiplayer) {
+        // Opponent's turn: no auto-action, game state updates when they act
+      } else {
+        botTimeoutRef.current = setTimeout(() => {
+          setGameState(prev => {
+            if (!prev) return prev;
+            const { state: afterBot, action: botAction } = simulateBotAction(prev);
+            if (botAction === 'fold') playFoldSound();
+            if (botAction === 'check') playCheckSound();
+            const betAmount = afterBot.players[prev.currentPlayerIndex].currentBet - prev.players[prev.currentPlayerIndex].currentBet;
+            if (betAmount > 0) triggerChipAnimation(prev.currentPlayerIndex, betAmount);
+            if (Math.random() < 0.2) {
+              const bot = prev.players[prev.currentPlayerIndex];
+              const msg = BOT_CHAT_MESSAGES[Math.floor(Math.random() * BOT_CHAT_MESSAGES.length)];
+              showChatBubble(bot.id, msg, bot.name);
+            }
+            return advanceTurn(afterBot);
+          });
+        }, BOT_DELAY + Math.random() * 1000);
+      }
     } else {
       botTimeoutRef.current = setTimeout(() => {
         playFoldSound();
@@ -517,7 +541,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
     : { displayPlayers: playersWithTurn, displayPositions: seatPositions };
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-background" onClick={handleTableClick}>
+    <div className="relative w-full min-h-[100dvh] h-[100dvh] max-h-[100dvh] overflow-hidden bg-background flex flex-col" onClick={handleTableClick}>
       {/* Premium room background — warm ambient lighting */}
       <div
         className="absolute inset-0"
@@ -586,14 +610,59 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
         )}
       </AnimatePresence>
 
+      {/* Winner overlay — full-screen blur, winner message + cards, auto-closes after 2s */}
+      <AnimatePresence>
+        {showWinnerOverlay && gameState.showdown && gameState.winnerId !== null && (() => {
+          const winner = gameState.players.find(p => p.id === gameState.winnerId);
+          const winnerCount = gameState.winnerIds?.length ?? 1;
+          return (
+            <motion.div
+              className="fixed inset-0 z-[60] flex items-center justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
+              <motion.div
+                className="relative z-10 flex flex-col items-center gap-4 px-6 py-8 rounded-2xl border-2 border-primary max-w-sm mx-4"
+                style={{ background: 'hsl(var(--casino-dark) / 0.98)', boxShadow: '0 0 60px hsl(var(--casino-gold) / 0.3)' }}
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+              >
+                <span className="text-4xl">🏆</span>
+                <div className="text-center">
+                  <h2 className="text-xl sm:text-2xl font-bold tracking-wider text-primary" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                    {winnerCount > 1
+                      ? `${winnerCount} WINNERS - SPLIT POT!`
+                      : `${winner?.name ?? 'Winner'} WINS!`}
+                  </h2>
+                  <p className="text-sm sm:text-base text-muted-foreground mt-1">
+                    {gameState.winnerHandDescription}
+                  </p>
+                </div>
+                {winner && winner.cards.length >= 2 && (
+                  <div className="flex gap-2 justify-center">
+                    {winner.cards.map((card, i) => (
+                      <Card key={i} card={{ ...card, faceUp: true }} delay={0.1 * i} index={i} />
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
+
       {/* Blinds info */}
       <div className="absolute top-11 sm:top-14 left-1/2 -translate-x-1/2 z-30 flex gap-2 sm:gap-3">
         <span className="text-[10px] sm:text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">SB: ${gameState.smallBlind}</span>
         <span className="text-[10px] sm:text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">BB: ${gameState.bigBlind}</span>
       </div>
 
-      {/* Table area — centered with padding for seats that overflow */}
-      <div className="absolute inset-0 flex items-center justify-center" style={{ paddingBottom: isMobile ? '110px' : '90px', paddingTop: isMobile ? '55px' : '60px' }}>
+      {/* Table area — centered with padding for seats and action bar; mobile: tighter padding for 100dvh fit */}
+      <div className="absolute inset-0 flex items-center justify-center flex-1 min-h-0" style={{ paddingBottom: isMobile ? '100px' : '90px', paddingTop: isMobile ? '48px' : '60px' }}>
         <div
           ref={tableRef}
           className="poker-table-felt relative"
@@ -619,28 +688,6 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           <div className="absolute top-[26%] left-1/2 -translate-x-1/2 z-20" data-pot-display>
             <PotDisplay pot={gameState.pot} rakeAmount={gameState.rakeAmount} />
           </div>
-
-          {/* Winner announcement: between pot and cards */}
-          <AnimatePresence>
-            {showWinDisplay && gameState.showdown && gameState.winnerId !== null && (
-              <motion.div
-                className="absolute top-[58%] left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-0.5"
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 200 }}
-              >
-                <div className="bg-background/80 backdrop-blur-sm border-2 border-primary rounded-xl px-3 sm:px-5 py-1.5 sm:py-2 text-center whitespace-nowrap">
-                  <div className="text-primary font-display text-xs sm:text-base tracking-wider">
-                    {(gameState.winnerIds?.length ?? 1) > 1
-                      ? `${gameState.winnerIds?.length} WINNERS - SPLIT POT!`
-                      : `${gameState.players.find(p => p.id === gameState.winnerId)?.name} WINS!`}
-                  </div>
-                  <div className="text-muted-foreground text-[8px] sm:text-xs mt-0.5">{gameState.winnerHandDescription}</div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {/* Win chip animation - inside table so chips fly BEHIND player avatars (z-5 < z-10) */}
           <WinChipAnimation
