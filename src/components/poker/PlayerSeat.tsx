@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Player } from '@/lib/gameTypes';
+import { Player, PlayingCard } from '@/lib/gameTypes';
 import { formatChips } from '@/lib/formatChips';
 import Card from './Card';
 import { ChatBubble } from './GameChat';
@@ -19,43 +19,47 @@ interface PlayerSeatProps {
   isShowdown?: boolean;
   chatBubble?: { id: number; text: string; playerName: string } | null;
   winChance?: number;
+  winnerBestCards?: PlayingCard[];
+  /** Override chips display (e.g. pre-win balance during chip fly animation) */
+  displayChips?: number;
 }
 
-const NamePlate = ({ player, isTopSeat, isTurn }: { player: Player; isTopSeat: boolean; isTurn?: boolean }) => {
+const NamePlate = ({ player, isTopSeat, hasWinningBar, displayChips }: { player: Player; isTopSeat: boolean; hasWinningBar?: boolean; displayChips?: number }) => {
   const hasLeft = !player.isActive && player.chips <= 0;
+  // Extra space when winning bar is shown (main player) so bar is clearly visible above profile
+  const topOffset = hasWinningBar ? 32 : 6;
+  const bottomOffset = hasWinningBar ? 38 : 30;
   return (
   <div
-    className={`absolute left-1/2 px-1.5 py-0.5 sm:px-2 rounded-md flex flex-col items-center whitespace-nowrap transition-all duration-300 ${isTurn ? 'ring-2 ring-primary ring-offset-2 ring-offset-transparent' : ''}`}
+    className="absolute left-1/2 px-2 py-1 sm:px-2.5 sm:py-1 rounded-md flex flex-col items-center whitespace-nowrap transition-all duration-300"
     style={{
-      background: isTurn ? 'hsl(var(--casino-gold) / 0.2)' : 'hsl(var(--casino-dark) / 0.92)',
+      background: 'hsl(var(--casino-dark) / 0.92)',
       transform: 'translateX(-50%)',
       zIndex: 20,
-      ...(isTopSeat ? { bottom: 'calc(100% + 30px)' } : { top: 'calc(100% + 6px)' }),
+      ...(isTopSeat ? { bottom: `calc(100% + ${bottomOffset}px)` } : { top: `calc(100% + ${topOffset}px)` }),
     }}
   >
-    {isTurn && (
-      <span className="text-[7px] sm:text-[8px] font-bold tracking-widest text-primary mb-0.5" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-        ● TURN
-      </span>
-    )}
     <span
-      className={`text-[8px] sm:text-[10px] font-semibold truncate max-w-[64px] sm:max-w-[88px] tracking-wider ${hasLeft ? 'text-muted-foreground' : 'text-foreground'}`}
-      style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+      className={`text-[10px] sm:text-[12px] font-semibold truncate max-w-[72px] sm:max-w-[100px] tracking-wide ${hasLeft ? 'text-muted-foreground' : 'text-foreground'}`}
+      style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
     >
       {hasLeft ? 'LEFT' : player.name}
     </span>
     <span
-      className={`text-[8px] sm:text-[10px] font-bold ${hasLeft ? 'text-muted-foreground' : 'text-primary'}`}
-      style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+      className={`text-[10px] sm:text-[12px] font-bold ${hasLeft ? 'text-muted-foreground' : 'text-primary'}`}
+      style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
     >
-      {hasLeft ? '—' : `$${formatChips(player.chips)}`}
+      {hasLeft ? '—' : `$${formatChips(displayChips ?? player.chips)}`}
     </span>
     {!hasLeft && player.lastAction && (
-      <span className={`text-[7px] sm:text-[9px] font-bold tracking-wider ${
-        player.lastAction.includes('WINNER') ? 'text-primary' :
-        player.lastAction === 'FOLD' ? 'text-destructive' :
-        'text-muted-foreground'
-      }`}>
+      <span
+        className={`text-[9px] sm:text-[11px] font-bold tracking-wide ${
+          player.lastAction.includes('WINNER') ? 'text-primary' :
+          player.lastAction === 'FOLD' ? 'text-destructive' :
+          'text-muted-foreground'
+        }`}
+        style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
+      >
         {player.lastAction}
       </span>
     )}
@@ -68,20 +72,23 @@ const PlayerSeat = ({
   player, seatIndex, onClickAvatar,
   timerProgress = 0, isDealer = false, isSmallBlind = false, isBigBlind = false,
   isWinner = false, isMobile = false, isLandscapeMobile = false,
-  isShowdown = false, chatBubble = null, winChance,
+  isShowdown = false, chatBubble = null, winChance, winnerBestCards = [], displayChips,
 }: PlayerSeatProps) => {
   const isTurn = player.isTurn;
   const hasFolded = player.hasFolded;
   const isUser = player.isUser;
+  const isInBestHand = (c: { rank: string; suit: string }) =>
+    winnerBestCards.some(b => b.rank === c.rank && b.suit === c.suit);
   const hasLeft = !player.isActive && player.chips <= 0;
   // User sees own cards (face-up). Others: show closed cards during hand, face-up at showdown
   const showCards = player.cards.length > 0 && !hasFolded && !hasLeft;
   const isTopSeat = seatIndex >= 2 && seatIndex <= 4;
 
-  // Avatar sizes: smaller on mobile; extra small in landscape
-  const avatarSizePx = isUser
+  // Avatar sizes: smaller on mobile; extra small in landscape; folded = smaller and darker
+  const baseSize = isUser
     ? (isLandscapeMobile ? 54 : isMobile ? 72 : 144)
     : (isLandscapeMobile ? 44 : isMobile ? 56 : 120);
+  const avatarSizePx = hasFolded ? Math.round(baseSize * 0.82) : baseSize;
 
   const borderClass = hasLeft
     ? 'border-muted opacity-30'
@@ -142,7 +149,13 @@ const PlayerSeat = ({
                 zIndex: i,
               }}
             >
-              <Card card={card} delay={0.2 + 0.2 * i} index={i} isPlayerCard />
+              <Card
+                card={card}
+                delay={0.2 + 0.2 * i}
+                index={i}
+                isPlayerCard
+                isHighlighted={isWinner && isInBestHand(card)}
+              />
             </div>
           ))}
         </div>
@@ -163,6 +176,10 @@ const PlayerSeat = ({
         style={{ zIndex: 10 }}
         onClick={() => onClickAvatar(player)}
       >
+        {/* Winning chance bar — on avatar bottom edge for main player */}
+        {isUser && winChance != null && !hasFolded && !hasLeft && (
+          <WinningChanceBar percent={winChance} isMobile={isMobile} isLandscapeMobile={isLandscapeMobile} onAvatar />
+        )}
         {isDealer && (
           <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[9px] font-black flex items-center justify-center z-20 border border-border shadow-lg">
             D
@@ -217,10 +234,11 @@ const PlayerSeat = ({
         )}
 
         <motion.div
-          className={`rounded-full overflow-hidden transition-all duration-300 group-hover:brightness-110 ${isMobile ? 'border-[1.5px]' : 'border-[2.5px]'} ${borderClass}`}
+          className={`rounded-full overflow-hidden transition-all duration-300 ${hasFolded ? '' : 'group-hover:brightness-110'} ${isMobile ? 'border-[1.5px]' : 'border-[2.5px]'} ${borderClass}`}
           style={{
             width: avatarSizePx,
             height: avatarSizePx,
+            filter: hasFolded ? 'brightness(0.55) saturate(0.7)' : undefined,
             boxShadow: isUser && !isWinner
               ? isMobile ? '0 0 8px hsla(40,70%,45%,0.35), 0 2px 8px rgba(0,0,0,0.4)' : '0 0 20px hsla(40,70%,45%,0.4), 0 4px 12px rgba(0,0,0,0.5)'
               : !isWinner ? (isMobile ? '0 2px 8px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.5)') : undefined,
@@ -232,13 +250,8 @@ const PlayerSeat = ({
         </motion.div>
       </div>
 
-      {/* Name plate */}
-      <NamePlate player={player} isTopSeat={isTopSeat} isTurn={isTurn} />
-
-      {/* Winning chance bar — main player only, below name plate */}
-      {isUser && winChance != null && !hasFolded && !hasLeft && (
-        <WinningChanceBar percent={winChance} isMobile={isMobile} isLandscapeMobile={isLandscapeMobile} />
-      )}
+      {/* Name plate — extra offset when main player has winning bar for clear separation */}
+      <NamePlate player={player} isTopSeat={isTopSeat} hasWinningBar={isUser && winChance != null && !hasFolded && !hasLeft} displayChips={displayChips} />
 
       {/* Hole cards below avatar for top seats — same rotated fan as bottom seats */}
       {showCards && isTopSeat && (
@@ -267,7 +280,13 @@ const PlayerSeat = ({
                 zIndex: i,
               }}
             >
-              <Card card={card} delay={0.2 + 0.2 * i} index={i} isPlayerCard />
+              <Card
+                card={card}
+                delay={0.2 + 0.2 * i}
+                index={i}
+                isPlayerCard
+                isHighlighted={isWinner && isInBestHand(card)}
+              />
             </div>
           ))}
         </div>

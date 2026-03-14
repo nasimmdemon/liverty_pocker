@@ -142,6 +142,53 @@
     .glow-your-turn { box-shadow: 0 0 10px hsl(var(--casino-gold) / 0.6), 0 0 20px hsl(var(--casino-gold) / 0.25); }
   }
 
+  /* Bet amount slider — gold-themed range input */
+  .bet-amount-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+  }
+  .bet-amount-slider::-webkit-slider-runnable-track {
+    height: 1rem;
+    border-radius: 9999px;
+    background: hsl(var(--casino-gold) / 0.15);
+  }
+  .bet-amount-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 9999px;
+    background: linear-gradient(180deg, hsl(var(--casino-gold)) 0%, hsl(40 60% 35%) 100%);
+    border: 2px solid hsl(var(--casino-gold) / 0.8);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    cursor: grab;
+    margin-top: -0.25rem;
+  }
+  .bet-amount-slider::-webkit-slider-thumb:active {
+    cursor: grabbing;
+  }
+  .bet-amount-slider::-moz-range-track {
+    height: 1rem;
+    border-radius: 9999px;
+    background: hsl(var(--casino-gold) / 0.15);
+  }
+  .bet-amount-slider::-moz-range-thumb {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 9999px;
+    background: linear-gradient(180deg, hsl(var(--casino-gold)) 0%, hsl(40 60% 35%) 100%);
+    border: 2px solid hsl(var(--casino-gold) / 0.8);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    cursor: grab;
+  }
+  @media (min-width: 640px) {
+    .bet-amount-slider::-webkit-slider-runnable-track { height: 1.25rem; }
+    .bet-amount-slider::-webkit-slider-thumb { width: 1.75rem; height: 1.75rem; margin-top: -0.375rem; }
+    .bet-amount-slider::-moz-range-track { height: 1.25rem; }
+    .bet-amount-slider::-moz-range-thumb { width: 1.75rem; height: 1.75rem; }
+  }
+
   /* Poker table — premium oval with carved wood rail & LED lighting */
   .poker-table-felt {
     width: min(92vw, 1280px);

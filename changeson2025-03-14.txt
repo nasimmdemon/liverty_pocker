@@ -1,0 +1,11 @@
+Liberty Poker - Completed Tasks
+Date: March 14, 2025
+
+1. Split pot chip animation – when 2 or 3 (or more) players win a split pot, chips fly to each winner's avatar with the correct amount per winner
+2. Draggable slider for bet/raise amount – added a range slider to set bet or raise amount; drag the bar from min to max (or use +/- buttons); shows min and max labels
+3. Intelligent bet/raise stepper and slider – step size scales with chip count (more chips = larger steps, less chips = smaller steps); slider and +/- buttons use same step; step label shown; improved slider styling (gold track, thumb)
+4. Folded player avatar – smaller (82%) and darker (reduced brightness/saturation) than active players for clear visual distinction
+6. Realistic poker chips – redesigned chip SVG (red casino-style with edge grooves, center band); chip count scales with bet amount (call/bet animation shows 1–8 chips based on amount); winner fly animation uses same chip design
+7. Return to lobby popup – when only one player left (all others gone or eliminated), show popup with message explaining why and "Return to Lobby" button
+8. Winner balance timing – balance increases only after chips fly to avatar animation completes (pre-win balance shown during animation)
+9. Winning chance bar timing – bar updates only after card reveal animation completes at showdown (~2.5s delay)

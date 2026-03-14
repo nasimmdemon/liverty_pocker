@@ -28,6 +28,10 @@ const ActionButtons = ({
   disabled, callAmount, canCheck, minRaise, isMobile = false,
 }: ActionButtonsProps) => {
   const minTotal = canCheck ? minRaise : currentBet + minRaise;
+  const maxTotal = chipCount;
+  const range = Math.max(0, maxTotal - minTotal);
+  // Intelligent step: more chips = larger steps, less chips = smaller steps (min bigBlind)
+  const stepSize = range <= 0 ? bigBlind : Math.max(bigBlind, Math.round(range / 12));
   const [showBetBar, setShowBetBar] = useState(false);
   const [betAmount, setBetAmount] = useState(minTotal);
 
@@ -111,40 +115,61 @@ const ActionButtons = ({
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 pt-2 border-t border-primary/20">
-                  <div className="flex items-center gap-1 sm:gap-2 border-2 border-primary/40 rounded-xl px-3 py-2 bg-background/80">
+                <div className="flex flex-col gap-3 pt-2 border-t border-primary/20">
+                  {/* Draggable slider — step size scales with chip count (more chips = bigger steps) */}
+                  <div className="w-full max-w-md mx-auto px-3 py-2 rounded-xl bg-background/60 border border-primary/30">
+                    <div className="flex items-center justify-between text-[10px] sm:text-xs font-medium text-primary/90 mb-2">
+                      <span>${formatChips(minTotal)}</span>
+                      <span className="text-muted-foreground">Step: ${formatChips(stepSize)}</span>
+                      <span>${formatChips(maxTotal)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={minTotal}
+                      max={maxTotal}
+                      step={stepSize}
+                      value={Math.min(Math.max(betAmount, minTotal), maxTotal)}
+                      onChange={(e) => setBetAmount(Number(e.target.value))}
+                      disabled={disabled || range <= 0}
+                      className="bet-amount-slider w-full h-4 sm:h-5 rounded-full appearance-none cursor-pointer
+                        disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+                    <div className="flex items-center gap-1 sm:gap-2 border-2 border-primary/40 rounded-xl px-3 py-2 bg-background/80">
+                      <button
+                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 disabled:opacity-50 transition-colors"
+                        onClick={() => setBetAmount((a) => Math.max(minTotal, Math.min(a - stepSize, maxTotal)))}
+                        disabled={disabled || betAmount <= minTotal}
+                      >
+                        <Minus size={16} className="text-primary" />
+                      </button>
+                      <span className="text-primary font-display font-bold text-sm sm:text-base min-w-[4rem] sm:min-w-[5rem] text-center">
+                        ${formatChips(Math.min(betAmount, chipCount))}
+                      </span>
+                      <button
+                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 disabled:opacity-50 transition-colors"
+                        onClick={() => setBetAmount((a) => Math.min(a + stepSize, maxTotal))}
+                        disabled={disabled || betAmount >= maxTotal}
+                      >
+                        <Plus size={16} className="text-primary" />
+                      </button>
+                    </div>
                     <button
-                      className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 disabled:opacity-50 transition-colors"
-                      onClick={() => setBetAmount((a) => Math.max(minTotal, Math.min(a - bigBlind, chipCount)))}
+                      className={goldBtnClass}
+                      onClick={handleSet}
                       disabled={disabled}
                     >
-                      <Minus size={16} className="text-primary" />
+                      Set
                     </button>
-                    <span className="text-primary font-display font-bold text-sm sm:text-base min-w-[4rem] sm:min-w-[5rem] text-center">
-                      ${formatChips(Math.min(betAmount, chipCount))}
-                    </span>
                     <button
-                      className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 disabled:opacity-50 transition-colors"
-                      onClick={() => setBetAmount((a) => Math.min(a + bigBlind, chipCount))}
-                      disabled={disabled}
+                      className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => setShowBetBar(false)}
+                      title="Cancel"
                     >
-                      <Plus size={16} className="text-primary" />
+                      <X size={18} />
                     </button>
                   </div>
-                  <button
-                    className={goldBtnClass}
-                    onClick={handleSet}
-                    disabled={disabled}
-                  >
-                    Set
-                  </button>
-                  <button
-                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={() => setShowBetBar(false)}
-                    title="Cancel"
-                  >
-                    <X size={18} />
-                  </button>
                 </div>
               </motion.div>
             )}

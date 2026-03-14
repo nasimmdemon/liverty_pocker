@@ -96,10 +96,9 @@ const MP_4_MOBILE = [
 
 const DEFAULT_TURN_DURATION = 30;
 const BOT_DELAY = 1500;
-const WINNER_OVERLAY_DELAY = 800;   // ms before showing winner overlay (let cards reveal)
-const WINNER_OVERLAY_DURATION = 5000; // ms to show winner overlay (longer for card review)
-const CHIP_ANIM_DURATION = 2500;    // chip fly duration
-const SHOWDOWN_DELAY = WINNER_OVERLAY_DELAY + WINNER_OVERLAY_DURATION + CHIP_ANIM_DURATION + 500; // ~5.8s
+const WINNER_VIEW_DURATION = 5000; // ms to view hand message and card highlights
+const CHIP_ANIM_DURATION = 2500;   // chip fly duration
+const SHOWDOWN_DELAY = WINNER_VIEW_DURATION + CHIP_ANIM_DURATION + 500; // ~8s
 
 interface MultiplayerConfig {
   gameId: string;
@@ -252,35 +251,48 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const chatBubbleIdRef = useRef(0);
   gameStateRef.current = gameState;
 
-  const [winAnimation, setWinAnimation] = useState<{ winnerSeatIndex: number; winnerPlayerId: number; amount: number } | null>(null);
-  const [showWinnerOverlay, setShowWinnerOverlay] = useState(false);
+  const [winAnimation, setWinAnimation] = useState<{ winnerSeatIndex: number; winnerPlayerId: number; amount: number }[] | null>(null);
+  const [winnersPreWinBalance, setWinnersPreWinBalance] = useState<Record<number, number>>({});
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [eliminatedPlayer, setEliminatedPlayer] = useState<{ name: string; id: number; isUser: boolean } | null>(null);
   const [markedCheaters, setMarkedCheaters] = useState<Set<number>>(new Set());
   const [userAlone, setUserAlone] = useState(false);
+  const [showWinningChanceBar, setShowWinningChanceBar] = useState(true);
 
   useEffect(() => {
     if (gameState?.showdown && gameState.winnerId !== null && prevGameStateRef.current && !prevGameStateRef.current.showdown) {
-      const winnerSeatIndex = gameState.players.findIndex(p => p.id === gameState.winnerId);
-      const winnerCount = gameState.winnerIds?.length ?? 1;
+      const winnerIds = gameState.winnerIds?.length ? gameState.winnerIds : (gameState.winnerId != null ? [gameState.winnerId] : []);
+      const winnerCount = winnerIds.length;
       const amountPerWinner = Math.floor(prevGameStateRef.current.pot / winnerCount);
-      if (winnerSeatIndex >= 0 && gameState.winnerId != null) {
-        const t1 = setTimeout(() => {
-          setShowWinnerOverlay(true);
-          playWinSound();
-        }, WINNER_OVERLAY_DELAY);
+      setShowWinningChanceBar(false);
+      const revealBarTimeout = setTimeout(() => setShowWinningChanceBar(true), 2500);
+      if (winnerCount > 0 && amountPerWinner > 0) {
+        const preBal: Record<number, number> = {};
+        for (const id of winnerIds) {
+          const p = prevGameStateRef.current.players.find(x => x.id === id);
+          if (p) preBal[id] = p.chips;
+        }
+        setWinnersPreWinBalance(preBal);
+        const t1 = setTimeout(() => playWinSound(), 800);
         const t2 = setTimeout(() => {
-          setShowWinnerOverlay(false);
-          if (amountPerWinner > 0) {
-            setWinAnimation({ winnerSeatIndex, winnerPlayerId: gameState.winnerId!, amount: amountPerWinner });
-          }
-        }, WINNER_OVERLAY_DELAY + WINNER_OVERLAY_DURATION);
-        return () => { clearTimeout(t1); clearTimeout(t2); };
+          const winners = winnerIds.map(id => {
+            const seatIndex = gameState.players.findIndex(p => p.id === id);
+            return { winnerSeatIndex: seatIndex >= 0 ? seatIndex : 0, winnerPlayerId: id, amount: amountPerWinner };
+          });
+          setWinAnimation(winners);
+        }, WINNER_VIEW_DURATION);
+        return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(revealBarTimeout); };
       }
+      return () => clearTimeout(revealBarTimeout);
     }
-    if (!gameState?.showdown) setShowWinnerOverlay(false);
+    if (!gameState?.showdown) setShowWinningChanceBar(true);
     prevGameStateRef.current = gameState ?? null;
   }, [gameState]);
+
+  const handleWinChipAnimComplete = useCallback(() => {
+    setWinAnimation(null);
+    setWinnersPreWinBalance({});
+  }, []);
 
   useEffect(() => {
     const isUserTurn = !!(
@@ -326,6 +338,12 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       delete chatBubbleTimeoutsRef.current[playerId];
     }, 5000);
   }, []);
+
+  useEffect(() => {
+    if (!gameState) return;
+    const activePlayers = gameState.players.filter(p => p.isActive && p.chips > 0);
+    if (activePlayers.length <= 1 && activePlayers[0]?.isUser) setUserAlone(true);
+  }, [gameState?.players, gameState?.showdown]);
 
   useEffect(() => {
     if (!gameState) return;
@@ -539,14 +557,15 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   }, []);
 
   // Win probability for main player — only updates when cards change (flop/turn/river), not on call/fold
+  // At showdown: delay until after card reveal animation (~2.5s)
   const userWinChance = useMemo(() => {
-    if (!gameState) return undefined;
+    if (!gameState || !showWinningChanceBar) return undefined;
     const user = gameState.players.find(p => p.isUser);
     if (!user || user.cards.length !== 2 || user.hasFolded) return undefined;
     const opponents = gameState.players.filter(p => p.isActive && !p.hasFolded && !p.isUser);
     return calculateWinProbability(user.cards, gameState.communityCards, opponents.length);
   }, [
-    // Only recalc when visible cards change — not on call/fold/bet
+    showWinningChanceBar,
     gameState?.players?.find(p => p.isUser)?.cards?.map(c => `${c.rank}${c.suit}`).sort().join(',') ?? '',
     gameState?.communityCards?.filter(c => c.faceUp).map(c => `${c.rank}${c.suit}`).sort().join(',') ?? '',
   ]);
@@ -650,100 +669,6 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
         )}
       </AnimatePresence>
 
-      {/* Winner overlay — modern layout: community cards, player cards, highlighted winning hand */}
-      <AnimatePresence>
-        {showWinnerOverlay && gameState.showdown && gameState.winnerId !== null && (() => {
-          const winner = gameState.players.find(p => p.id === gameState.winnerId);
-          const winnerCount = gameState.winnerIds?.length ?? 1;
-          const bestCards = gameState.winnerBestCards ?? [];
-          const isInBestHand = (c: { rank: string; suit: string }) =>
-            bestCards.some(b => b.rank === c.rank && b.suit === c.suit);
-          return (
-            <motion.div
-              className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              <div className="absolute inset-0 bg-black/60 backdrop-blur-lg" />
-              <motion.div
-                className="relative z-10 w-full max-w-md rounded-2xl overflow-hidden"
-                style={{
-                  background: 'linear-gradient(180deg, hsl(var(--casino-dark) 0.98) 0%, hsl(0 0% 4% / 0.98) 100%)',
-                  boxShadow: '0 0 80px hsl(var(--casino-gold) / 0.35), 0 25px 50px -12px rgba(0,0,0,0.6), inset 0 1px 0 hsl(var(--casino-gold) / 0.2)',
-                  border: '2px solid hsl(var(--casino-gold) / 0.6)',
-                }}
-                initial={{ scale: 0.85, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 260, damping: 24, mass: 0.8 }}
-              >
-                {/* Header */}
-                <div className="pt-6 pb-4 px-6 text-center border-b border-primary/20">
-                  <motion.span
-                    className="inline-block text-5xl mb-2"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.2, type: 'spring', stiffness: 300 }}
-                  >
-                    🏆
-                  </motion.span>
-                  <h2 className="text-xl sm:text-2xl font-bold tracking-wider text-primary" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                    {winnerCount > 1
-                      ? `${winnerCount} WINNERS - SPLIT POT!`
-                      : `${winner?.name ?? 'Winner'} WINS!`}
-                  </h2>
-                  <p className="text-sm text-muted-foreground mt-1.5">
-                    {gameState.winnerHandDescription}
-                  </p>
-                </div>
-
-                {/* Community cards + winner hole cards */}
-                <div className="p-6 space-y-5">
-                  {gameState.communityCards.length > 0 && (
-                    <div>
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Community (✓ = used in winning hand)</p>
-                      <div className="flex gap-1.5 sm:gap-2 justify-center flex-wrap">
-                        {gameState.communityCards.map((card, i) => (
-                          <Card
-                            key={i}
-                            card={{ ...card, faceUp: true }}
-                            delay={0.15 * i}
-                            index={i}
-                            isHighlighted={isInBestHand(card)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {winner && winner.cards.length >= 2 && (
-                    <div>
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">{winner.name}&apos;s Cards</p>
-                      <div className="flex gap-1.5 sm:gap-2 justify-center">
-                        {winner.cards.map((card, i) => (
-                          <Card
-                            key={i}
-                            card={{ ...card, faceUp: true }}
-                            delay={0.2 + 0.1 * i}
-                            index={i}
-                            isPlayerCard
-                            isHighlighted={false}
-                          />
-                        ))}
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                        Table cards with ✓ above form the winning hand
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            </motion.div>
-          );
-        })()}
-      </AnimatePresence>
-
       {/* Blinds info */}
       <div className="absolute top-11 sm:top-14 left-1/2 -translate-x-1/2 z-30 flex gap-2 sm:gap-3">
         <span className="text-[10px] sm:text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">SB: ${formatChips(gameState.smallBlind)}</span>
@@ -767,21 +692,68 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           <div className="poker-table-inner" />
 
 
-          {/* Community cards — floating on felt; compact: lower to avoid pot overlap */}
+          {/* Community cards — floating on felt; highlight winning hand cards at showdown */}
           <div
             className="community-cards-area absolute left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1.5 sm:gap-2"
             style={{ top: isCompact ? '48%' : '42%' }}
           >
-            {gameState.communityCards.map((card, i) => (
-              <Card
-                key={`${gameState.roundNumber}-${i}-${card.faceUp}`}
-                card={card}
-                delay={0.25 * i}
-                index={i}
-                onReveal={playCardRevealSound}
-              />
-            ))}
+            {gameState.communityCards.map((card, i) => {
+              const bestCards = gameState.showdown ? (gameState.winnerBestCards ?? []) : [];
+              const isInBestHand = bestCards.some(b => b.rank === card.rank && b.suit === card.suit);
+              return (
+                <Card
+                  key={`${gameState.roundNumber}-${i}-${card.faceUp}`}
+                  card={card}
+                  delay={0.25 * i}
+                  index={i}
+                  onReveal={playCardRevealSound}
+                  isHighlighted={gameState.showdown && isInBestHand}
+                />
+              );
+            })}
           </div>
+
+          {/* Winner hand message — solid banner, no glass/transparent */}
+          {gameState.showdown && gameState.winnerId != null && (
+            <motion.div
+              className="absolute left-1/2 -translate-x-1/2 z-[25] flex flex-col items-center"
+              style={{ top: isCompact ? '30%' : '26%' }}
+              initial={{ opacity: 0, scale: 0.9, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{
+                duration: 0.45,
+                delay: 0.4,
+                type: 'spring',
+                stiffness: 200,
+                damping: 22,
+              }}
+            >
+              <div
+                className="px-6 py-4 sm:px-8 sm:py-5 rounded-xl flex flex-col items-center gap-2 min-w-[160px] sm:min-w-[200px]"
+                style={{
+                  background: 'hsl(0 0% 8%)',
+                  border: '2px solid hsl(var(--casino-gold))',
+                  boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+                }}
+              >
+                <span className="text-2xl sm:text-3xl">🏆</span>
+                <p
+                  className="text-primary font-bold text-base sm:text-lg text-center leading-tight"
+                  style={{ fontFamily: "'Inter', system-ui, sans-serif", letterSpacing: '0.02em' }}
+                >
+                  {gameState.winnerHandDescription}
+                </p>
+                <span
+                  className="text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-muted-foreground"
+                  style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
+                >
+                  {(gameState.winnerIds?.length ?? 1) > 1
+                    ? `${gameState.winnerIds?.length ?? 1} WINNERS`
+                    : gameState.players.find(p => p.id === gameState.winnerId)?.name ?? 'Winner'}
+                </span>
+              </div>
+            </motion.div>
+          )}
 
           {/* Pot zone — above cards; compact: higher for clear separation */}
           <div
@@ -794,10 +766,8 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
 
           {/* Win chip animation - inside table so chips fly BEHIND player avatars (z-5 < z-10) */}
           <WinChipAnimation
-            winnerSeatIndex={winAnimation?.winnerSeatIndex ?? null}
-            winnerPlayerId={winAnimation?.winnerPlayerId ?? null}
-            amount={winAnimation?.amount ?? 0}
-            onComplete={() => setWinAnimation(null)}
+            winners={winAnimation ?? []}
+            onComplete={handleWinChipAnimComplete}
           />
 
           {/* player-position-zone = circle border; avatar goes INSIDE it */}
@@ -822,11 +792,13 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
                   isSmallBlind={player.id === gameState.smallBlindIndex}
                   isBigBlind={player.id === gameState.bigBlindIndex}
                   isWinner={gameState.showdown && (gameState.winnerIds?.includes(player.id) ?? player.id === gameState.winnerId)}
+                  winnerBestCards={gameState.showdown ? (gameState.winnerBestCards ?? []) : []}
                   isMobile={isCompact}
                   isLandscapeMobile={isLandscapeMobile}
                   isShowdown={gameState.showdown}
                   chatBubble={displayedChatBubbles[player.id] ?? null}
                   winChance={player.isUser ? userWinChance : undefined}
+                  displayChips={winAnimation && (gameState.winnerIds?.includes(player.id) ?? player.id === gameState.winnerId) && winnersPreWinBalance[player.id] != null ? winnersPreWinBalance[player.id] : undefined}
                 />
               </div>
             );
@@ -839,7 +811,11 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
 
       {/* Action Buttons — disabled when not user's turn */}
       <ActionButtons
-        chipCount={userPlayer?.chips ?? 0}
+        chipCount={
+          winAnimation && userPlayer && (gameState.winnerIds?.includes(userPlayer.id) ?? userPlayer.id === gameState.winnerId) && winnersPreWinBalance[userPlayer.id] != null
+            ? winnersPreWinBalance[userPlayer.id]!
+            : (userPlayer?.chips ?? 0)
+        }
         pot={gameState.pot}
         currentBet={userPlayer?.currentBet ?? 0}
         bigBlind={gameState.bigBlind}
@@ -983,37 +959,41 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Game Over overlay — only user left or user eliminated */}
-      {gameState && !gameState.showdown && (() => {
+      {/* Return to lobby popup — when only one player left (all others gone or eliminated) */}
+      {gameState && (userAlone || (() => {
         const activePlayers = gameState.players.filter(p => p.isActive && p.chips > 0);
+        return activePlayers.length <= 1 && activePlayers[0]?.isUser;
+      })()) && (() => {
         const user = gameState.players.find(p => p.isUser);
-        if (activePlayers.length <= 1 && activePlayers[0]?.isUser) {
-          return (
-            <motion.div
-              className="absolute inset-0 z-50 flex items-center justify-center bg-black/70"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              <div className="flex flex-col items-center gap-4 p-8 rounded-2xl border-2 border-primary" style={{ background: 'hsl(0 0% 8%)' }}>
-                <span className="text-4xl">🏆</span>
-                <h2 className="text-2xl text-primary font-display tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                  YOU WON THE GAME!
-                </h2>
-                <p className="text-muted-foreground text-sm">All opponents have been eliminated.</p>
-                <p className="text-primary font-bold text-xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                  Final chips: ${user ? formatChips(user.chips) : '0'}
-                </p>
-                <button
-                  className="casino-btn px-6 py-2 rounded-xl font-bold"
-                  onClick={() => onExit?.()}
-                >
-                  Exit to Lobby
-                </button>
-              </div>
-            </motion.div>
-          );
-        }
-        return null;
+        const displayChipsForPopup = user && winAnimation && (gameState.winnerIds?.includes(user.id) ?? user.id === gameState.winnerId) && winnersPreWinBalance[user.id] != null
+          ? winnersPreWinBalance[user.id]!
+          : user?.chips ?? 0;
+        return (
+          <motion.div
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/70"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <div className="flex flex-col items-center gap-4 p-8 rounded-2xl border-2 border-primary max-w-sm mx-4" style={{ background: 'hsl(0 0% 8%)' }}>
+              <span className="text-4xl">🏆</span>
+              <h2 className="text-2xl text-primary font-display tracking-wider text-center" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                YOU&apos;RE THE ONLY PLAYER LEFT
+              </h2>
+              <p className="text-muted-foreground text-sm text-center">
+                All other players have left the table or been eliminated. Return to the lobby to find a new game.
+              </p>
+              <p className="text-primary font-bold text-xl" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                Your chips: ${formatChips(displayChipsForPopup)}
+              </p>
+              <button
+                className="casino-btn px-6 py-2 rounded-xl font-bold"
+                onClick={() => onExit?.()}
+              >
+                Return to Lobby
+              </button>
+            </div>
+          </motion.div>
+        );
       })()}
     </div>
   );
