@@ -1,6 +1,15 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Users, UserPlus } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import CreateGameModal from '@/components/multiplayer/CreateGameModal';
+import JoinGameModal from '@/components/multiplayer/JoinGameModal';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { formatChips } from '@/lib/formatChips';
 import pokerTableBg from '@/assets/poker-table-bg.png';
 import joinTableChip from '@/assets/join-table-chip.png';
@@ -58,10 +67,17 @@ const FREE_SIT_AND_GO = { small: 0.01, big: 0.02, label: '0.01 / 0.02' };
 type GameMode = 'tournament' | 'sit-and-go';
 type TableType = 'public' | 'private';
 
+const BOT_MATCHES_REQUIRED = 3;
+
 interface SitAndGoScreenProps {
-  onJoinTable: (buyIn: number, smallBlind: number, bigBlind: number) => void;
+  onJoinTable: (buyIn: number, smallBlind: number, bigBlind: number, gameMode?: 'tournament' | 'sit-and-go') => void;
   onBack: () => void;
   onTestingMode?: () => void;
+  canInviteFriends?: boolean;
+  botMatchesPlayed?: number;
+  onMultiplayerCreate?: (room: import('@/lib/multiplayer').GameRoom) => void;
+  onMultiplayerJoin?: (gameId: string, room?: any) => void;
+  joinCodeFromUrl?: string | null;
 }
 
 // ── Tier Detail Popup ──────────────────────────────────────
@@ -194,7 +210,19 @@ const TierPopup = ({
 };
 
 // ── Main Screen ────────────────────────────────────────────
-const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenProps) => {
+const SitAndGoScreen = ({
+  onJoinTable,
+  onBack,
+  onTestingMode,
+  canInviteFriends = false,
+  botMatchesPlayed = 0,
+  onMultiplayerCreate,
+  onMultiplayerJoin,
+  joinCodeFromUrl,
+}: SitAndGoScreenProps) => {
+  const { user } = useAuth();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(!!joinCodeFromUrl);
   const [gameMode, setGameMode] = useState<GameMode>('tournament');
   const [tableType, setTableType] = useState<TableType | null>(null);
   const [selectedTierPopup, setSelectedTierPopup] = useState<TierData | null>(null);
@@ -206,7 +234,7 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
 
   const handleJoin = () => {
     const stake = selectedStake ?? FREE_SIT_AND_GO;
-    onJoinTable(entranceAmount, stake.small, stake.big);
+    onJoinTable(entranceAmount, stake.small, stake.big, gameMode);
   };
 
   const handleTierSelect = (small: number, big: number) => {
@@ -221,13 +249,25 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
         : 'border-primary/30 hover:border-primary/60'
     }`;
 
-  const tabBtnStyle = (active: boolean) => ({
-    fontFamily: "'Bebas Neue', sans-serif",
-    background: active
-      ? 'linear-gradient(180deg, hsl(var(--casino-red)) 0%, hsl(0 50% 25%) 100%)'
-      : 'linear-gradient(180deg, hsl(0 20% 18%) 0%, hsl(0 15% 12%) 100%)',
-    color: 'hsl(var(--casino-gold))',
-  });
+  const tabBtnStyle = (isTournament: boolean, active: boolean) => {
+    if (active) {
+      return {
+        fontFamily: "'Bebas Neue', sans-serif" as const,
+        background: isTournament
+          ? 'linear-gradient(180deg, hsl(350 55% 32%) 0%, hsl(350 50% 20%) 100%)'
+          : 'linear-gradient(180deg, hsl(140 45% 32%) 0%, hsl(140 40% 22%) 100%)',
+        color: 'hsl(var(--casino-gold))',
+        boxShadow: isTournament
+          ? '0 0 20px hsl(350 50% 45% / 0.4)'
+          : '0 0 20px hsl(140 50% 45% / 0.4)',
+      };
+    }
+    return {
+      fontFamily: "'Bebas Neue', sans-serif" as const,
+      background: 'linear-gradient(180deg, hsl(0 20% 18%) 0%, hsl(0 15% 12%) 100%)',
+      color: 'hsl(var(--casino-gold))',
+    };
+  };
 
   // ── Public/Private selection screen ──
   if (tableType === null) {
@@ -352,7 +392,7 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
       <div className="absolute inset-0 bg-black/60" />
 
       {/* Top bar */}
-      <div className="relative z-10 w-full flex justify-between items-center px-3 sm:px-6 py-3 sm:py-4">
+      <div className="relative z-10 w-full flex-shrink-0 flex justify-between items-center px-3 sm:px-6 py-3 sm:py-4">
         <motion.button
           className="casino-btn text-[10px] sm:text-xs px-2 sm:px-4 py-1.5 sm:py-2 shrink-0"
           onClick={() => setTableType(null)}
@@ -386,25 +426,42 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
         )}
       </div>
 
-      {/* Game Mode Tabs */}
-      <motion.div
-        className="relative z-10 flex items-center gap-2 sm:gap-3 mt-1"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <button className={tabBtnClass(gameMode === 'tournament')} style={tabBtnStyle(gameMode === 'tournament')} onClick={() => setGameMode('tournament')}>
-          🏆 TOURNAMENT
-        </button>
-        <button className={tabBtnClass(gameMode === 'sit-and-go')} style={tabBtnStyle(gameMode === 'sit-and-go')} onClick={() => setGameMode('sit-and-go')}>
-          🎰 SIT & GO
-        </button>
-      </motion.div>
+      {/* Game Mode Tabs — distinct separation: Tournament (purple) vs Sit & Go (green) */}
+      {tableType === 'public' && (
+        <>
+          <motion.div
+            className="relative z-10 flex items-center gap-2 sm:gap-3 mt-1"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <button
+              className={tabBtnClass(gameMode === 'tournament')}
+              style={tabBtnStyle(true, gameMode === 'tournament')}
+              onClick={() => setGameMode('tournament')}
+            >
+              🏆 TOURNAMENT
+            </button>
+            <button
+              className={tabBtnClass(gameMode === 'sit-and-go')}
+              style={tabBtnStyle(false, gameMode === 'sit-and-go')}
+              onClick={() => setGameMode('sit-and-go')}
+            >
+              🎰 SIT & GO
+            </button>
+          </motion.div>
+          <div
+            className="relative z-10 w-[85%] sm:w-[70%] max-w-lg h-px my-3 sm:my-4"
+            style={{
+              background: gameMode === 'tournament'
+                ? 'linear-gradient(90deg, transparent, hsl(350 50% 45% / 0.5), transparent)'
+                : 'linear-gradient(90deg, transparent, hsl(140 50% 45% / 0.5), transparent)',
+            }}
+          />
+        </>
+      )}
 
-      {/* Divider */}
-      <div className="relative z-10 w-[85%] sm:w-[70%] max-w-lg h-px bg-primary/30 my-3 sm:my-4" />
-
-      {/* PUBLIC: Free + Tier cards */}
+      {/* PUBLIC: Free + Tier cards — theme changes with Tournament vs Sit & Go */}
       {tableType === 'public' && (
         <motion.div
           className="relative z-10 flex flex-col items-center gap-3 px-4 w-full max-w-lg"
@@ -412,6 +469,25 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
+          <div
+            className="px-4 py-2 rounded-xl mb-1"
+            style={{
+              background: gameMode === 'tournament'
+                ? 'linear-gradient(135deg, hsl(350 45% 18% / 0.6) 0%, transparent 100%)'
+                : 'linear-gradient(135deg, hsl(140 35% 18% / 0.6) 0%, transparent 100%)',
+              border: `1px solid ${gameMode === 'tournament' ? 'hsl(350 50% 35% / 0.4)' : 'hsl(140 45% 35% / 0.4)'}`,
+            }}
+          >
+            <span
+              className="text-[10px] uppercase tracking-widest"
+              style={{
+                fontFamily: "'Bebas Neue', sans-serif",
+                color: gameMode === 'tournament' ? 'hsl(350 40% 70%)' : 'hsl(140 55% 55%)',
+              }}
+            >
+              {gameMode === 'tournament' ? '🏆 Tournament Mode' : '🎰 Sit & Go Mode'}
+            </span>
+          </div>
           <h2
             className="text-lg sm:text-2xl tracking-wider"
             style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
@@ -468,10 +544,10 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
         </motion.div>
       )}
 
-      {/* PRIVATE: simpler stake options */}
+      {/* PRIVATE: Create or Join table — centered in middle of screen */}
       {tableType === 'private' && (
         <motion.div
-          className="relative z-10 flex flex-col items-center gap-3 px-4 w-full max-w-lg"
+          className="relative z-10 flex-1 flex flex-col items-center justify-center gap-4 px-4 w-full max-w-lg"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -480,59 +556,102 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
             className="text-lg sm:text-2xl tracking-wider"
             style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
           >
-            SET YOUR STAKES
+            CREATE OR JOIN TABLE
           </h2>
-          <p className="text-muted-foreground text-[10px] sm:text-xs text-center max-w-sm">
-            Private tables use custom stakes. Your tier commission rate still applies.
+          <p className="text-muted-foreground text-[10px] sm:text-xs text-center max-w-sm mb-2">
+            Create your own table or join an existing game with a code.
           </p>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 w-full">
-            {TIERS.map((tier) => (
-              <motion.button
-                key={tier.key}
-                className="flex flex-col items-center gap-1.5 px-3 py-3 sm:py-4 rounded-xl border-2 border-primary/30 hover:border-primary/60 transition-all"
-                style={{
-                  background: `linear-gradient(180deg, hsl(${tier.color} / 0.15) 0%, hsl(0 0% 8%) 100%)`,
-                  fontFamily: "'Bebas Neue', sans-serif",
-                }}
-                onClick={() => setSelectedTierPopup(tier)}
-                whileHover={{ scale: 1.04, boxShadow: `0 0 20px hsl(${tier.color} / 0.3)` }}
-                whileTap={{ scale: 0.96 }}
-              >
-                <span className="text-2xl sm:text-3xl">{tier.emoji}</span>
-                <span className="text-sm sm:text-base tracking-wider" style={{ color: `hsl(${tier.color})` }}>
-                  {tier.label}
-                </span>
-                <span className="text-muted-foreground text-[9px]">{tier.organizerProfit}% org profit</span>
-                <span
-                  className="text-[9px] px-2 py-0.5 rounded-full border mt-0.5"
-                  style={{ borderColor: `hsl(${tier.color} / 0.5)`, color: `hsl(${tier.color})` }}
-                >
-                  VIEW OPTIONS
-                </span>
-              </motion.button>
-            ))}
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 w-full max-w-md">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <motion.button
+                    className="group flex flex-col items-center gap-3 px-8 sm:px-12 py-6 sm:py-8 rounded-2xl border-2 border-primary/40 hover:border-primary transition-all w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      background: "linear-gradient(180deg, hsl(220 55% 18%) 0%, hsl(220 50% 10%) 100%)",
+                    }}
+                    onClick={() => canInviteFriends && setShowCreateModal(true)}
+                    disabled={!canInviteFriends}
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.25 }}
+                    whileHover={{ scale: 1.03, boxShadow: '0 0 24px hsl(var(--casino-gold) / 0.25)' }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Users className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
+                    <span
+                      className="text-xl sm:text-2xl tracking-wider"
+                      style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
+                    >
+                      CREATE GAME
+                    </span>
+                    <span className="text-muted-foreground text-[10px] sm:text-xs max-w-[140px] text-center">
+                      Host a table and invite friends with a link
+                    </span>
+                    {!canInviteFriends && (
+                      <span className="text-[10px] text-primary/80 mt-1">
+                        ({botMatchesPlayed}/{BOT_MATCHES_REQUIRED} bot matches to unlock)
+                      </span>
+                    )}
+                  </motion.button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {canInviteFriends
+                    ? 'Create a game and invite friends'
+                    : `Play ${BOT_MATCHES_REQUIRED} bot matches to unlock`}
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <motion.button
+                    className="group flex flex-col items-center gap-3 px-8 sm:px-12 py-6 sm:py-8 rounded-2xl border-2 border-primary/40 hover:border-primary transition-all w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      background: "linear-gradient(180deg, hsl(140 55% 18%) 0%, hsl(140 50% 10%) 100%)",
+                    }}
+                    onClick={() => canInviteFriends && setShowJoinModal(true)}
+                    disabled={!canInviteFriends}
+                    initial={{ x: 20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    whileHover={{ scale: 1.03, boxShadow: '0 0 24px hsl(var(--casino-gold) / 0.25)' }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <UserPlus className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
+                    <span
+                      className="text-xl sm:text-2xl tracking-wider"
+                      style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
+                    >
+                      JOIN GAME
+                    </span>
+                    <span className="text-muted-foreground text-[10px] sm:text-xs max-w-[140px] text-center">
+                      Enter a code to join an existing table
+                    </span>
+                    {!canInviteFriends && (
+                      <span className="text-[10px] text-primary/80 mt-1">
+                        ({botMatchesPlayed}/{BOT_MATCHES_REQUIRED} bot matches to unlock)
+                      </span>
+                    )}
+                  </motion.button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {canInviteFriends
+                    ? 'Join a game with invite code'
+                    : `Play ${BOT_MATCHES_REQUIRED} bot matches to unlock`}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
-
-          {selectedStake && (
-            <motion.div
-              className="flex items-center gap-2 mt-1"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              <span className="text-muted-foreground text-xs" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>SELECTED:</span>
-              <span className="text-primary text-sm font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                {selectedStake.small} / {selectedStake.big}
-              </span>
-            </motion.div>
-          )}
         </motion.div>
       )}
 
-      {/* Divider */}
-      <div className="relative z-10 w-[85%] sm:w-[70%] max-w-lg h-px bg-primary/30 my-3 sm:my-4" />
+      {/* Divider — only for public */}
+      {tableType === 'public' && (
+        <div className="relative z-10 w-[85%] sm:w-[70%] max-w-lg h-px bg-primary/30 my-3 sm:my-4" />
+      )}
 
-      {/* Entrance Amount */}
+      {/* Entrance Amount / Buy-in — only for public; label differs by mode */}
+      {tableType === 'public' && (
       <motion.div
         className="relative z-10 flex flex-col items-center gap-2 sm:gap-3 w-[95%] sm:w-[80%] max-w-sm px-2"
         initial={{ opacity: 0, y: 20 }}
@@ -543,7 +662,7 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
           className="text-lg sm:text-2xl tracking-wider"
           style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
         >
-          ENTRANCE AMOUNT
+          {gameMode === 'tournament' ? 'BUY-IN AMOUNT' : 'ENTRANCE AMOUNT'}
         </h2>
 
         <div className="w-full flex items-center gap-2 sm:gap-4">
@@ -574,8 +693,10 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
           ${formatChips(entranceAmount)}
         </span>
       </motion.div>
+      )}
 
-      {/* Join Button */}
+      {/* Join Button — only for public */}
+      {tableType === 'public' && (
       <motion.button
         className="relative z-10 mt-4 sm:mt-6 group mb-6"
         onClick={handleJoin}
@@ -591,6 +712,30 @@ const SitAndGoScreen = ({ onJoinTable, onBack, onTestingMode }: SitAndGoScreenPr
           className="w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] group-hover:drop-shadow-[0_8px_32px_hsl(var(--casino-gold)/0.4)] transition-all duration-300"
         />
       </motion.button>
+      )}
+
+      {/* Create/Join modals — for private */}
+      {tableType === 'private' && (
+        <>
+          <CreateGameModal
+            open={showCreateModal}
+            onOpenChange={setShowCreateModal}
+            hostId={user?.uid ?? ''}
+            hostName={user?.displayName || user?.email?.split('@')[0] || 'Player'}
+            hostPhotoURL={user?.photoURL ?? null}
+            onCreated={(room) => onMultiplayerCreate?.(room)}
+          />
+          <JoinGameModal
+            open={showJoinModal}
+            onOpenChange={setShowJoinModal}
+            onJoined={(gameId, room) => onMultiplayerJoin?.(gameId, room)}
+            initialCode={joinCodeFromUrl ?? undefined}
+            currentUserId={user?.uid}
+            currentUserName={user?.displayName || user?.email?.split('@')[0]}
+            currentUserPhoto={user?.photoURL}
+          />
+        </>
+      )}
 
       {/* Tier detail popup */}
       <AnimatePresence>

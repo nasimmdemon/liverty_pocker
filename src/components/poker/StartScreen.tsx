@@ -1,52 +1,16 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, LogOut, UserPlus } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import PlayButton from './PlayButton';
 import { useAuth } from '@/contexts/AuthContext';
-import CreateGameModal from '@/components/multiplayer/CreateGameModal';
-import JoinGameModal from '@/components/multiplayer/JoinGameModal';
 import charactersBg from '@/assets/characters-alt.png';
 import pokerRoomBg from '@/assets/poker-room-bg.png';
-import { Button } from '@/components/ui/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 
 interface StartScreenProps {
   onPlay: () => void;
-  canInviteFriends?: boolean;
-  botMatchesPlayed?: number;
-  onMultiplayerCreate?: (room: import('@/lib/multiplayer').GameRoom) => void;
-  onMultiplayerJoin?: (gameId: string, room?: any) => void;
-  joinCodeFromUrl?: string | null;
 }
 
-const BOT_MATCHES_REQUIRED = 3;
-
-const StartScreen = ({
-  onPlay,
-  canInviteFriends = false,
-  botMatchesPlayed = 0,
-  onMultiplayerCreate,
-  onMultiplayerJoin,
-  joinCodeFromUrl,
-}: StartScreenProps) => {
+const StartScreen = ({ onPlay }: StartScreenProps) => {
   const { user, signOut } = useAuth();
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showJoinModal, setShowJoinModal] = useState(!!joinCodeFromUrl);
-
-  const handleInviteClick = () => {
-    if (!canInviteFriends) return;
-    setShowCreateModal(true);
-  };
-
-  const handleJoinClick = () => {
-    if (!canInviteFriends) return;
-    setShowJoinModal(true);
-  };
   return (
     <motion.div
       className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden"
@@ -122,70 +86,7 @@ const StartScreen = ({
           transition={{ delay: 0.6, duration: 0.5, type: 'spring' }}
         >
           <PlayButton onClick={onPlay} />
-          <div className="flex flex-col sm:flex-row gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="casino-btn border-primary/50 flex items-center gap-2"
-                    onClick={handleInviteClick}
-                    disabled={!canInviteFriends}
-                  >
-                    <Users className="h-4 w-4" />
-                    Create Game
-                    {!canInviteFriends && (
-                      <span className="text-[10px] opacity-80">
-                        ({botMatchesPlayed}/{BOT_MATCHES_REQUIRED})
-                      </span>
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {canInviteFriends
-                    ? 'Create a game and invite friends'
-                    : `Play ${BOT_MATCHES_REQUIRED} bot matches to unlock`}
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="casino-btn border-primary/50 flex items-center gap-2"
-                    onClick={handleJoinClick}
-                    disabled={!canInviteFriends}
-                  >
-                    <UserPlus className="h-4 w-4" />
-                    Join Game
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {canInviteFriends
-                    ? 'Join a game with invite code'
-                    : `Play ${BOT_MATCHES_REQUIRED} bot matches to unlock`}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
         </motion.div>
-
-        <CreateGameModal
-          open={showCreateModal}
-          onOpenChange={setShowCreateModal}
-          hostId={user?.uid ?? ''}
-          hostName={user?.displayName || user?.email?.split('@')[0] || 'Player'}
-          hostPhotoURL={user?.photoURL ?? null}
-          onCreated={(room) => onMultiplayerCreate?.(room)}
-        />
-        <JoinGameModal
-          open={showJoinModal}
-          onOpenChange={setShowJoinModal}
-          onJoined={(gameId, room) => onMultiplayerJoin?.(gameId, room)}
-          initialCode={joinCodeFromUrl ?? undefined}
-          currentUserId={user?.uid}
-          currentUserName={user?.displayName || user?.email?.split('@')[0]}
-          currentUserPhoto={user?.photoURL}
-        />
       </div>
 
       {/* Bottom icons row */}

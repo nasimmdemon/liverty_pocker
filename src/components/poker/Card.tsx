@@ -34,18 +34,16 @@ const Card = ({ card, delay = 0, isPlayerCard = false, onReveal, isHighlighted =
         initial={{ scale: 0, rotateY: 180, rotateZ: -180, opacity: 0 }}
         animate={{ scale: 1, rotateY: 0, rotateZ: 0, opacity: 1 }}
         transition={{ delay, duration: 0.7, type: 'spring', stiffness: 120, damping: 14 }}
-        className="w-10 h-[56px] sm:w-[48px] sm:h-[66px] rounded-lg border border-border/60 flex items-center justify-center"
+        className="w-10 h-[56px] sm:w-[48px] sm:h-[66px] rounded-lg border border-border/60 overflow-hidden"
         style={{
-          background: 'linear-gradient(135deg, hsl(var(--casino-red)), hsl(0 50% 25%))',
+          backgroundImage: 'url(/cat_card.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
           boxShadow: '0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)',
           transformStyle: 'preserve-3d',
           perspective: '600px',
         }}
-      >
-        <div className="w-6 h-8 sm:w-7 sm:h-10 border border-primary/20 rounded-sm flex items-center justify-center">
-          <span className="font-display text-primary/30 text-[8px] sm:text-[10px] font-bold tracking-wider">LP</span>
-        </div>
-      </motion.div>
+      />
     );
   }
 

@@ -26,6 +26,7 @@ interface TableConfig {
   botCount?: number;
   isTestingTable?: boolean;
   isPublic?: boolean;
+  gameMode?: 'tournament' | 'sit-and-go';
 }
 
 interface MultiplayerConfig {
@@ -48,8 +49,16 @@ const Index = () => {
   const handlePlay = useCallback(() => setScreen('sitandgo'), []);
   const handleLoadingComplete = useCallback(() => setScreen('table'), []);
 
-  const handleJoinTable = useCallback((buyIn: number, smallBlind: number, bigBlind: number) => {
-    setTableConfig({ buyIn, smallBlind, bigBlind, isPublic: true });
+  const handleJoinTable = useCallback((buyIn: number, smallBlind: number, bigBlind: number, gameMode?: 'tournament' | 'sit-and-go') => {
+    const mode = gameMode ?? 'sit-and-go';
+    setTableConfig({
+      buyIn,
+      smallBlind,
+      bigBlind,
+      isPublic: true,
+      gameMode: mode,
+      turnTimer: mode === 'tournament' ? 45 : 30,
+    });
     setScreen('loading');
   }, []);
 
@@ -143,15 +152,7 @@ const Index = () => {
       )}
     <AnimatePresence mode="wait">
       {screen === 'start' && (
-        <StartScreen
-          key="start"
-          onPlay={handlePlay}
-          canInviteFriends={canInviteFriends}
-          botMatchesPlayed={profile?.botMatchesPlayed ?? 0}
-          onMultiplayerCreate={handleMultiplayerCreate}
-          onMultiplayerJoin={handleMultiplayerJoin}
-          joinCodeFromUrl={joinCodeFromUrl}
-        />
+        <StartScreen key="start" onPlay={handlePlay} />
       )}
       {screen === 'sitandgo' && (
         <SitAndGoScreen
@@ -159,6 +160,11 @@ const Index = () => {
           onJoinTable={handleJoinTable}
           onBack={() => setScreen('start')}
           onTestingMode={handleTestingMode}
+          canInviteFriends={canInviteFriends}
+          botMatchesPlayed={profile?.botMatchesPlayed ?? 0}
+          onMultiplayerCreate={handleMultiplayerCreate}
+          onMultiplayerJoin={handleMultiplayerJoin}
+          joinCodeFromUrl={joinCodeFromUrl}
         />
       )}
       {screen === 'testing' && (
@@ -178,6 +184,7 @@ const Index = () => {
           bigBlind={tableConfig.bigBlind}
           turnTimer={tableConfig.turnTimer}
           isTestingTable={tableConfig.isTestingTable}
+          gameMode={tableConfig.gameMode}
           onExit={handleExitTable}
           isLandscapeMobile={isLandscapeOnMobile}
         />

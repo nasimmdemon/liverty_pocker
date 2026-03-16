@@ -9,3 +9,13 @@ Date: March 14, 2025
 7. Return to lobby popup – when only one player left (all others gone or eliminated), show popup with message explaining why and "Return to Lobby" button
 8. Winner balance timing – balance increases only after chips fly to avatar animation completes (pre-win balance shown during animation)
 9. Winning chance bar timing – bar updates only after card reveal animation completes at showdown (~2.5s delay)
+10. Create/Join table moved to Choose Your Table – Create Game and Join Game options moved from start screen to the Private table selection; when user selects Private, they see Create or Join table instead of tier/stakes selection
+11. Create or Join screen UI – Redesigned with card-style layout matching Public/Private selection; Create Game and Join Game as distinct gradient cards with icons, hover effects, and staggered entrance animations
+12. Winner message popup – 2-second popup with spring entrance, trophy bounce, gold glow; exits with fade/scale animation; chips fly animation starts after popup dismisses
+13. Create or Join screen – Centered vertically in middle of screen; flex layout for proper centering
+14. Winner message overlay – Full-screen overlay with dark backdrop (75% black + blur); centered popup; modern gradient card style; improved typography
+15. Sound effects – Increased volume for fold, card reveal, check, your turn, win; unlock audio on table mount for better mobile compatibility
+16. Tournament vs Sit & Go separation – Distinct visual themes: Tournament (red wine) vs Sit & Go (green); different tab colors; mode badge; Tournament uses "Buy-in" label, Sit & Go uses "Entrance Amount"; different table felt colors (Tournament: red wine felt, Sit & Go: classic green); Tournament 45s turn timer, Sit & Go 30s
+17. Game table background – bg.jpg (luxurious vault/room with gold coins) as game table background
+18. Card back design – cat_card.png (gold cat design) for all face-down cards (player cards and community cards)
+19. Tournament table – Red wine color scheme (burgundy felt) instead of blue/purple

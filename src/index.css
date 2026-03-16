@@ -224,6 +224,44 @@
     border: 2px solid hsl(var(--casino-gold) / 0.75);
   }
 
+  /* Tournament mode — red wine felt (distinct from Sit & Go green) */
+  .poker-table-felt[data-mode="tournament"] {
+    background:
+      radial-gradient(ellipse at 35% 35%, rgba(255,255,255,0.08) 0%, transparent 45%),
+      radial-gradient(ellipse at 65% 65%, rgba(0,0,0,0.15) 0%, transparent 50%),
+      radial-gradient(
+        ellipse at center,
+        hsl(350 45% 28%) 0%,
+        hsl(350 50% 22%) 30%,
+        hsl(350 55% 18%) 50%,
+        hsl(350 50% 14%) 75%,
+        hsl(350 55% 10%) 100%
+      );
+    box-shadow:
+      0 0 24px hsl(350 40% 35% / 0.4),
+      0 0 48px hsl(350 45% 30% / 0.25),
+      0 0 72px hsl(350 50% 25% / 0.15),
+      inset 0 0 0 2px hsl(var(--casino-gold) / 0.9),
+      inset 0 0 40px hsl(350 40% 25% / 0.2),
+      inset 0 0 0 18px hsl(20 40% 12%),
+      inset 0 2px 6px hsla(25, 35%, 25%, 0.5),
+      inset 0 0 0 20px hsl(25 45% 8%),
+      0 0 0 5px hsl(var(--casino-gold) / 0.55),
+      0 6px 28px rgba(0, 0, 0, 0.55),
+      0 28px 70px rgba(0, 0, 0, 0.45);
+  }
+
+  .poker-table-felt[data-mode="tournament"] .poker-table-inner {
+    background:
+      radial-gradient(ellipse at 30% 40%, rgba(255,255,255,0.05) 0%, transparent 50%),
+      radial-gradient(
+        ellipse at center,
+        hsl(350 45% 22%) 0%,
+        hsl(350 50% 18%) 40%,
+        hsl(350 55% 12%) 100%
+      );
+  }
+
   /* Inner playing surface — subtle light on felt edge */
   .poker-table-inner {
     position: absolute;

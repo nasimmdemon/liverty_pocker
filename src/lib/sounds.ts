@@ -52,30 +52,30 @@ function playTone(freq: number, durationMs: number, volume = 0.3, type: Oscillat
 
 /** Card fold / discard sound — short low thud */
 export function playFoldSound(): void {
-  playTone(120, 80, 0.25, 'sine');
+  playTone(120, 100, 0.45, 'sine');
 }
 
 /** Card flip / reveal sound — short crisp tone (table/community cards only) */
 export function playCardRevealSound(): void {
-  playTone(440, 60, 0.18, 'sine');
+  playTone(440, 80, 0.4, 'sine');
 }
 
 /** Your turn to act — gentle attention chime */
 export function playYourTurnSound(): void {
-  playTone(523.25, 100, 0.2, 'sine');
-  setTimeout(() => playTone(659.25, 80, 0.18, 'sine'), 80);
+  playTone(523.25, 120, 0.4, 'sine');
+  setTimeout(() => playTone(659.25, 100, 0.35, 'sine'), 90);
 }
 
 /** Check action — soft tap */
 export function playCheckSound(): void {
-  playTone(220, 50, 0.15, 'sine');
+  playTone(220, 60, 0.35, 'sine');
 }
 
 /** Win / jackpot sound — short rising fanfare */
 export function playWinSound(): void {
   const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
   notes.forEach((freq, i) => {
-    setTimeout(() => playTone(freq, 150, 0.22, 'sine'), i * 90);
+    setTimeout(() => playTone(freq, 180, 0.4, 'sine'), i * 90);
   });
 }
 
