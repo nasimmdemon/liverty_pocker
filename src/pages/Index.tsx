@@ -41,6 +41,14 @@ const Index = () => {
   const { showPrompt: showAddToHomeScreen, platform } = useAddToHomeScreen();
   const isLandscapeOnMobile = useIsLandscapeOnMobile();
   const joinCodeFromUrl = searchParams.get('join');
+  const refCodeFromUrl = searchParams.get('ref');
+
+  // Store referral code for new signups (used when user creates account)
+  useEffect(() => {
+    if (refCodeFromUrl && typeof window !== 'undefined') {
+      sessionStorage.setItem('referral_code', refCodeFromUrl);
+    }
+  }, [refCodeFromUrl]);
   const { user, loading, incrementBotMatches, canInviteFriends, profile } = useAuth();
   const [screen, setScreen] = useState<Screen>('start');
   const [tableConfig, setTableConfig] = useState<TableConfig>({ buyIn: 1500, smallBlind: 5, bigBlind: 10 });

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { LogOut } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { LogOut, Gift, UserPlus } from 'lucide-react';
 import PlayButton from './PlayButton';
 import { useAuth } from '@/contexts/AuthContext';
 import charactersBg from '@/assets/characters-alt.png';
@@ -86,11 +87,34 @@ const StartScreen = ({ onPlay }: StartScreenProps) => {
           transition={{ delay: 0.6, duration: 0.5, type: 'spring' }}
         >
           <PlayButton onClick={onPlay} />
+          <Link
+            to="/refer"
+            className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 rounded-xl border-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            style={{
+              fontFamily: "'Bebas Neue', 'Cinzel', serif",
+              color: '#F2D27A',
+              borderColor: '#F2D27A',
+              background: 'rgba(0,0,0,0.3)',
+              fontSize: '1.25rem',
+              letterSpacing: '0.15em',
+            }}
+          >
+            <UserPlus className="h-5 w-5 sm:h-6 sm:w-6" />
+            INVITE FRIEND
+          </Link>
         </motion.div>
       </div>
 
       {/* Bottom icons row */}
       <div className="absolute bottom-4 sm:bottom-6 right-4 sm:right-6 flex items-center gap-2 sm:gap-3 z-10">
+        <Link
+          to="/refer"
+          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity"
+          style={{ color: '#F2D27A', border: '1px solid rgba(242, 210, 122, 0.3)' }}
+          title="Refer and Earn"
+        >
+          <Gift className="h-4 w-4 sm:h-5 sm:w-5" />
+        </Link>
         {['◁', 'ⓘ', '☺', '⚙', '⇥'].map((icon, i) => (
           <button
             key={i}

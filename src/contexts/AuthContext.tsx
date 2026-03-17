@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+import { resolveReferralCode, createReferralRecord, getOrCreateReferralCode } from '@/lib/referrals';
 
 export interface UserProfile {
   uid: string;
@@ -18,6 +19,8 @@ export interface UserProfile {
   photoURL: string | null;
   botMatchesPlayed: number;
   createdAt: number;
+  referralCode?: string;
+  referredBy?: string;
 }
 
 interface AuthContextValue {
@@ -42,20 +45,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchOrCreateProfile = useCallback(async (u: User): Promise<UserProfile> => {
-    const ref = doc(db, 'users', u.uid);
-    const snap = await getDoc(ref);
+    const userRef = doc(db, 'users', u.uid);
+    const snap = await getDoc(userRef);
     if (snap.exists()) {
       return snap.data() as UserProfile;
     }
+    const displayName = u.displayName ?? u.email?.split('@')[0] ?? 'Player';
     const newProfile: UserProfile = {
       uid: u.uid,
       email: u.email ?? null,
-      displayName: u.displayName ?? null,
+      displayName,
       photoURL: u.photoURL ?? null,
       botMatchesPlayed: 0,
       createdAt: Date.now(),
     };
-    await setDoc(ref, newProfile);
+
+    // Check for referral code from sessionStorage (set when user landed with ?ref=CODE)
+    const storedRef = typeof window !== 'undefined' ? sessionStorage.getItem('referral_code') : null;
+    if (storedRef) {
+      const referrerId = await resolveReferralCode(storedRef);
+      if (referrerId && referrerId !== u.uid) {
+        newProfile.referredBy = referrerId;
+        await createReferralRecord(referrerId, u.uid, displayName, u.photoURL ?? null);
+      }
+      sessionStorage.removeItem('referral_code');
+    }
+
+    await setDoc(userRef, newProfile);
+    // Ensure referral code exists for this user
+    const code = await getOrCreateReferralCode(u.uid);
+    newProfile.referralCode = code;
     return newProfile;
   }, []);
 
