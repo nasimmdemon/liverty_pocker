@@ -17,6 +17,7 @@ import {
   getOrCreateReferralCode,
   subscribeReferralStats,
   getReferredUsers,
+  updateReferralCodePublicProfile,
   type ReferralStats,
 } from '@/lib/referrals';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
@@ -50,11 +51,15 @@ export default function ReferAndEarn() {
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/?ref=${referralCode}`
     : '';
 
-  // Load referral code
+  // Load referral code and update public profile so invitees can see who invited them
   useEffect(() => {
     if (!user?.uid) return;
-    getOrCreateReferralCode(user.uid).then(setReferralCode);
-  }, [user?.uid]);
+    getOrCreateReferralCode(user.uid).then((code) => {
+      setReferralCode(code);
+      const name = user.displayName || user.email?.split('@')[0] || 'Player';
+      updateReferralCodePublicProfile(code, user.uid, name, user.photoURL ?? null).catch(() => {});
+    });
+  }, [user?.uid, user?.displayName, user?.email, user?.photoURL]);
 
   // Subscribe to stats
   useEffect(() => {

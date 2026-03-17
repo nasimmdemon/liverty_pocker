@@ -141,7 +141,7 @@ const Index = () => {
   }
 
   if (!user) {
-    return <LoginScreen />;
+    return <LoginScreen refCodeFromUrl={refCodeFromUrl} />;
   }
 
   return (

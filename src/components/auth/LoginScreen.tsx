@@ -1,16 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
+import { getReferrerByCode } from '@/lib/referrals';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import pokerRoomBg from '@/assets/poker-room-bg.png';
 
 type Mode = 'signin' | 'signup';
 
-const LoginScreen = () => {
+interface LoginScreenProps {
+  refCodeFromUrl?: string | null;
+}
+
+const LoginScreen = ({ refCodeFromUrl }: LoginScreenProps) => {
   const { signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
+  const [referrer, setReferrer] = useState<{ displayName: string; photoURL: string | null } | null>(null);
+
+  useEffect(() => {
+    if (!refCodeFromUrl) return;
+    getReferrerByCode(refCodeFromUrl).then(setReferrer);
+  }, [refCodeFromUrl]);
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -67,6 +79,19 @@ const LoginScreen = () => {
         >
           LIBERTY POKER
         </h1>
+        {referrer && (
+          <div className="flex items-center justify-center gap-2 mb-4 p-3 rounded-lg bg-primary/10 border border-primary/30">
+            <Avatar className="h-8 w-8 shrink-0">
+              <AvatarImage src={referrer.photoURL ?? undefined} />
+              <AvatarFallback className="text-primary text-sm">
+                {referrer.displayName?.charAt(0)?.toUpperCase() || '?'}
+              </AvatarFallback>
+            </Avatar>
+            <p className="text-sm text-foreground">
+              You were invited by <span className="font-semibold text-primary">{referrer.displayName}</span>
+            </p>
+          </div>
+        )}
         <p className="text-muted-foreground text-sm text-center mb-6">
           {mode === 'signin' ? 'Sign in to play' : 'Create an account to get started'}
         </p>

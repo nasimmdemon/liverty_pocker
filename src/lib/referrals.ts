@@ -66,8 +66,44 @@ export async function getOrCreateReferralCode(userId: string): Promise<string> {
 export async function resolveReferralCode(code: string): Promise<string | null> {
   const q = query(collection(db, 'users'), where('referralCode', '==', code.toUpperCase()));
   const snap = await getDocs(q);
-  const doc = snap.docs[0];
-  return doc?.id ?? null;
+  const docSnap = snap.docs[0];
+  return docSnap?.id ?? null;
+}
+
+export interface ReferrerInfo {
+  displayName: string;
+  photoURL: string | null;
+}
+
+/** Get referrer's display info by code (for showing "invited by X" - works when user is not logged in) */
+export async function getReferrerByCode(code: string): Promise<ReferrerInfo | null> {
+  const normalized = code?.trim().toUpperCase();
+  if (!normalized) return null;
+  try {
+    const ref = doc(db, 'referralCodes', normalized);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
+    const d = snap.data();
+    return {
+      displayName: (d?.displayName as string) || 'A friend',
+      photoURL: (d?.photoURL as string | null) ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Update public referrer profile (called when user visits Refer page so invitees can see who invited them) */
+export async function updateReferralCodePublicProfile(
+  code: string,
+  referrerId: string,
+  displayName: string,
+  photoURL: string | null
+): Promise<void> {
+  const normalized = code.trim().toUpperCase();
+  if (!normalized) return;
+  const ref = doc(db, 'referralCodes', normalized);
+  await setDoc(ref, { referrerId, displayName, photoURL }, { merge: true });
 }
 
 /** Create referral record when a new user signs up via referral link */
