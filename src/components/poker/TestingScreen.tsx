@@ -4,7 +4,7 @@ import { Copy, Check, Percent, Play, RotateCcw } from 'lucide-react';
 import pokerTableBg from '@/assets/poker-table-bg.png';
 import ChipIcon from './ChipIcon';
 import type { TestCommissionConfig } from '@/lib/gameLogic';
-import type { PlayingCard as CardType } from '@/lib/gameTypes';
+import type { PlayingCard as CardType, Rank } from '@/lib/gameTypes';
 
 interface TestingScreenProps {
   onStartGame: (config: TestingConfig) => void;
