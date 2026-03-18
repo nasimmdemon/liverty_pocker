@@ -256,7 +256,7 @@ export async function leaveGameRoom(gameId: string, userId: string): Promise<Lea
 
   let newPlayers = (room.players as GameRoomPlayer[]).filter(p => p.userId !== userId);
   let newStatus = room.status;
-  let newGameState = room.gameState ? firestoreToGameState(room.gameState as Record<string, unknown>) : null;
+  let newGameState = room.gameState ? firestoreToGameState(room.gameState as unknown as Record<string, unknown>) : null;
 
   if (isHost) {
     newStatus = 'ended';

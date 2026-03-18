@@ -238,7 +238,7 @@ const Index = () => {
           isHost={multiplayerConfig.isHost}
           initialRoom={multiplayerConfig.room!}
           onExit={() => { setScreen('start'); setMultiplayerConfig(null); }}
-          isLandscapeMobile={isLandscapeOnMobile}
+          isLandscapeMobile={isPortraitOnMobile}
         />
       )}
     </AnimatePresence>
