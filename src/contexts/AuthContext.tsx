@@ -5,6 +5,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
+  signInAnonymously,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
 } from 'firebase/auth';
@@ -30,6 +31,7 @@ interface AuthContextValue {
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  signInAsGuest: () => Promise<void>;
   signOut: () => Promise<void>;
   incrementBotMatches: () => Promise<void>;
   canInviteFriends: boolean;
@@ -120,6 +122,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(p);
   }, [fetchOrCreateProfile]);
 
+  const signInAsGuest = useCallback(async () => {
+    const { user: u } = await signInAnonymously(auth);
+    const p = await fetchOrCreateProfile(u);
+    setProfile(p);
+  }, [fetchOrCreateProfile]);
+
   const signOut = useCallback(async () => {
     await firebaseSignOut(auth);
     setUser(null);
@@ -143,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithEmail,
     signUpWithEmail,
     signInWithGoogle,
+    signInAsGuest,
     signOut,
     incrementBotMatches,
     canInviteFriends,
