@@ -61,6 +61,19 @@ const LoginScreen = ({ refCodeFromUrl }: LoginScreenProps) => {
     }
   };
 
+  const handleGuestPlay = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await signInAsGuest();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Something went wrong';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <motion.div
       className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden"
