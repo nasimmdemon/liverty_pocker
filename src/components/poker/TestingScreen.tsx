@@ -449,7 +449,17 @@ const TestingScreen = ({ onStartGame, onBack }: TestingScreenProps) => {
             {/* Turn timer */}
             <div className="flex flex-col gap-1" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
               <label className={labelClass}>TURN TIMER (SECONDS)</label>
-              <input type="number" min={5} max={60} value={turnTimer} onChange={e => setTurnTimer(Number(e.target.value))} className={inputClass} />
+              <div className="flex gap-2">
+                {[10, 20, 30].map(t => (
+                  <button key={t} type="button" onClick={() => setTurnTimer(t)}
+                    className={`flex-1 py-2.5 text-sm tracking-wider rounded-lg border-2 transition-all ${
+                      turnTimer === t
+                        ? 'border-primary/60 bg-primary/15 text-primary'
+                        : 'border-primary/20 text-muted-foreground hover:border-primary/40'
+                    }`}
+                  >{t}s</button>
+                ))}
+              </div>
             </div>
 
             {/* Commission test */}
