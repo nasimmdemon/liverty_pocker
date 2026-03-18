@@ -207,24 +207,7 @@ const LoginScreen = ({ refCodeFromUrl }: LoginScreenProps) => {
           Continue with Google
         </Button>
 
-        <div className="relative my-4">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-primary/30" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">or</span>
-          </div>
-        </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          disabled={loading}
-          onClick={handleGuestPlay}
-          className="w-full h-12 border-primary/50 hover:bg-primary/10 text-primary font-semibold"
-        >
-          🎰 Play as Guest
-        </Button>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           {mode === 'signin' ? (
