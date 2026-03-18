@@ -190,7 +190,7 @@ function CardDealPreview() {
 
 function CardFlipPreview() {
   return <div className="flex gap-3">{[
-    { suit: '♠' as const, rank: 'A', faceUp: true }, { suit: '♥' as const, rank: 'K', faceUp: true },
+    { suit: '♠' as const, rank: 'A' as Rank, faceUp: true }, { suit: '♥' as const, rank: 'K' as Rank, faceUp: true },
   ].map((c, i) => <MiniCard key={i} card={c} delay={i * 0.3} />)}</div>;
 }
 
