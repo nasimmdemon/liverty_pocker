@@ -12,11 +12,12 @@ import LoadingScreen from '@/components/poker/LoadingScreen';
 import SitAndGoScreen from '@/components/poker/SitAndGoScreen';
 import TestingScreen, { type TestingConfig } from '@/components/poker/TestingScreen';
 import PokerTable from '@/components/poker/PokerTable';
+import WatchAndEarnScreen from '@/components/poker/WatchAndEarnScreen';
 import MultiplayerLobby from '@/components/multiplayer/MultiplayerLobby';
 import MultiplayerPokerTable from '@/components/multiplayer/MultiplayerPokerTable';
 import { getGameByCode, joinGameRoom } from '@/lib/multiplayer';
 
-type Screen = 'start' | 'loading' | 'sitandgo' | 'testing' | 'table' | 'multiplayer-lobby' | 'multiplayer-table';
+type Screen = 'start' | 'loading' | 'sitandgo' | 'testing' | 'table' | 'watch-and-earn' | 'multiplayer-lobby' | 'multiplayer-table';
 
 interface TableConfig {
   buyIn: number;
@@ -57,6 +58,8 @@ const Index = () => {
   const [multiplayerConfig, setMultiplayerConfig] = useState<MultiplayerConfig | null>(null);
 
   const handlePlay = useCallback(() => setScreen('sitandgo'), []);
+  const handleWatchAndEarn = useCallback(() => setScreen('watch-and-earn'), []);
+  const handleWatchAndEarnClaim = useCallback(() => setScreen('sitandgo'), []);
   const handleLoadingComplete = useCallback(() => setScreen('table'), []);
 
   const handleJoinTable = useCallback((buyIn: number, smallBlind: number, bigBlind: number, gameMode?: 'tournament' | 'sit-and-go', cardBack?: string) => {
@@ -165,7 +168,14 @@ const Index = () => {
       )}
     <AnimatePresence mode="wait">
       {screen === 'start' && (
-        <StartScreen key="start" onPlay={handlePlay} />
+        <StartScreen key="start" onPlay={handlePlay} onWatchAndEarn={handleWatchAndEarn} />
+      )}
+      {screen === 'watch-and-earn' && (
+        <WatchAndEarnScreen
+          key="watch-and-earn"
+          onClaim={handleWatchAndEarnClaim}
+          onBack={() => setScreen('start')}
+        />
       )}
       {screen === 'sitandgo' && (
         <SitAndGoScreen

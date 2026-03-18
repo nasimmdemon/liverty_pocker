@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { LogOut, UserPlus, User } from 'lucide-react';
+import { LogOut, UserPlus, User, Tv } from 'lucide-react';
 import PlayButton from './PlayButton';
 import { useAuth } from '@/contexts/AuthContext';
 import charactersBg from '@/assets/characters-alt.png';
@@ -8,9 +8,10 @@ import pokerRoomBg from '@/assets/poker-room-bg.png';
 
 interface StartScreenProps {
   onPlay: () => void;
+  onWatchAndEarn?: () => void;
 }
 
-const StartScreen = ({ onPlay }: StartScreenProps) => {
+const StartScreen = ({ onPlay, onWatchAndEarn }: StartScreenProps) => {
   const { user, signOut } = useAuth();
   return (
     <motion.div
@@ -97,6 +98,25 @@ const StartScreen = ({ onPlay }: StartScreenProps) => {
           transition={{ delay: 0.6, duration: 0.5, type: 'spring' }}
         >
           <PlayButton onClick={onPlay} />
+          {onWatchAndEarn && (
+            <motion.button
+              onClick={onWatchAndEarn}
+              className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 rounded-xl border-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{
+                fontFamily: "'Bebas Neue', 'Cinzel', serif",
+                color: '#F2D27A',
+                borderColor: '#F2D27A',
+                background: 'rgba(0,0,0,0.3)',
+                fontSize: '1.1rem',
+                letterSpacing: '0.12em',
+              }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Tv className="h-5 w-5 sm:h-6 sm:w-6" />
+              WATCH & EARN
+            </motion.button>
+          )}
           <Link
             to="/refer"
             className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 rounded-xl border-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
