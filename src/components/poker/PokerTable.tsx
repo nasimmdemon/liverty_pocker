@@ -94,7 +94,7 @@ const MP_4_MOBILE = [
   { top: '82%', left: '92%', isTopSeat: false },
 ];
 
-const DEFAULT_TURN_DURATION = 30;
+const DEFAULT_TURN_DURATION = 10;
 const BOT_DELAY = 1500;
 const WINNER_VIEW_DURATION = 2000; // ms to view winner popup before chips fly
 const CHIP_ANIM_DURATION = 2500;   // chip fly duration
