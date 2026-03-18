@@ -233,7 +233,11 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
               exit={{ opacity: 0, x: 40 }}
               transition={{ duration: 0.5 }}
             >
-              {LOADING_MESSAGES[currentMessage]}
+              {LOADING_MESSAGES[currentMessage].map((part, i) => (
+                <span key={i} style={part.highlight ? { color: '#F2D27A', fontWeight: 700, fontStyle: 'normal' } : undefined}>
+                  {part.text}
+                </span>
+              ))}
             </motion.p>
           </AnimatePresence>
           <motion.div
