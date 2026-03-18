@@ -122,6 +122,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(p);
   }, [fetchOrCreateProfile]);
 
+  const signInAsGuest = useCallback(async () => {
+    const { user: u } = await signInAnonymously(auth);
+    const p = await fetchOrCreateProfile(u);
+    setProfile(p);
+  }, [fetchOrCreateProfile]);
+
   const signOut = useCallback(async () => {
     await firebaseSignOut(auth);
     setUser(null);
