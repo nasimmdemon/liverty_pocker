@@ -45,6 +45,8 @@ export interface GameRoom {
   gameState: GameState | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  inviterId?: string;      // UID of who invited table creator (private tables only)
+  isPrivateTable?: boolean;
 }
 
 function generateInviteCode(): string {
@@ -73,7 +75,9 @@ export async function createGameRoom(
   hostPhotoURL: string | null,
   buyIn: number,
   smallBlind: number,
-  bigBlind: number
+  bigBlind: number,
+  inviterId?: string,
+  isPrivateTable?: boolean
 ): Promise<GameRoom> {
   const inviteCode = generateInviteCode();
   const roomRef = doc(collection(db, 'games'));
@@ -96,6 +100,8 @@ export async function createGameRoom(
     gameState: null,
     createdAt: serverTimestamp() as Timestamp,
     updatedAt: serverTimestamp() as Timestamp,
+    ...(inviterId && { inviterId }),
+    ...(isPrivateTable !== undefined && { isPrivateTable }),
   };
   await setDoc(roomRef, room);
   return { id: roomRef.id, ...room } as GameRoom;
@@ -149,8 +155,20 @@ export async function startGame(gameId: string): Promise<boolean> {
   const snap = await getDoc(roomRef);
   if (!snap.exists() || snap.data()?.status !== 'waiting') return false;
   const data = snap.data();
+  const roomData = { id: snap.id, ...data } as GameRoom;
   const players = (data?.players as GameRoomPlayer[]) || [];
   if (players.length < 2) return false;
+
+  const referredByMap = new Map<string, string>();
+  for (const mp of players) {
+    try {
+      const userSnap = await getDoc(doc(db, 'users', mp.userId));
+      const referredBy = userSnap.data()?.referredBy as string | undefined;
+      if (referredBy) referredByMap.set(mp.userId, referredBy);
+    } catch {
+      // ignore
+    }
+  }
 
   const PLAYER_NAMES = ['THE_HUSTLER', 'LADY_LUCK', 'IRON_RAT', 'SHADOW', 'SLICK', 'SMOKE'];
   const initialPlayers: Player[] = Array.from({ length: 6 }, (_, i) => {
@@ -190,6 +208,7 @@ export async function startGame(gameId: string): Promise<boolean> {
       totalHandBet: 0,
       status: 'active' as const,
       userId: mp.userId,
+      referredBy: referredByMap.get(mp.userId),
     };
   });
 
@@ -203,6 +222,9 @@ export async function startGame(gameId: string): Promise<boolean> {
     smallBlind,
     bigBlind,
     tableId: gameId.slice(0, 5).toUpperCase(),
+    hostId: roomData.hostId,
+    inviterId: roomData.inviterId,
+    isPrivateTable: roomData.isPrivateTable ?? false,
   };
   const gameState = startNewRound(stateWithPlayers);
 

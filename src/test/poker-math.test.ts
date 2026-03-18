@@ -15,12 +15,13 @@ describe('calculateRake', () => {
     expect(result.rakePercent).toBe(5);
   });
 
-  it('splits rake correctly: 30% affiliate, 10% hoster, 60% house', () => {
+  it('splits rake correctly: 30% affiliate, 10% hoster, 10% inviter (0 when no context), remainder house', () => {
     const result = calculateRake(200);
     expect(result.affiliateShare).toBe(3);
     expect(result.hosterShare).toBe(1);
+    expect(result.inviterShare).toBe(0);
     expect(result.houseRevenue).toBe(6);
-    expect(result.affiliateShare + result.hosterShare + result.houseRevenue).toBe(result.totalRake);
+    expect(result.affiliateShare + result.hosterShare + result.inviterShare + result.houseRevenue).toBe(result.totalRake);
   });
 
   it('caps rake at 50', () => {

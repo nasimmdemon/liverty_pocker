@@ -20,6 +20,8 @@ interface CreateGameModalProps {
   hostName: string;
   hostPhotoURL: string | null;
   onCreated: (room: import('@/lib/multiplayer').GameRoom) => void;
+  inviterId?: string;      // UID of who referred the host (for private table rake)
+  isPrivateTable?: boolean;
 }
 
 const CreateGameModal = ({
@@ -29,6 +31,8 @@ const CreateGameModal = ({
   hostName,
   hostPhotoURL,
   onCreated,
+  inviterId,
+  isPrivateTable = false,
 }: CreateGameModalProps) => {
   const [buyIn, setBuyIn] = useState(1500);
   const [smallBlind, setSmallBlind] = useState(5);
@@ -40,7 +44,7 @@ const CreateGameModal = ({
   const handleCreate = async () => {
     setLoading(true);
     try {
-      const room = await createGameRoom(hostId, hostName, hostPhotoURL, buyIn, smallBlind, bigBlind);
+      const room = await createGameRoom(hostId, hostName, hostPhotoURL, buyIn, smallBlind, bigBlind, inviterId, isPrivateTable);
       setCreated({ gameId: room.id, inviteCode: room.inviteCode, room });
       toast({ title: 'Game created!', description: 'Share the code with friends to invite them.' });
     } catch (e) {

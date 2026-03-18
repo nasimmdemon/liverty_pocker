@@ -27,6 +27,7 @@ interface TableConfig {
   isTestingTable?: boolean;
   isPublic?: boolean;
   gameMode?: 'tournament' | 'sit-and-go';
+  testCommission?: import('@/lib/gameLogic').TestCommissionConfig;
 }
 
 interface MultiplayerConfig {
@@ -80,6 +81,7 @@ const Index = () => {
       turnTimer: config.turnTimer,
       botCount: config.botCount,
       isTestingTable: true,
+      testCommission: config.testCommission,
     });
     setScreen('loading');
   }, []);
@@ -193,6 +195,7 @@ const Index = () => {
           turnTimer={tableConfig.turnTimer}
           isTestingTable={tableConfig.isTestingTable}
           gameMode={tableConfig.gameMode}
+          testCommission={tableConfig.testCommission}
           onExit={handleExitTable}
           isLandscapeMobile={isLandscapeOnMobile}
         />

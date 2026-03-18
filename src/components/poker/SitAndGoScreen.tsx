@@ -220,7 +220,7 @@ const SitAndGoScreen = ({
   onMultiplayerJoin,
   joinCodeFromUrl,
 }: SitAndGoScreenProps) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(!!joinCodeFromUrl);
   const [gameMode, setGameMode] = useState<GameMode>('tournament');
@@ -724,6 +724,8 @@ const SitAndGoScreen = ({
             hostName={user?.displayName || user?.email?.split('@')[0] || 'Player'}
             hostPhotoURL={user?.photoURL ?? null}
             onCreated={(room) => onMultiplayerCreate?.(room)}
+            inviterId={profile?.referredBy}
+            isPrivateTable={true}
           />
           <JoinGameModal
             open={showJoinModal}

@@ -116,6 +116,7 @@ interface PokerTableProps {
   turnTimer?: number;
   isTestingTable?: boolean;
   gameMode?: 'tournament' | 'sit-and-go';
+  testCommission?: import('@/lib/gameLogic').TestCommissionConfig;
   onExit?: () => void;
   isLandscapeMobile?: boolean;
   seatAnchorOverrides?: {
@@ -125,7 +126,7 @@ interface PokerTableProps {
   multiplayer?: MultiplayerConfig;
 }
 
-const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlind = 10, turnTimer: turnTimerProp, isTestingTable = false, gameMode = 'sit-and-go', onExit, isLandscapeMobile = false, seatAnchorOverrides, multiplayer }: PokerTableProps) => {
+const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlind = 10, turnTimer: turnTimerProp, isTestingTable = false, gameMode = 'sit-and-go', testCommission, onExit, isLandscapeMobile = false, seatAnchorOverrides, multiplayer }: PokerTableProps) => {
   const TURN_DURATION = turnTimerProp ?? DEFAULT_TURN_DURATION;
   const isMultiplayer = !!multiplayer;
   const [internalGameState, setInternalGameState] = useState<GameState | null>(null);
@@ -139,6 +140,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
     }
   }, [isMultiplayer, multiplayer]);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [mutedPlayerIds, setMutedPlayerIds] = useState<Set<number>>(new Set());
   const [showRebuyDialog, setShowRebuyDialog] = useState(false);
   const [timer, setTimer] = useState(TURN_DURATION);
   const [chipBets, setChipBets] = useState<ChipBet[]>([]);
@@ -182,11 +184,11 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
 
   useEffect(() => {
     if (isMultiplayer) return;
-    const initial = createInitialGameState(initialBuyIn, botCount, smallBlind, bigBlind);
+    const initial = createInitialGameState(initialBuyIn, botCount, smallBlind, bigBlind, testCommission);
     const round = startNewRound(initial);
     setInternalGameState(round);
     setTimer(TURN_DURATION);
-  }, [initialBuyIn, botCount, smallBlind, bigBlind, TURN_DURATION, isMultiplayer]);
+  }, [initialBuyIn, botCount, smallBlind, bigBlind, TURN_DURATION, isMultiplayer, testCommission]);
 
   const chipsAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioUnlockedRef = useRef(false);
@@ -734,86 +736,52 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
             })}
           </div>
 
-          {/* Winner hand message — full-screen overlay, dark backdrop, centered, modern style */}
+          {/* Winner hand message — compact banner at top of table, no blur overlay */}
           <AnimatePresence>
             {gameState.showdown && gameState.winnerId != null && showWinnerPopup && (
               <motion.div
-                key="winner-overlay"
-                className="fixed inset-0 z-[40] flex items-center justify-center"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.25 }}
+                key="winner-banner"
+                className="absolute left-1/2 -translate-x-1/2 z-30"
+                style={{ top: isCompact ? '6%' : '8%' }}
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
               >
-                {/* Dark backdrop — dims whole screen for focus */}
                 <motion.div
-                  className="absolute inset-0 bg-black/75 backdrop-blur-sm"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.25 }}
-                />
-                {/* Centered popup */}
-                <motion.div
-                  className="relative z-10 flex flex-col items-center"
-                  initial={{ opacity: 0, scale: 0.6, y: 30 }}
-                  animate={{
-                    opacity: 1,
-                    scale: 1,
-                    y: 0,
-                    transition: {
-                      type: 'spring',
-                      stiffness: 280,
-                      damping: 24,
-                      delay: 0.1,
-                    },
-                  }}
-                  exit={{
-                    opacity: 0,
-                    scale: 0.9,
-                    y: -20,
-                    transition: { duration: 0.3, ease: 'easeIn' },
+                  className="px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl flex flex-row items-center gap-2 sm:gap-3 max-w-[90vw] sm:max-w-md"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(20,18,12,0.95) 0%, rgba(12,10,8,0.98) 100%)',
+                    border: '2px solid hsl(var(--casino-gold) / 0.7)',
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.5), 0 0 20px hsl(var(--casino-gold) / 0.2)',
                   }}
                 >
-                  <motion.div
-                    className="px-8 py-6 sm:px-10 sm:py-8 rounded-2xl flex flex-col items-center gap-3 min-w-[200px] sm:min-w-[260px]"
-                    style={{
-                      background: 'linear-gradient(165deg, hsl(0 0% 14%) 0%, hsl(0 0% 8%) 100%)',
-                      border: '2px solid hsl(var(--casino-gold) / 0.8)',
-                      boxShadow: '0 0 0 1px rgba(255,255,255,0.05), 0 0 60px hsl(var(--casino-gold) / 0.15), 0 25px 50px -12px rgba(0,0,0,0.8)',
-                    }}
-                    initial={{ boxShadow: '0 0 0 0 hsl(var(--casino-gold) / 0)' }}
-                    animate={{
-                      boxShadow: [
-                        '0 0 0 0 hsl(var(--casino-gold) / 0)',
-                        '0 0 50px hsl(var(--casino-gold) / 0.25)',
-                        '0 0 60px hsl(var(--casino-gold) / 0.15)',
-                      ],
-                      transition: { duration: 0.5, times: [0, 0.6, 1] },
-                    }}
+                  <motion.span
+                    className="text-2xl sm:text-3xl shrink-0"
+                    animate={{ scale: [1, 1.15, 1] }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
                   >
-                    <motion.span
-                      className="text-4xl sm:text-5xl"
-                      animate={{ scale: [1, 1.2, 1], rotate: [0, 8, -8, 0] }}
-                      transition={{ duration: 0.6, delay: 0.3 }}
-                    >
-                      🏆
-                    </motion.span>
+                    🏆
+                  </motion.span>
+                  <div className="flex flex-col items-start min-w-0">
                     <p
-                      className="text-primary font-bold text-lg sm:text-xl text-center leading-tight tracking-wide"
-                      style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.1em' }}
+                      className="text-primary font-bold text-sm sm:text-base leading-tight tracking-wide truncate max-w-full"
+                      style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.08em' }}
                     >
                       {gameState.winnerHandDescription}
                     </p>
                     <span
-                      className="text-[11px] sm:text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground"
+                      className="text-[10px] sm:text-xs font-medium uppercase tracking-wider text-muted-foreground"
                       style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
                     >
                       {(gameState.winnerIds?.length ?? 1) > 1
-                        ? `${gameState.winnerIds?.length ?? 1} WINNERS`
+                        ? `${gameState.winnerIds?.length ?? 1} winners`
                         : gameState.players.find(p => p.id === gameState.winnerId)?.name ?? 'Winner'}
+                      {gameState.rakeBreakdown && (
+                        <span className="ml-1.5 text-primary">· ${formatChips(gameState.rakeBreakdown.netPot)}</span>
+                      )}
                     </span>
-                  </motion.div>
+                  </div>
                 </motion.div>
               </motion.div>
             )}
@@ -860,7 +828,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
                   isMobile={isCompact}
                   isLandscapeMobile={isLandscapeMobile}
                   isShowdown={gameState.showdown}
-                  chatBubble={displayedChatBubbles[player.id] ?? null}
+                  chatBubble={mutedPlayerIds.has(player.id) ? null : (displayedChatBubbles[player.id] ?? null)}
                   winChance={player.isUser ? userWinChance : undefined}
                   displayChips={winAnimation && (gameState.winnerIds?.includes(player.id) ?? player.id === gameState.winnerId) && winnersPreWinBalance[player.id] != null ? winnersPreWinBalance[player.id] : undefined}
                 />
@@ -898,7 +866,24 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       />
 
       {/* Player Popup */}
-      <PlayerPopup player={selectedPlayer} onClose={() => setSelectedPlayer(null)} />
+      <PlayerPopup
+        player={selectedPlayer}
+        onClose={() => setSelectedPlayer(null)}
+        onReport={(p) => {
+          toast({ title: 'Report submitted', description: `${p.name} has been reported. Our team will review.` });
+        }}
+        onAddFriend={(p) => {
+          if (p.userId) {
+            toast({ title: 'Friend request sent', description: `Friend request sent to ${p.name}.` });
+          } else {
+            toast({ title: 'Cannot add bot', description: 'Bots cannot be added as friends.', variant: 'destructive' });
+          }
+        }}
+        onMute={(p) => {
+          setMutedPlayerIds((prev) => new Set(prev).add(p.id));
+          toast({ title: 'Player muted', description: `${p.name}'s chat messages will be hidden.` });
+        }}
+      />
 
       {/* Leave / Back confirmation */}
       <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>

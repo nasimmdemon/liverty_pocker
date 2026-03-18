@@ -5,9 +5,12 @@ import { X, AlertTriangle, UserPlus, VolumeX } from 'lucide-react';
 interface PlayerPopupProps {
   player: Player | null;
   onClose: () => void;
+  onReport?: (player: Player) => void;
+  onAddFriend?: (player: Player) => void;
+  onMute?: (player: Player) => void;
 }
 
-const PlayerPopup = ({ player, onClose }: PlayerPopupProps) => (
+const PlayerPopup = ({ player, onClose, onReport, onAddFriend, onMute }: PlayerPopupProps) => (
   <AnimatePresence>
     {player && (
       <motion.div
@@ -51,13 +54,28 @@ const PlayerPopup = ({ player, onClose }: PlayerPopupProps) => (
           </div>
 
           <div className="flex gap-3 justify-center">
-            <button className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'hsl(var(--destructive))' }}>
+            <button
+              onClick={() => { onReport?.(player); onClose(); }}
+              className="w-10 h-10 rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity"
+              style={{ background: 'hsl(var(--destructive))' }}
+              title="Report player"
+            >
               <AlertTriangle size={18} className="text-destructive-foreground" />
             </button>
-            <button className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'hsl(120 40% 40%)' }}>
+            <button
+              onClick={() => { onAddFriend?.(player); onClose(); }}
+              className="w-10 h-10 rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity"
+              style={{ background: 'hsl(120 40% 40%)' }}
+              title="Add friend"
+            >
               <UserPlus size={18} className="text-foreground" />
             </button>
-            <button className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'hsl(220 60% 50%)' }}>
+            <button
+              onClick={() => { onMute?.(player); onClose(); }}
+              className="w-10 h-10 rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity"
+              style={{ background: 'hsl(220 60% 50%)' }}
+              title="Mute player"
+            >
               <VolumeX size={18} className="text-foreground" />
             </button>
           </div>

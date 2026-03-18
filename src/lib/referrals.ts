@@ -160,3 +160,19 @@ export async function getReferredUsers(userId: string): Promise<ReferralRecord[]
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as ReferralRecord));
 }
+
+/** Get referrer's display info by userId (for profile "invited by") */
+export async function getReferrerInfoByUid(referrerUid: string): Promise<ReferrerInfo | null> {
+  try {
+    const ref = doc(db, 'users', referrerUid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
+    const d = snap.data();
+    return {
+      displayName: (d?.displayName as string) || 'A friend',
+      photoURL: (d?.photoURL as string | null) ?? null,
+    };
+  } catch {
+    return null;
+  }
+}

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { LogOut, UserPlus } from 'lucide-react';
+import { LogOut, UserPlus, User } from 'lucide-react';
 import PlayButton from './PlayButton';
 import { useAuth } from '@/contexts/AuthContext';
 import charactersBg from '@/assets/characters-alt.png';
@@ -45,6 +45,16 @@ const StartScreen = ({ onPlay }: StartScreenProps) => {
           LIBERTY POKER
         </h1>
         <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            to="/profile"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
+            title="Profile"
+          >
+            <User className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" style={{ color: '#F2D27A' }} />
+            <span className="text-sm sm:text-base tracking-wider" style={{ fontFamily: "'Bebas Neue', 'Cinzel', serif", color: '#F2D27A' }}>
+              PROFILE
+            </span>
+          </Link>
           <span
             className="text-sm sm:text-base tracking-wider truncate max-w-[120px] sm:max-w-[180px]"
             style={{ fontFamily: "'Bebas Neue', 'Cinzel', serif", color: '#F2D27A' }}

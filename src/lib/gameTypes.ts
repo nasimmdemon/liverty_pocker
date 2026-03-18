@@ -27,6 +27,7 @@ export interface Player {
   rank?: string;
   netWorth?: number;
   invitedBy?: string;
+  referredBy?: string;  // UID of affiliate who referred this user (from users/{uid}.referredBy)
   lastAction?: string;
   userId?: string; // Firebase UID for multiplayer
 }
@@ -62,4 +63,8 @@ export interface GameState {
   totalRake: number; // total rake accumulated across rounds
   chatBubbles?: Record<number, { text: string; playerName: string; timestamp: number }>;
   winnerBestCards?: PlayingCard[]; // 5 cards that form the winning hand (for overlay highlight)
+  hostId?: string;           // Firebase UID of game creator (from GameRoom)
+  inviterId?: string;        // UID of who invited table creator (private tables only)
+  isPrivateTable?: boolean;  // true = private, false = Sit & Go / Tournament
+  rakeBreakdown?: import('./rake').RakeBreakdown; // breakdown for UI when hand ends
 }

@@ -1,6 +1,6 @@
 import { GameState, Player, PlayingCard, Suit, Rank, GamePhase } from './gameTypes';
 import { determineWinners } from './handEvaluator';
-import { calculateRake } from './rake';
+import { calculateRakeWithContext, type RakeContext } from './rake';
 import { formatChips } from './formatChips';
 import avatar1 from '@/assets/avatar-1.png';
 import avatar2 from '@/assets/avatar-2.png';
@@ -30,14 +30,35 @@ export function createDeck(): PlayingCard[] {
   return deck;
 }
 
-export function createInitialGameState(buyIn: number = 1500, botCount: number = 5, smallBlind: number = 5, bigBlind: number = 10): GameState {
+export interface TestCommissionConfig {
+  affiliatePlayerIndex: number;
+  hostPlayerIndex: number;
+  inviterPlayerIndex: number;
+  isPrivateTable: boolean;
+}
+
+export function createInitialGameState(
+  buyIn: number = 1500,
+  botCount: number = 5,
+  smallBlind: number = 5,
+  bigBlind: number = 10,
+  testCommission?: TestCommissionConfig
+): GameState {
   const totalPlayers = Math.min(botCount + 1, 6); // user + bots, max 6
   const players: Player[] = [];
   for (let i = 0; i < totalPlayers; i++) {
+    const userId = testCommission ? `test-${i}` : undefined;
+    const affiliateIdx = testCommission?.affiliatePlayerIndex;
+    const hostIdx = testCommission?.hostPlayerIndex;
+    const referredBy = testCommission && affiliateIdx !== undefined && i === hostIdx
+      ? `test-${affiliateIdx}`
+      : undefined;
+    const invitedBy = !testCommission && i > 0 ? PLAYER_NAMES[Math.floor(Math.random() * i)] : undefined;
+
     players.push({
       id: i,
       name: PLAYER_NAMES[i] ?? `BOT_${i}`,
-      chips: buyIn, // ALL players (user + bots) get the same entrance amount
+      chips: buyIn,
       avatar: avatars[i % avatars.length],
       cards: [],
       isActive: true,
@@ -51,9 +72,15 @@ export function createInitialGameState(buyIn: number = 1500, botCount: number = 
       status: 'active',
       rank: RANKS_LIST[i] ?? 'HUMEN',
       netWorth: Math.round(50 + Math.random() * 200),
-      invitedBy: i > 0 ? PLAYER_NAMES[Math.floor(Math.random() * i)] : undefined,
+      invitedBy,
+      referredBy,
+      userId,
     });
   }
+
+  const hostId = testCommission ? `test-${testCommission.hostPlayerIndex}` : undefined;
+  const inviterId = testCommission ? `test-${testCommission.inviterPlayerIndex}` : undefined;
+  const isPrivateTable = testCommission?.isPrivateTable ?? false;
 
   return {
     players,
@@ -81,6 +108,9 @@ export function createInitialGameState(buyIn: number = 1500, botCount: number = 
     actedCount: 0,
     rakeAmount: 0,
     totalRake: 0,
+    hostId,
+    inviterId,
+    isPrivateTable,
   };
 }
 
@@ -324,24 +354,47 @@ function handleShowdown(state: GameState): GameState {
     }
   }
 
-  // Apply rake to total winnings (5% house rake)
+  // Apply rake to total winnings (5% with affiliation/host/inviter context)
   const totalWinnings = Array.from(chipGains.values()).reduce((a, b) => a + b, 0);
-  const { totalRake: rakeAmount } = calculateRake(totalWinnings);
-  
-  // Distribute rake proportionally from winners
-  let rakeRemaining = rakeAmount;
+  const playersInHand = inHand;
+  const inHandUserIds = new Set(playersInHand.map(p => p.userId).filter(Boolean));
+
+  const affiliateFromHand = playersInHand.find(p => p.referredBy);
+  const affiliateId = affiliateFromHand?.referredBy ?? null;
+  const affiliateAtTable = affiliateId ? playersInHand.some(p => p.userId === affiliateId) : false;
+
+  const hostId = state.hostId ?? null;
+  const hostAtTable = hostId ? playersInHand.some(p => p.userId === hostId) : false;
+
+  const rakeCtx: RakeContext = {
+    pot: totalWinnings,
+    winnerIds,
+    playersInHand,
+    affiliateId,
+    affiliateAtTable,
+    hostId,
+    hostAtTable,
+    inviterId: state.inviterId ?? null,
+    isPrivateTable: state.isPrivateTable ?? false,
+  };
+  const rakeBreakdown = calculateRakeWithContext(rakeCtx);
+  const { totalRake: rakeAmount, netPot: netPotTotal } = rakeBreakdown;
+
+  // Distribute rake proportionally from winners (winner gets pot - their share of rake)
   const adjustedGains = new Map(chipGains);
-  for (const wid of winnerIds) {
-    const gain = adjustedGains.get(wid) ?? 0;
-    if (gain <= 0) continue;
-    const share = Math.min(Math.floor(rakeAmount * gain / totalWinnings), rakeRemaining);
-    adjustedGains.set(wid, gain - share);
-    rakeRemaining -= share;
-  }
-  // Remainder from rounding
-  if (rakeRemaining > 0 && winnerIds.length > 0) {
-    const firstWin = winnerIds[0];
-    adjustedGains.set(firstWin, (adjustedGains.get(firstWin) ?? 0) - rakeRemaining);
+  if (rakeAmount > 0 && totalWinnings > 0) {
+    let rakeRemaining = rakeAmount;
+    for (const wid of winnerIds) {
+      const gain = adjustedGains.get(wid) ?? 0;
+      if (gain <= 0) continue;
+      const share = Math.min(Math.floor(rakeAmount * gain / totalWinnings), rakeRemaining);
+      adjustedGains.set(wid, gain - share);
+      rakeRemaining -= share;
+    }
+    if (rakeRemaining > 0 && winnerIds.length > 0) {
+      const firstWin = winnerIds[0];
+      adjustedGains.set(firstWin, (adjustedGains.get(firstWin) ?? 0) - rakeRemaining);
+    }
   }
 
   const finalPlayers = players.map(p => {
@@ -368,6 +421,7 @@ function handleShowdown(state: GameState): GameState {
     pot: 0,
     rakeAmount,
     totalRake: (state.totalRake ?? 0) + rakeAmount,
+    rakeBreakdown,
   };
 }
 
@@ -396,14 +450,46 @@ export function playerAction(
       const remaining = newPlayers.filter(p => p.isActive && !p.hasFolded);
       if (remaining.length === 1) {
         const winner = remaining[0];
-        // Apply 5% house rake even on fold-win
-        const { totalRake: rakeAmount, netPot } = calculateRake(pot);
-        newPlayers = newPlayers.map(p => 
-          p.id === winner.id 
+        const contributors = state.players.filter(p => ((p.totalHandBet ?? 0) + p.totalRoundBet) > 0);
+        const affiliateFromHand = contributors.find(p => p.referredBy);
+        const affiliateId = affiliateFromHand?.referredBy ?? null;
+        const affiliateAtTable = affiliateId ? contributors.some(p => p.userId === affiliateId) : false;
+        const hostId = state.hostId ?? null;
+        const hostAtTable = hostId ? contributors.some(p => p.userId === hostId) : false;
+
+        const rakeCtx: RakeContext = {
+          pot,
+          winnerIds: [winner.id],
+          playersInHand: contributors,
+          affiliateId,
+          affiliateAtTable,
+          hostId,
+          hostAtTable,
+          inviterId: state.inviterId ?? null,
+          isPrivateTable: state.isPrivateTable ?? false,
+        };
+        const rakeBreakdown = calculateRakeWithContext(rakeCtx);
+        const { totalRake: rakeAmount, netPot } = rakeBreakdown;
+
+        newPlayers = newPlayers.map(p =>
+          p.id === winner.id
             ? { ...p, chips: p.chips + netPot, lastAction: '🏆 WINNER' }
             : p
         );
-        return { ...state, players: newPlayers, pot: 0, winnerId: winner.id, winnerIds: [winner.id], winnerHandDescription: 'Last player standing', winnerBestCards: winner.cards, showdown: true, actedCount, rakeAmount, totalRake: (state.totalRake ?? 0) + rakeAmount };
+        return {
+          ...state,
+          players: newPlayers,
+          pot: 0,
+          winnerId: winner.id,
+          winnerIds: [winner.id],
+          winnerHandDescription: 'Last player standing',
+          winnerBestCards: winner.cards,
+          showdown: true,
+          actedCount,
+          rakeAmount,
+          totalRake: (state.totalRake ?? 0) + rakeAmount,
+          rakeBreakdown,
+        };
       }
       break;
     }

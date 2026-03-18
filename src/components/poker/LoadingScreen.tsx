@@ -1,388 +1,226 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import charactersBg from '@/assets/characters-bg.png';
 
 interface LoadingScreenProps {
   onComplete: () => void;
   isPublic?: boolean;
 }
 
-const LOADING_DURATION = 10;
+const LOADING_DURATION = 20;
+const FRAME_DURATION = 5; // Switch background + character every 5 seconds
 
-const EXAMPLE_POT = 200;
-const RAKE_PERCENT = 5;
-const rakeAmount = Math.floor(EXAMPLE_POT * RAKE_PERCENT / 100);
-const affiliateCut = Math.floor(rakeAmount * 30 / 100);
-const hosterCut = Math.floor(rakeAmount * 10 / 100);
-const houseMoney = rakeAmount - affiliateCut - hosterCut;
-const winnerPot = EXAMPLE_POT - rakeAmount;
+type CharacterPosition = 'left' | 'center' | 'right';
 
-const DID_YOU_KNOW = [
-  '🎯 The best poker players fold 70-80% of their hands.',
-  '♠️ A Royal Flush has a 1 in 649,739 chance of being dealt.',
-  '💡 Position is everything — late position wins more pots.',
-  '🃏 Texas Hold\'em became popular after the 2003 WSOP.',
-  '🧠 Reading opponents is more valuable than reading cards.',
-  '💰 Invite friends → Get 30% rake share for life.',
-  '🎩 Host games → Earn 10% from total table rake.',
+/** Order: 1) dog2 left, 2) cat middle, 3) rat right, 4) cat_2 middle */
+const LOADING_SCREENS: { background: string; character: string; position: CharacterPosition }[] = [
+  { background: '/loading_screen/loading_bg5.jpg', character: '/loading_screen/dog2.png', position: 'left' },
+  { background: '/loading_screen/loading_bg_3.jpg', character: '/loading_screen/cat_loading_carecter.png', position: 'center' },
+  { background: '/loading_screen/loading_bg4.jpg', character: '/loading_screen/rat_loading_carecter.png', position: 'right' },
+  { background: '/loading_screen/loadin_bg6.jpg', character: '/loading_screen/cat_2.png', position: 'center' },
 ];
 
-interface Step {
-  label: string;
-  value: string;
-  detail: string;
-  color: string;
-  icon: string;
+/** Position classes for each character placement */
+const POSITION_CLASSES: Record<CharacterPosition, string> = {
+  left: 'justify-start pl-2 sm:pl-4',
+  center: 'justify-center',
+  right: 'justify-end pr-2 sm:pr-4',
+};
+
+function CharacterOverlay({ screen }: { screen: (typeof LOADING_SCREENS)[0] }) {
+  const posClass = POSITION_CLASSES[screen.position];
+
+  return (
+    <motion.div
+      className={`absolute inset-0 flex items-end pointer-events-none ${posClass}`}
+    >
+      <motion.img
+        key={screen.character}
+        src={screen.character}
+        alt=""
+        className="h-[95vh] max-h-[800px] w-auto object-contain object-bottom block"
+        loading="eager"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{
+          opacity: 1,
+          scale: 1.08,
+        }}
+        transition={{
+          opacity: { duration: 1, ease: 'easeOut' },
+          scale: { duration: 5, ease: 'easeInOut' },
+        }}
+      />
+    </motion.div>
+  );
 }
 
-const POT_STEPS: Step[] = [
-  { label: 'PRE-FLOP POT', value: '$30', detail: 'Small Blind $5 + Big Blind $10 + Calls', color: '120 50% 50%', icon: '🃏' },
-  { label: 'FINAL POT', value: `$${EXAMPLE_POT}`, detail: 'After all betting rounds', color: '40 80% 55%', icon: '💰' },
-];
-
-interface RevenueStep extends Step {
-  type: 'deduction' | 'revenue' | 'prize' | 'winner';
+/** Preload all images so they display immediately when frame switches */
+function preloadLoadingImages() {
+  LOADING_SCREENS.forEach(({ background, character }) => {
+    const bgImg = new Image();
+    bgImg.src = background;
+    const charImg = new Image();
+    charImg.src = character;
+  });
 }
 
-const REVENUE_STEPS: RevenueStep[] = [
-  { label: 'RAKE (5% HOUSE)', value: `-$${rakeAmount}`, detail: 'Deducted from every pot', color: '0 70% 55%', icon: '🏦', type: 'deduction' },
-  { label: 'AFFILIATE SHARE', value: `$${affiliateCut}`, detail: '30% rake from referred players — for life', color: '280 55% 55%', icon: '🤝', type: 'revenue' },
-  { label: 'HOST COMMISSION', value: `$${hosterCut}`, detail: '10% from total table rake', color: '200 60% 55%', icon: '🎩', type: 'revenue' },
-  { label: 'HOST PRIZE BONUS', value: '+$0', detail: 'Optional extra prize from host', color: '160 50% 50%', icon: '🎁', type: 'prize' },
-  { label: 'PLATFORM REVENUE', value: `$${houseMoney}`, detail: 'Remaining house earnings', color: '0 50% 45%', icon: '🏠', type: 'revenue' },
-  { label: 'PLAYER WINNINGS', value: `$${winnerPot}`, detail: 'Prize pool based on ranking', color: '50 90% 55%', icon: '🏆', type: 'winner' },
-];
-
-const BANNERS = [
-  { title: 'Play. Invite. Earn.', lines: ['30% lifetime rake share from invited players', '10% host commission from total table rake'] },
-  { title: 'Turn Your Table Into Income', lines: ['Invite players → 30% from rake on any hand they play — for life', 'Host tables → 10% commission from total rake'] },
+const LOADING_MESSAGES = [
+  'Earn 30% commission for life from every hand your invited players play.',
+  'Host private tables and earn 10% of the total rake from your games.',
+  'The best poker players fold 70–80% of their hands. Patience pays.',
+  'Position matters — late position gives you more information and control.',
+  'A Royal Flush has a 1 in 649,739 chance of being dealt.',
+  'Texas Hold\'em became popular after the 2003 World Series of Poker.',
+  'Reading your opponents is often more valuable than reading the cards.',
+  'Invite friends to play and earn a share of every pot they rake.',
+  'The pot grows from small blind, big blind, and all bets and calls.',
+  'House rake is 5% of each pot. Affiliates earn 30%, hosts earn 10%.',
 ];
 
 const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
-  const [visiblePotSteps, setVisiblePotSteps] = useState(0);
-  const [visibleRevenueSteps, setVisibleRevenueSteps] = useState(0);
-  const [showBanner, setShowBanner] = useState(false);
-  const [currentTip, setCurrentTip] = useState(0);
-  const [banner] = useState(() => BANNERS[Math.floor(Math.random() * BANNERS.length)]);
+  const [currentMessage, setCurrentMessage] = useState(0);
+  const [currentFrame, setCurrentFrame] = useState(0);
+
+  useEffect(() => {
+    preloadLoadingImages();
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => onComplete(), LOADING_DURATION * 1000);
     return () => clearTimeout(timer);
   }, [onComplete]);
 
-  // Pot steps
+  // Cycle through 4 frames every 5 seconds
   useEffect(() => {
-    if (visiblePotSteps >= POT_STEPS.length) return;
-    const id = setTimeout(() => setVisiblePotSteps(v => v + 1), 800 + visiblePotSteps * 600);
-    return () => clearTimeout(id);
-  }, [visiblePotSteps]);
-
-  // Revenue steps
-  useEffect(() => {
-    if (visiblePotSteps < POT_STEPS.length) return;
-    if (visibleRevenueSteps >= REVENUE_STEPS.length) return;
-    const delay = visibleRevenueSteps === 0 ? 400 : 550;
-    const id = setTimeout(() => setVisibleRevenueSteps(v => v + 1), delay);
-    return () => clearTimeout(id);
-  }, [visiblePotSteps, visibleRevenueSteps]);
-
-  // Banner
-  useEffect(() => {
-    if (visibleRevenueSteps < REVENUE_STEPS.length) return;
-    const id = setTimeout(() => setShowBanner(true), 600);
-    return () => clearTimeout(id);
-  }, [visibleRevenueSteps]);
-
-  // Cycle tips
-  useEffect(() => {
-    const id = setInterval(() => setCurrentTip(p => (p + 1) % DID_YOU_KNOW.length), 3000);
-    return () => clearInterval(id);
+    const interval = setInterval(() => {
+      setCurrentFrame((p) => (p + 1) % LOADING_SCREENS.length);
+    }, FRAME_DURATION * 1000);
+    return () => clearInterval(interval);
   }, []);
 
-  const bgForRevenue = (type: string) => {
-    switch (type) {
-      case 'deduction': return 'hsl(0 40% 15% / 0.3)';
-      case 'prize': return 'hsl(160 30% 12% / 0.3)';
-      case 'revenue': return 'hsl(0 0% 8% / 0.4)';
-      default: return undefined;
-    }
-  };
+  // Cycle messages one by one at bottom (every ~2.5 seconds)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentMessage((p) => (p + 1) % LOADING_MESSAGES.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
+
+  const screen = LOADING_SCREENS[currentFrame];
 
   return (
     <motion.div
-      className="fixed inset-0 flex flex-col items-center overflow-hidden"
+      className="fixed inset-0 flex flex-col overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.8 }}
+      transition={{ duration: 0.6 }}
     >
-      <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${charactersBg})` }} />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/30" />
-
-      {/* Floating particles */}
-      {[...Array(6)].map((_, i) => (
+      {/* Background + character: cycle every 5 seconds with crossfade */}
+      <AnimatePresence mode="wait">
         <motion.div
-          key={i}
-          className="absolute w-1 h-1 rounded-full"
-          style={{ background: 'hsl(var(--casino-gold) / 0.4)', left: `${15 + i * 14}%`, bottom: '10%' }}
-          animate={{ y: [0, -120 - i * 30, -200], opacity: [0, 0.8, 0], scale: [0.5, 1.2, 0.3] }}
-          transition={{ duration: 3 + i * 0.5, repeat: Infinity, delay: i * 0.7, ease: 'easeOut' }}
-        />
-      ))}
-
-      {/* ── Tip carousel at top (fixed height, no layout shift) ── */}
-      <div className="relative z-10 mt-auto w-full px-3 sm:px-8 max-w-xl">
-        <div
-          className="w-full max-w-md mx-auto px-4 py-2.5 rounded-lg border border-primary/20 text-center overflow-hidden"
-          style={{
-            background: 'hsl(0 0% 8% / 0.7)',
-            backdropFilter: 'blur(6px)',
-            height: '56px',
-          }}
+          key={currentFrame}
+          className="absolute inset-0"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
         >
-          <span
-            className="text-[10px] sm:text-xs tracking-wider block mb-0.5"
-            style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
+          {/* Background with slow zoom-in (per frame) */}
+          <motion.div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${screen.background})` }}
+            animate={{
+              scale: [1, 1.15],
+            }}
+            transition={{
+              duration: FRAME_DURATION,
+              ease: 'easeInOut',
+            }}
+          />
+          {/* Character overlay - position varies per frame, rich animation */}
+          <CharacterOverlay screen={screen} />
+        </motion.div>
+      </AnimatePresence>
+      {/* Dark gradient overlay for readability */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/60 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/70 pointer-events-none" />
+
+      {/* Content area - title + loading bar grouped, clearly separated from messages */}
+      <div className="relative z-10 flex flex-col items-center justify-end min-h-full pb-[180px] sm:pb-[200px] px-4">
+        <div className="w-full max-w-xl mx-auto space-y-5">
+          {/* Title */}
+          <motion.h2
+            className="text-xl sm:text-2xl md:text-3xl tracking-[0.2em] text-center"
+            style={{
+              fontFamily: "'Bebas Neue', sans-serif",
+              color: '#F2D27A',
+              textShadow: '0 2px 20px rgba(0,0,0,0.8)',
+            }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
           >
-            💡 DID YOU KNOW?
-          </span>
-          <div className="relative h-4 overflow-hidden">
-            <AnimatePresence mode="wait">
-              <motion.span
-                key={currentTip}
-                className="text-muted-foreground text-[9px] sm:text-[11px] absolute inset-x-0"
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -14 }}
-                transition={{ duration: 0.35 }}
-              >
-                {DID_YOU_KNOW[currentTip]}
-              </motion.span>
-            </AnimatePresence>
+            {isPublic ? 'FINDING TABLE FOR YOU' : 'CREATING TABLE FOR YOU'}
+          </motion.h2>
+
+          {/* Progress bar - clearly above messages */}
+          <div className="w-full max-w-sm mx-auto">
+            <div
+              className="relative h-2 rounded-full overflow-hidden"
+              style={{
+                background: 'rgba(0,0,0,0.7)',
+                border: '1px solid rgba(242, 210, 122, 0.5)',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.5)',
+              }}
+            >
+              <motion.div
+                className="absolute top-0 left-0 bottom-0 rounded-full"
+                style={{
+                  background: 'linear-gradient(90deg, #C9A227, #F2D27A)',
+                  boxShadow: '0 0 10px rgba(242, 210, 122, 0.5)',
+                }}
+                initial={{ width: '0%' }}
+                animate={{ width: '100%' }}
+                transition={{ duration: LOADING_DURATION, ease: 'linear' }}
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Main content area (bottom-aligned, stable) ── */}
-      <div className="relative z-10 flex flex-col items-center gap-2 sm:gap-3 mb-[3vh] sm:mb-[5vh] w-full px-3 sm:px-8 max-w-xl mt-3">
-        {/* Title */}
-        <motion.h2
-          className="text-lg sm:text-2xl md:text-3xl tracking-[0.12em] text-center"
-          style={{
-            fontFamily: "'Bebas Neue', sans-serif",
-            color: '#F2D27A',
-            textShadow: '0 2px 10px rgba(242, 210, 122, 0.4)',
-          }}
-          initial={{ opacity: 0, scale: 0.7, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 180, damping: 15, delay: 0.1 }}
-        >
-          {isPublic ? 'FINDING TABLE FOR YOU' : 'CREATING TABLE FOR YOU'}
-        </motion.h2>
-
-        {/* Pulsing dots */}
-        <div className="flex gap-1.5">
-          {[0, 1, 2].map(i => (
-            <motion.div
-              key={i}
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ background: 'hsl(var(--casino-gold))' }}
-              animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.2, 0.8] }}
-              transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.3 }}
-            />
-          ))}
-        </div>
-
-        {/* Progress bar */}
-        <div
-          className="relative w-full max-w-sm h-2 sm:h-3 rounded-full overflow-hidden"
-          style={{ border: '1px solid hsl(var(--casino-gold) / 0.5)', background: 'hsl(var(--casino-dark) / 0.6)' }}
-        >
-          <motion.div
-            className="absolute top-0 left-0 bottom-0 rounded-full"
-            style={{
-              background: 'linear-gradient(90deg, hsl(var(--casino-gold)), hsl(45 80% 65%))',
-              boxShadow: '0 0 12px rgba(242, 210, 122, 0.5)',
-            }}
-            initial={{ width: '0%' }}
-            animate={{ width: '100%' }}
-            transition={{ duration: LOADING_DURATION, ease: 'linear' }}
-          />
-          <motion.div
-            className="absolute top-0 bottom-0 w-12 rounded-full"
-            style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)' }}
-            animate={{ left: ['-10%', '110%'] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-          />
-        </div>
-
-        {/* Pot Breakdown */}
-        <motion.div
-          className="w-full mt-1 sm:mt-2 rounded-xl border border-primary/30 overflow-hidden"
-          style={{ background: 'hsl(0 0% 5% / 0.85)', backdropFilter: 'blur(8px)' }}
-          initial={{ opacity: 0, y: 30, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.3 }}
-        >
-          <div className="px-3 py-2 border-b border-primary/20 flex items-center justify-between">
-            <span className="text-xs sm:text-sm tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}>
-              💡 HOW THE POT WORKS
-            </span>
-            <span className="text-muted-foreground text-[9px] sm:text-[10px]">Example hand</span>
-          </div>
-          <div className="flex flex-col">
-            {POT_STEPS.map((step, i) => (
-              <AnimatePresence key={i}>
-                {i < visiblePotSteps && (
-                  <motion.div
-                    className="flex items-center justify-between px-3 py-1.5 sm:py-2"
-                    initial={{ opacity: 0, x: -30, scale: 0.9 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 250, damping: 18 }}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <motion.span className="text-sm sm:text-base shrink-0" animate={{ rotate: [0, -10, 10, 0] }} transition={{ duration: 0.5, delay: 0.2 }}>
-                        {step.icon}
-                      </motion.span>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[10px] sm:text-xs tracking-wider truncate" style={{ fontFamily: "'Bebas Neue', sans-serif", color: `hsl(${step.color})` }}>
-                          {step.label}
-                        </span>
-                        <span className="text-muted-foreground text-[8px] sm:text-[9px] truncate">{step.detail}</span>
-                      </div>
-                    </div>
-                    <motion.span
-                      className="text-sm sm:text-base font-bold shrink-0 ml-2"
-                      style={{ fontFamily: "'Bebas Neue', sans-serif", color: `hsl(${step.color})` }}
-                      initial={{ scale: 0, rotate: -15 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 12, delay: 0.15 }}
-                    >
-                      {step.value}
-                    </motion.span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Revenue Structure */}
-        <AnimatePresence>
-          {visiblePotSteps >= POT_STEPS.length && (
-            <motion.div
-              className="w-full rounded-xl border border-primary/30 overflow-hidden"
-              style={{ background: 'hsl(0 0% 5% / 0.85)', backdropFilter: 'blur(8px)' }}
-              initial={{ opacity: 0, y: 25, scale: 0.92 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 18 }}
-            >
-              <div className="px-3 py-2 border-b border-primary/20 flex items-center justify-between">
-                <span className="text-xs sm:text-sm tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}>
-                  📊 REVENUE STRUCTURE
-                </span>
-                <span className="text-muted-foreground text-[9px] sm:text-[10px]">Per hand</span>
-              </div>
-              <div className="flex flex-col">
-                {REVENUE_STEPS.map((step, i) => (
-                  <AnimatePresence key={i}>
-                    {i < visibleRevenueSteps && (
-                      <motion.div
-                        className={`flex items-center justify-between px-3 py-1.5 sm:py-2 ${step.type === 'winner' ? 'border-t border-primary/30' : ''}`}
-                        style={{
-                          background: step.type === 'winner'
-                            ? 'linear-gradient(90deg, hsl(50 90% 55% / 0.1), transparent)'
-                            : bgForRevenue(step.type),
-                        }}
-                        initial={{ opacity: 0, x: -25, scale: 0.92 }}
-                        animate={{ opacity: 1, x: 0, scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 250, damping: 18 }}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <motion.span
-                            className="text-sm sm:text-base shrink-0"
-                            animate={step.type === 'winner' ? { scale: [1, 1.3, 1] } : { rotate: [0, -8, 8, 0] }}
-                            transition={{ duration: 0.5, delay: 0.1 }}
-                          >
-                            {step.icon}
-                          </motion.span>
-                          <div className="flex flex-col min-w-0">
-                            <span
-                              className="text-[10px] sm:text-xs tracking-wider truncate"
-                              style={{
-                                fontFamily: "'Bebas Neue', sans-serif",
-                                color: step.type === 'winner' ? 'hsl(50 90% 60%)' : `hsl(${step.color})`,
-                              }}
-                            >
-                              {step.label}
-                            </span>
-                            <span className="text-muted-foreground text-[8px] sm:text-[9px] truncate">{step.detail}</span>
-                          </div>
-                        </div>
-                        <motion.span
-                          className={`text-sm sm:text-base font-bold shrink-0 ml-2 ${step.type === 'winner' ? 'text-lg sm:text-xl' : ''}`}
-                          style={{
-                            fontFamily: "'Bebas Neue', sans-serif",
-                            color: step.type === 'winner' ? 'hsl(50 90% 60%)' : step.type === 'deduction' ? 'hsl(0 70% 60%)' : `hsl(${step.color})`,
-                          }}
-                          initial={{ scale: 0, rotate: -10 }}
-                          animate={{ scale: 1, rotate: 0 }}
-                          transition={{ type: 'spring', stiffness: 400, damping: 12, delay: 0.15 }}
-                        >
-                          {step.value}
-                        </motion.span>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Marketing Banner */}
-        <AnimatePresence>
-          {showBanner && (
-            <motion.div
-              className="w-full rounded-xl border-2 border-primary/50 overflow-hidden"
+      {/* Message strip - separate at very bottom, animated style */}
+      <div
+        className="absolute bottom-0 left-0 right-0 z-20 py-6 sm:py-8 px-6 sm:px-10"
+        style={{
+          background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 70%, transparent 100%)',
+        }}
+      >
+        <div className="w-full max-w-2xl mx-auto">
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={currentMessage}
+              className="text-center text-white/95 text-sm sm:text-base leading-relaxed max-w-xl mx-auto"
               style={{
-                background: 'linear-gradient(135deg, hsl(0 0% 8% / 0.9), hsl(40 30% 10% / 0.9))',
-                backdropFilter: 'blur(10px)',
-                boxShadow: '0 0 30px hsl(var(--casino-gold) / 0.15)',
+                fontFamily: "'Cinzel', serif",
+                fontStyle: 'italic',
+                letterSpacing: '0.1em',
+                textShadow: '0 2px 20px rgba(0,0,0,0.95), 0 0 40px rgba(242,210,122,0.15)',
               }}
-              initial={{ opacity: 0, scale: 0.8, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              initial={{ opacity: 0, x: -40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 40 }}
+              transition={{ duration: 0.5 }}
             >
-              <div className="px-4 py-3 text-center">
-                <motion.h3
-                  className="text-base sm:text-lg tracking-wider mb-1.5"
-                  style={{
-                    fontFamily: "'Bebas Neue', sans-serif",
-                    color: 'hsl(var(--casino-gold))',
-                    textShadow: '0 0 15px hsl(var(--casino-gold) / 0.3)',
-                  }}
-                  initial={{ y: -8, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2, type: 'spring' }}
-                >
-                  {banner.title}
-                </motion.h3>
-                {banner.lines.map((line, i) => (
-                  <motion.p
-                    key={i}
-                    className="text-muted-foreground text-[9px] sm:text-[11px] leading-relaxed"
-                    initial={{ opacity: 0, x: -15 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.35 + i * 0.15 }}
-                  >
-                    • {line}
-                  </motion.p>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              {LOADING_MESSAGES[currentMessage]}
+            </motion.p>
+          </AnimatePresence>
+          <motion.div
+            className="h-px w-16 sm:w-24 mx-auto mt-4 opacity-60"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(242,210,122,0.8), transparent)' }}
+            animate={{ opacity: [0.4, 0.8, 0.4] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </div>
       </div>
     </motion.div>
   );

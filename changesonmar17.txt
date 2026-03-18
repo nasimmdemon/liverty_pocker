@@ -1,0 +1,37 @@
+Liberty Poker - Completed Tasks
+Date: March 17, 2026
+
+1. Commission with real players – Verified and ensured the rake/commission system works correctly in multiplayer games with real players (not just test mode); hostId, inviterId, isPrivateTable, and referredBy are passed through game state and used in rake calculation
+
+2. Profile page – Built new profile page at /profile showing:
+   - User avatar and display name
+   - Who referred me (invited by) – displays referrer's name and avatar if user signed up via referral link
+   - People joined from my referral – count of users who joined via my referral link
+   - Friends I referred – list of referred users with avatar, name, and status (invited/joined/played)
+   - Invite more friends button linking to referral page
+
+3. Profile navigation – Added PROFILE button (with user icon) on the main start screen; made it visible with text label; added /profile route in App.tsx
+
+4. getReferrerInfoByUid – New helper in referrals.ts to fetch referrer's display name and photo by userId for profile "invited by" section
+
+5. GTA 5-style loading screen – Replaced loading screen when joining a table:
+   - Uses 4 backgrounds and 4 characters from public/loading_screen folder
+   - 20 second total duration, 4 frames shown for 5 seconds each
+   - Background: slow zoom-in only (no zoom out)
+   - Character: single slow zoom-in effect (scale 0.95 → 1.08 over 5 seconds)
+
+6. Loading screen frame order and positions:
+   - Frame 1: dog2.png – left side
+   - Frame 2: cat_loading_carecter.png – center
+   - Frame 3: rat_loading_carecter.png – right side
+   - Frame 4: cat_2.png – center
+
+7. Loading screen character image fixes – Corrected filename typos so all 4 characters load:
+   - cat_loading_carecter.png (was carectrer)
+   - rat_loading_carecter.png (was carectrer)
+
+8. Loading screen layout – Separated loading bar and messages; loading bar moved higher with clear spacing; messages in dedicated strip at bottom
+
+9. Loading screen messages – Movie-style design: Cinzel italic font, gradient bar at bottom, gold accent line, slide-in/slide-out animation when cycling; sequential professional messages (30% commission, 10% host, poker tips, etc.)
+
+10. Image preloading – All 4 backgrounds and 4 character images preloaded on mount so they display immediately when frame switches
