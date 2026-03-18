@@ -154,15 +154,15 @@ const Index = () => {
 
   return (
     <div className="min-h-[100dvh] h-[100dvh] overflow-hidden flex flex-col">
-      {/* Mobile: block play in landscape — portrait only (browser + add-to-home-screen) */}
-      {isLandscapeOnMobile && (
+      {/* Mobile: block play in portrait — landscape only */}
+      {isPortraitOnMobile && (
         <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6 text-center">
           <RotateCw className="w-16 h-16 text-primary mb-4 animate-pulse" />
           <h2 className="text-xl font-bold text-primary mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-            Please rotate to portrait
+            Please rotate to landscape
           </h2>
           <p className="text-muted-foreground text-sm">
-            Liberty Poker is playable only in portrait mode. Please rotate your device to continue.
+            Liberty Poker is best played in landscape mode. Please rotate your device to continue.
           </p>
         </div>
       )}
