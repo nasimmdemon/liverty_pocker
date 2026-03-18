@@ -42,7 +42,7 @@ interface MultiplayerConfig {
 const Index = () => {
   const [searchParams] = useSearchParams();
   const { showPrompt: showAddToHomeScreen, platform } = useAddToHomeScreen();
-  const isLandscapeOnMobile = useIsLandscapeOnMobile();
+  const isPortraitOnMobile = useIsPortraitOnMobile();
   const joinCodeFromUrl = searchParams.get('join');
   const refCodeFromUrl = searchParams.get('ref');
 
