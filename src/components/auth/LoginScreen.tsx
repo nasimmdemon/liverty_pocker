@@ -16,7 +16,7 @@ interface LoginScreenProps {
 }
 
 const LoginScreen = ({ refCodeFromUrl }: LoginScreenProps) => {
-  const { signInWithEmail, signUpWithEmail, signInWithGoogle, signInAsGuest } = useAuth();
+  const { signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
   const [referrer, setReferrer] = useState<{ displayName: string; photoURL: string | null } | null>(null);
 
   useEffect(() => {
@@ -61,18 +61,7 @@ const LoginScreen = ({ refCodeFromUrl }: LoginScreenProps) => {
     }
   };
 
-  const handleGuestPlay = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      await signInAsGuest();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Something went wrong';
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   return (
     <motion.div
