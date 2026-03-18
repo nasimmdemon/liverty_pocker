@@ -151,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithEmail,
     signUpWithEmail,
     signInWithGoogle,
+    signInAsGuest,
     signOut,
     incrementBotMatches,
     canInviteFriends,
