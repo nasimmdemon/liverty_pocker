@@ -70,7 +70,7 @@ const Index = () => {
       bigBlind,
       isPublic: true,
       gameMode: mode,
-      turnTimer: mode === 'tournament' ? 45 : 30,
+      turnTimer: 10,
       cardBack,
     });
     setScreen('loading');
