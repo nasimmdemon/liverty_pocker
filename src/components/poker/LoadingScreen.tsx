@@ -119,11 +119,11 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
     return () => clearInterval(interval);
   }, []);
 
-  // Cycle messages one by one at bottom (every ~2.5 seconds)
+  // Cycle messages every 4 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentMessage((p) => (p + 1) % LOADING_MESSAGES.length);
-    }, 2500);
+    }, 4000);
     return () => clearInterval(interval);
   }, []);
 
