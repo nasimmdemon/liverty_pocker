@@ -215,7 +215,7 @@ function TimerRingPreview() {
 function FoldFadePreview() {
   return (
     <div className="flex gap-3">
-      {[{ suit: '♠' as const, rank: '7', faceUp: true }, { suit: '♦' as const, rank: '2', faceUp: true }].map((c, i) => (
+      {[{ suit: '♠' as const, rank: '7' as Rank, faceUp: true }, { suit: '♦' as const, rank: '2' as Rank, faceUp: true }].map((c, i) => (
         <motion.div key={i} initial={{ opacity: 1, y: 0, rotateZ: 0 }}
           animate={{ opacity: 0, y: 30, rotateZ: i === 0 ? -15 : 15 }}
           transition={{ delay: 0.5 + i * 0.1, duration: 0.6, ease: 'easeIn' }}
