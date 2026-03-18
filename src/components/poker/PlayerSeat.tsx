@@ -22,6 +22,8 @@ interface PlayerSeatProps {
   winnerBestCards?: PlayingCard[];
   /** Override chips display (e.g. pre-win balance during chip fly animation) */
   displayChips?: number;
+  /** Face-down card back image */
+  cardBack?: string;
 }
 
 const NamePlate = ({ player, isTopSeat, hasWinningBar, displayChips }: { player: Player; isTopSeat: boolean; hasWinningBar?: boolean; displayChips?: number }) => {
@@ -72,7 +74,7 @@ const PlayerSeat = ({
   player, seatIndex, onClickAvatar,
   timerProgress = 0, isDealer = false, isSmallBlind = false, isBigBlind = false,
   isWinner = false, isMobile = false, isLandscapeMobile = false,
-  isShowdown = false, chatBubble = null, winChance, winnerBestCards = [], displayChips,
+  isShowdown = false, chatBubble = null, winChance, winnerBestCards = [], displayChips, cardBack,
 }: PlayerSeatProps) => {
   const isTurn = player.isTurn;
   const hasFolded = player.hasFolded;
@@ -155,6 +157,7 @@ const PlayerSeat = ({
                 index={i}
                 isPlayerCard
                 isHighlighted={isWinner && isInBestHand(card)}
+                cardBack={cardBack}
               />
             </div>
           ))}
@@ -286,6 +289,7 @@ const PlayerSeat = ({
                 index={i}
                 isPlayerCard
                 isHighlighted={isWinner && isInBestHand(card)}
+                cardBack={cardBack}
               />
             </div>
           ))}

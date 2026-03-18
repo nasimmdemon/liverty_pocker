@@ -23,6 +23,7 @@ export default function MultiplayerPokerTable({
   isLandscapeMobile = false,
 }: MultiplayerPokerTableProps) {
   const [room, setRoom] = useState<GameRoom | null>(initialRoom);
+  const [cardBack] = useState(() => Math.random() < 0.5 ? '/card_bg_1.png' : '/card_bg_2.png');
 
   useEffect(() => {
     return subscribeToGame(gameId, setRoom);
@@ -60,6 +61,7 @@ export default function MultiplayerPokerTable({
         initialBuyIn={room.buyIn}
         onExit={handleExit}
         isLandscapeMobile={isLandscapeMobile}
+        cardBack={cardBack}
         multiplayer={{
         gameId,
         currentUserId,

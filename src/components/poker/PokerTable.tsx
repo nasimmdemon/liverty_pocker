@@ -117,6 +117,7 @@ interface PokerTableProps {
   isTestingTable?: boolean;
   gameMode?: 'tournament' | 'sit-and-go';
   testCommission?: import('@/lib/gameLogic').TestCommissionConfig;
+  cardBack?: string;
   onExit?: () => void;
   isLandscapeMobile?: boolean;
   seatAnchorOverrides?: {
@@ -126,7 +127,10 @@ interface PokerTableProps {
   multiplayer?: MultiplayerConfig;
 }
 
-const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlind = 10, turnTimer: turnTimerProp, isTestingTable = false, gameMode = 'sit-and-go', testCommission, onExit, isLandscapeMobile = false, seatAnchorOverrides, multiplayer }: PokerTableProps) => {
+const DEFAULT_CARD_BACK = '/card_bg_1.png';
+
+const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlind = 10, turnTimer: turnTimerProp, isTestingTable = false, gameMode = 'sit-and-go', testCommission, cardBack: cardBackProp, onExit, isLandscapeMobile = false, seatAnchorOverrides, multiplayer }: PokerTableProps) => {
+  const cardBack = cardBackProp ?? DEFAULT_CARD_BACK;
   const TURN_DURATION = turnTimerProp ?? DEFAULT_TURN_DURATION;
   const isMultiplayer = !!multiplayer;
   const [internalGameState, setInternalGameState] = useState<GameState | null>(null);
@@ -731,6 +735,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
                   index={i}
                   onReveal={playCardRevealSound}
                   isHighlighted={gameState.showdown && isInBestHand}
+                  cardBack={cardBack}
                 />
               );
             })}
@@ -831,6 +836,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
                   chatBubble={mutedPlayerIds.has(player.id) ? null : (displayedChatBubbles[player.id] ?? null)}
                   winChance={player.isUser ? userWinChance : undefined}
                   displayChips={winAnimation && (gameState.winnerIds?.includes(player.id) ?? player.id === gameState.winnerId) && winnersPreWinBalance[player.id] != null ? winnersPreWinBalance[player.id] : undefined}
+                  cardBack={cardBack}
                 />
               </div>
             );

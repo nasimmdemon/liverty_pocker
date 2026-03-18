@@ -28,6 +28,7 @@ interface TableConfig {
   isPublic?: boolean;
   gameMode?: 'tournament' | 'sit-and-go';
   testCommission?: import('@/lib/gameLogic').TestCommissionConfig;
+  cardBack?: string;
 }
 
 interface MultiplayerConfig {
@@ -58,7 +59,7 @@ const Index = () => {
   const handlePlay = useCallback(() => setScreen('sitandgo'), []);
   const handleLoadingComplete = useCallback(() => setScreen('table'), []);
 
-  const handleJoinTable = useCallback((buyIn: number, smallBlind: number, bigBlind: number, gameMode?: 'tournament' | 'sit-and-go') => {
+  const handleJoinTable = useCallback((buyIn: number, smallBlind: number, bigBlind: number, gameMode?: 'tournament' | 'sit-and-go', cardBack?: string) => {
     const mode = gameMode ?? 'sit-and-go';
     setTableConfig({
       buyIn,
@@ -67,6 +68,7 @@ const Index = () => {
       isPublic: true,
       gameMode: mode,
       turnTimer: mode === 'tournament' ? 45 : 30,
+      cardBack,
     });
     setScreen('loading');
   }, []);
@@ -82,6 +84,7 @@ const Index = () => {
       botCount: config.botCount,
       isTestingTable: true,
       testCommission: config.testCommission,
+      cardBack: config.cardBack,
     });
     setScreen('loading');
   }, []);
@@ -196,6 +199,7 @@ const Index = () => {
           isTestingTable={tableConfig.isTestingTable}
           gameMode={tableConfig.gameMode}
           testCommission={tableConfig.testCommission}
+          cardBack={tableConfig.cardBack}
           onExit={handleExitTable}
           isLandscapeMobile={isLandscapeOnMobile}
         />

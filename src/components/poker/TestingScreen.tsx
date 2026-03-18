@@ -18,6 +18,7 @@ export interface TestingConfig {
   startingChips: number;
   turnTimer: number;
   testCommission?: TestCommissionConfig;
+  cardBack?: string;
 }
 
 const TestingScreen = ({ onStartGame, onBack }: TestingScreenProps) => {
@@ -43,6 +44,7 @@ const TestingScreen = ({ onStartGame, onBack }: TestingScreenProps) => {
   };
 
   const handleStart = () => {
+    const cardBack = Math.random() < 0.5 ? '/card_bg_1.png' : '/card_bg_2.png';
     onStartGame({
       botCount,
       smallBlind,
@@ -52,6 +54,7 @@ const TestingScreen = ({ onStartGame, onBack }: TestingScreenProps) => {
       testCommission: commissionTest
         ? { affiliatePlayerIndex, hostPlayerIndex, inviterPlayerIndex, isPrivateTable }
         : undefined,
+      cardBack,
     });
   };
 

@@ -63,6 +63,10 @@ const TIERS: TierData[] = [
 // Free play option (always visible under Public)
 const FREE_SIT_AND_GO = { small: 0.01, big: 0.02, label: '0.01 / 0.02' };
 
+// Card backs: Sit & Go = card 1, Tournament = card 2
+const CARD_BACK_SIT_AND_GO = '/card_bg_1.png';
+const CARD_BACK_TOURNAMENT = '/card_bg_2.png';
+
 // ── Types ──────────────────────────────────────────────────
 type GameMode = 'tournament' | 'sit-and-go';
 type TableType = 'public' | 'private';
@@ -70,7 +74,7 @@ type TableType = 'public' | 'private';
 const BOT_MATCHES_REQUIRED = 3;
 
 interface SitAndGoScreenProps {
-  onJoinTable: (buyIn: number, smallBlind: number, bigBlind: number, gameMode?: 'tournament' | 'sit-and-go') => void;
+  onJoinTable: (buyIn: number, smallBlind: number, bigBlind: number, gameMode?: 'tournament' | 'sit-and-go', cardBack?: string) => void;
   onBack: () => void;
   onTestingMode?: () => void;
   canInviteFriends?: boolean;
@@ -234,7 +238,8 @@ const SitAndGoScreen = ({
 
   const handleJoin = () => {
     const stake = selectedStake ?? FREE_SIT_AND_GO;
-    onJoinTable(entranceAmount, stake.small, stake.big, gameMode);
+    const cardBack = gameMode === 'sit-and-go' ? CARD_BACK_SIT_AND_GO : CARD_BACK_TOURNAMENT;
+    onJoinTable(entranceAmount, stake.small, stake.big, gameMode, cardBack);
   };
 
   const handleTierSelect = (small: number, big: number) => {
