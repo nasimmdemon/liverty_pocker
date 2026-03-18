@@ -4,7 +4,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { RotateCw } from 'lucide-react';
 import { useAddToHomeScreen } from '@/hooks/use-add-to-home-screen';
-import { useIsLandscapeOnMobile } from '@/hooks/use-orientation';
+import { useIsPortraitOnMobile } from '@/hooks/use-orientation';
 import AddToHomeScreenOverlay from '@/components/AddToHomeScreenOverlay';
 import LoginScreen from '@/components/auth/LoginScreen';
 import StartScreen from '@/components/poker/StartScreen';
