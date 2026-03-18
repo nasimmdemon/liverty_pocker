@@ -63,17 +63,39 @@ function preloadLoadingImages() {
   });
 }
 
-const LOADING_MESSAGES = [
-  'Earn 30% commission for life from every hand your invited players play.',
-  'Host private tables and earn 10% of the total rake from your games.',
-  'The best poker players fold 70–80% of their hands. Patience pays.',
-  'Position matters — late position gives you more information and control.',
-  'A Royal Flush has a 1 in 649,739 chance of being dealt.',
-  'Texas Hold\'em became popular after the 2003 World Series of Poker.',
-  'Reading your opponents is often more valuable than reading the cards.',
-  'Invite friends to play and earn a share of every pot they rake.',
-  'The pot grows from small blind, big blind, and all bets and calls.',
-  'House rake is 5% of each pot. Affiliates earn 30%, hosts earn 10%.',
+type MessagePart = { text: string; highlight?: boolean };
+
+const LOADING_MESSAGES: MessagePart[][] = [
+  [
+    { text: 'Earn ' },
+    { text: '30%', highlight: true },
+    { text: ' from invited players — ' },
+    { text: 'for life.', highlight: true },
+  ],
+  [
+    { text: 'Host games. Earn ' },
+    { text: '10%', highlight: true },
+    { text: ' of rake.' },
+  ],
+  [
+    { text: 'Invite friends. Earn ' },
+    { text: '10%', highlight: true },
+    { text: ' bonuses.' },
+  ],
+  [
+    { text: 'Auto payouts — ' },
+    { text: 'every week.', highlight: true },
+  ],
+  [
+    { text: 'The best players fold ' },
+    { text: '70–80%', highlight: true },
+    { text: ' of their hands.' },
+  ],
+  [
+    { text: 'House rake is ' },
+    { text: '5%', highlight: true },
+    { text: ' of each pot.' },
+  ],
 ];
 
 const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
