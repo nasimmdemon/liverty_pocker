@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Check, X } from 'lucide-react';
+import { Copy, Check, X, Percent } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,7 @@ interface CreateGameModalProps {
   hostName: string;
   hostPhotoURL: string | null;
   onCreated: (room: import('@/lib/multiplayer').GameRoom) => void;
-  inviterId?: string;      // UID of who referred the host (for private table rake)
+  inviterId?: string;
   isPrivateTable?: boolean;
 }
 
@@ -37,6 +37,13 @@ const CreateGameModal = ({
   const [buyIn, setBuyIn] = useState(1500);
   const [smallBlind, setSmallBlind] = useState(5);
   const [bigBlind, setBigBlind] = useState(10);
+  const [turnTimer, setTurnTimer] = useState(10);
+  const [botCount, setBotCount] = useState(0);
+  const [gameMode, setGameMode] = useState<'tournament' | 'sit-and-go'>('sit-and-go');
+  const [commissionTest, setCommissionTest] = useState(false);
+  const [affiliatePlayerIndex, setAffiliatePlayerIndex] = useState(0);
+  const [hostPlayerIndex, setHostPlayerIndex] = useState(1);
+  const [inviterPlayerIndex, setInviterPlayerIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [created, setCreated] = useState<{ gameId: string; inviteCode: string; room: import('@/lib/multiplayer').GameRoom } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -76,9 +83,12 @@ const CreateGameModal = ({
     setCreated(null);
   };
 
+  const inputClass = 'bg-background/80 border-2 border-primary/40 rounded-lg px-3 py-2 text-foreground text-sm font-bold text-center focus:outline-none focus:border-primary w-full';
+  const labelClass = 'text-xs tracking-wider text-muted-foreground uppercase';
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-background border-2 border-primary/50">
+      <DialogContent className="sm:max-w-md bg-background border-2 border-primary/50 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display text-primary">Create Multiplayer Game</DialogTitle>
         </DialogHeader>
@@ -89,38 +99,111 @@ const CreateGameModal = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="space-y-4"
+              className="space-y-3"
             >
-              <div className="grid gap-2">
-                <Label>Buy-in ($)</Label>
-                <Input
-                  type="number"
-                  min={100}
-                  max={100000}
-                  value={buyIn}
-                  onChange={(e) => setBuyIn(Number(e.target.value))}
-                />
+              {/* Buy-in */}
+              <div className="grid gap-1" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                <label className={labelClass}>Buy-in ($)</label>
+                <input type="number" min={100} max={100000} value={buyIn} onChange={e => setBuyIn(Number(e.target.value))} className={inputClass} />
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label>Small Blind</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={smallBlind}
-                    onChange={(e) => setSmallBlind(Number(e.target.value))}
-                  />
+
+              {/* Blinds */}
+              <div className="grid grid-cols-2 gap-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                <div className="grid gap-1">
+                  <label className={labelClass}>Small Blind</label>
+                  <input type="number" min={1} value={smallBlind} onChange={e => setSmallBlind(Number(e.target.value))} className={inputClass} />
                 </div>
-                <div>
-                  <Label>Big Blind</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={bigBlind}
-                    onChange={(e) => setBigBlind(Number(e.target.value))}
-                  />
+                <div className="grid gap-1">
+                  <label className={labelClass}>Big Blind</label>
+                  <input type="number" min={1} value={bigBlind} onChange={e => setBigBlind(Number(e.target.value))} className={inputClass} />
                 </div>
               </div>
+
+              {/* Turn Timer */}
+              <div className="grid gap-1" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                <label className={labelClass}>Turn Timer (seconds)</label>
+                <input type="number" min={5} max={60} value={turnTimer} onChange={e => setTurnTimer(Number(e.target.value))} className={inputClass} />
+              </div>
+
+              {/* Bot count */}
+              <div className="grid gap-1" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                <label className={labelClass}>Bots to fill empty seats (0-5)</label>
+                <input type="number" min={0} max={5} value={botCount} onChange={e => setBotCount(Math.max(0, Math.min(5, Number(e.target.value))))} className={inputClass} />
+              </div>
+
+              {/* Game Mode */}
+              <div className="grid gap-1" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                <label className={labelClass}>Game Mode</label>
+                <div className="flex gap-2">
+                  {(['sit-and-go', 'tournament'] as const).map(mode => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setGameMode(mode)}
+                      className={`flex-1 py-2 text-xs tracking-wider rounded-lg border-2 transition-all ${
+                        gameMode === mode
+                          ? 'border-primary/60 bg-primary/15 text-primary'
+                          : 'border-primary/20 text-muted-foreground hover:border-primary/40'
+                      }`}
+                    >
+                      {mode === 'sit-and-go' ? 'SIT & GO' : 'TOURNAMENT'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Commission test toggle */}
+              <div
+                className="rounded-xl overflow-hidden"
+                style={{
+                  background: 'linear-gradient(145deg, rgba(30,28,24,0.9) 0%, rgba(18,16,14,0.95) 100%)',
+                  border: '1px solid rgba(242,210,122,0.25)',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setCommissionTest(!commissionTest)}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.03] transition-colors"
+                >
+                  <div className={`relative w-10 h-5 rounded-full flex-shrink-0 transition-colors duration-200 ${commissionTest ? 'bg-primary/90' : 'bg-muted/60'}`}>
+                    <motion.div
+                      className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-md"
+                      animate={{ x: commissionTest ? 18 : 0 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  </div>
+                  <Percent className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <span className="text-xs font-medium text-foreground">Commission test</span>
+                  <span className="text-[10px] text-muted-foreground ml-auto">affiliate · host · inviter</span>
+                </button>
+                <AnimatePresence>
+                  {commissionTest && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-3 pt-1 grid grid-cols-3 gap-2 border-t border-white/5">
+                        <div className="grid gap-1">
+                          <label className="text-[10px] text-muted-foreground uppercase">Affiliate</label>
+                          <input type="number" min={0} max={5} value={affiliatePlayerIndex} onChange={e => setAffiliatePlayerIndex(Math.max(0, Math.min(5, Number(e.target.value))))} className={`${inputClass} text-xs`} />
+                        </div>
+                        <div className="grid gap-1">
+                          <label className="text-[10px] text-muted-foreground uppercase">Host</label>
+                          <input type="number" min={0} max={5} value={hostPlayerIndex} onChange={e => setHostPlayerIndex(Math.max(0, Math.min(5, Number(e.target.value))))} className={`${inputClass} text-xs`} />
+                        </div>
+                        <div className="grid gap-1">
+                          <label className="text-[10px] text-muted-foreground uppercase">Inviter</label>
+                          <input type="number" min={0} max={5} value={inviterPlayerIndex} onChange={e => setInviterPlayerIndex(Math.max(0, Math.min(5, Number(e.target.value))))} className={`${inputClass} text-xs`} />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               <Button
                 className="w-full casino-btn"
                 onClick={handleCreate}
