@@ -61,18 +61,7 @@ const LoginScreen = ({ refCodeFromUrl }: LoginScreenProps) => {
     }
   };
 
-  const handleGuestPlay = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      await signInAsGuest();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Something went wrong';
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   return (
     <motion.div
