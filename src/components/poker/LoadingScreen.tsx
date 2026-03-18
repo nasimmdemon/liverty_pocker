@@ -6,8 +6,8 @@ interface LoadingScreenProps {
   isPublic?: boolean;
 }
 
-const LOADING_DURATION = 20;
-const FRAME_DURATION = 5; // Switch background + character every 5 seconds
+const LOADING_DURATION = 24;
+const FRAME_DURATION = 6;
 
 type CharacterPosition = 'left' | 'center' | 'right';
 
