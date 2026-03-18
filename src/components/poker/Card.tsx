@@ -36,7 +36,7 @@ const Card = ({ card, delay = 0, isPlayerCard = false, onReveal, isHighlighted =
         transition={{ delay, duration: 0.7, type: 'spring', stiffness: 120, damping: 14 }}
         className="w-10 h-[56px] sm:w-[48px] sm:h-[66px] rounded-lg border border-border/60 overflow-hidden"
         style={{
-          backgroundImage: 'url(/cat_card.png)',
+          backgroundImage: 'url(/card_bg.png)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           boxShadow: '0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)',
