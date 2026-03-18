@@ -211,7 +211,7 @@ const Index = () => {
           testCommission={tableConfig.testCommission}
           cardBack={tableConfig.cardBack}
           onExit={handleExitTable}
-          isLandscapeMobile={isLandscapeOnMobile}
+          isLandscapeMobile={isPortraitOnMobile}
         />
       )}
       {screen === 'multiplayer-lobby' && multiplayerConfig && (
