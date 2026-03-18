@@ -4,7 +4,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { RotateCw } from 'lucide-react';
 import { useAddToHomeScreen } from '@/hooks/use-add-to-home-screen';
-import { useIsLandscapeOnMobile } from '@/hooks/use-orientation';
+import { useIsPortraitOnMobile } from '@/hooks/use-orientation';
 import AddToHomeScreenOverlay from '@/components/AddToHomeScreenOverlay';
 import LoginScreen from '@/components/auth/LoginScreen';
 import StartScreen from '@/components/poker/StartScreen';
@@ -42,7 +42,7 @@ interface MultiplayerConfig {
 const Index = () => {
   const [searchParams] = useSearchParams();
   const { showPrompt: showAddToHomeScreen, platform } = useAddToHomeScreen();
-  const isLandscapeOnMobile = useIsLandscapeOnMobile();
+  const isPortraitOnMobile = useIsPortraitOnMobile();
   const joinCodeFromUrl = searchParams.get('join');
   const refCodeFromUrl = searchParams.get('ref');
 
@@ -154,15 +154,15 @@ const Index = () => {
 
   return (
     <div className="min-h-[100dvh] h-[100dvh] overflow-hidden flex flex-col">
-      {/* Mobile: block play in landscape — portrait only (browser + add-to-home-screen) */}
-      {isLandscapeOnMobile && (
+      {/* Mobile: block play in portrait — landscape only */}
+      {isPortraitOnMobile && (
         <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6 text-center">
           <RotateCw className="w-16 h-16 text-primary mb-4 animate-pulse" />
           <h2 className="text-xl font-bold text-primary mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-            Please rotate to portrait
+            Please rotate to landscape
           </h2>
           <p className="text-muted-foreground text-sm">
-            Liberty Poker is playable only in portrait mode. Please rotate your device to continue.
+            Liberty Poker is best played in landscape mode. Please rotate your device to continue.
           </p>
         </div>
       )}
@@ -211,7 +211,7 @@ const Index = () => {
           testCommission={tableConfig.testCommission}
           cardBack={tableConfig.cardBack}
           onExit={handleExitTable}
-          isLandscapeMobile={isLandscapeOnMobile}
+          isLandscapeMobile={isPortraitOnMobile}
         />
       )}
       {screen === 'multiplayer-lobby' && multiplayerConfig && (
@@ -238,7 +238,7 @@ const Index = () => {
           isHost={multiplayerConfig.isHost}
           initialRoom={multiplayerConfig.room!}
           onExit={() => { setScreen('start'); setMultiplayerConfig(null); }}
-          isLandscapeMobile={isLandscapeOnMobile}
+          isLandscapeMobile={isPortraitOnMobile}
         />
       )}
     </AnimatePresence>
