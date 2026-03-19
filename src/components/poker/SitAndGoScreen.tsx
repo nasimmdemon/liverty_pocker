@@ -742,6 +742,101 @@ const SitAndGoScreen = ({
         </div>
       )}
 
+      {/* Private: Create or Join table */}
+      {tableType === 'private' && (
+        <motion.div
+          className="relative z-10 flex-1 flex flex-col items-center justify-center gap-6 px-4 pb-8 max-w-lg mx-auto w-full"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <h2
+            className="text-lg sm:text-2xl tracking-wider"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
+          >
+            CREATE OR JOIN TABLE
+          </h2>
+          <p className="text-muted-foreground text-[10px] sm:text-xs text-center max-w-sm mb-2">
+            Create your own table or join an existing game with a code.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 w-full max-w-md">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <motion.button
+                    className="group flex flex-col items-center gap-3 px-8 sm:px-12 py-6 sm:py-8 rounded-2xl border-2 border-primary/40 hover:border-primary transition-all w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                    style={{
+                      background: 'linear-gradient(180deg, hsl(220 55% 18%) 0%, hsl(220 50% 10%) 100%)',
+                    }}
+                    onClick={() => canInviteFriends && setShowCreateModal(true)}
+                    disabled={!canInviteFriends}
+                    whileHover={canInviteFriends ? { scale: 1.03 } : {}}
+                    whileTap={canInviteFriends ? { scale: 0.98 } : {}}
+                  >
+                    <Users className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
+                    <span
+                      className="text-xl sm:text-2xl tracking-wider"
+                      style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
+                    >
+                      CREATE GAME
+                    </span>
+                    <span className="text-muted-foreground text-[10px] sm:text-xs max-w-[140px] text-center">
+                      Host a table and invite friends with a link
+                    </span>
+                    {!canInviteFriends && (
+                      <span className="text-[10px] text-primary/80 mt-1">
+                        ({botMatchesPlayed}/{BOT_MATCHES_REQUIRED} bot matches to unlock)
+                      </span>
+                    )}
+                  </motion.button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {canInviteFriends
+                    ? 'Create a game and invite friends'
+                    : `Play ${BOT_MATCHES_REQUIRED} bot matches to unlock`}
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <motion.button
+                    className="group flex flex-col items-center gap-3 px-8 sm:px-12 py-6 sm:py-8 rounded-2xl border-2 border-primary/40 hover:border-primary transition-all w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                    style={{
+                      background: 'linear-gradient(180deg, hsl(140 55% 18%) 0%, hsl(140 50% 10%) 100%)',
+                    }}
+                    onClick={() => canInviteFriends && setShowJoinModal(true)}
+                    disabled={!canInviteFriends}
+                    whileHover={canInviteFriends ? { scale: 1.03 } : {}}
+                    whileTap={canInviteFriends ? { scale: 0.98 } : {}}
+                  >
+                    <UserPlus className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
+                    <span
+                      className="text-xl sm:text-2xl tracking-wider"
+                      style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
+                    >
+                      JOIN GAME
+                    </span>
+                    <span className="text-muted-foreground text-[10px] sm:text-xs max-w-[140px] text-center">
+                      Enter a code to join an existing table
+                    </span>
+                    {!canInviteFriends && (
+                      <span className="text-[10px] text-primary/80 mt-1">
+                        ({botMatchesPlayed}/{BOT_MATCHES_REQUIRED} bot matches to unlock)
+                      </span>
+                    )}
+                  </motion.button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {canInviteFriends
+                    ? 'Join a game with invite code'
+                    : `Play ${BOT_MATCHES_REQUIRED} bot matches to unlock`}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </motion.div>
+      )}
+
       {/* Create/Join modals — for private */}
       {tableType === 'private' && (
         <>
