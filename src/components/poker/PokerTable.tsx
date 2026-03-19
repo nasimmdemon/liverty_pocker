@@ -733,7 +733,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           {/* Community cards — floating on felt; highlight winning hand cards at showdown */}
           <div
             className="community-cards-area absolute left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1.5 sm:gap-2"
-            style={{ top: isCompact ? '48%' : '42%' }}
+            style={{ top: isLandscapeMobile ? '52%' : isCompact ? '48%' : '42%' }}
           >
             {gameState.communityCards.map((card, i) => {
               const bestCards = gameState.showdown ? (gameState.winnerBestCards ?? []) : [];
