@@ -344,6 +344,19 @@ function ScreenFadePreview() {
   );
 }
 
+function LoadingScreenLivePreview() {
+  const [key, setKey] = useState(0);
+  return (
+    <div className="relative w-full h-64 rounded-xl overflow-hidden border border-primary/20">
+      <div className="absolute inset-0" style={{ transform: 'scale(1)', transformOrigin: 'top left' }}>
+        <div className="w-full h-full relative overflow-hidden">
+          <LoadingScreen onComplete={() => setKey(k => k + 1)} isPublic={true} key={key} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Main Component ── */
 
 const TestingScreen = ({ onStartGame, onBack }: TestingScreenProps) => {
