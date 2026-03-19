@@ -347,24 +347,8 @@ function ScreenFadePreview() {
 function LoadingScreenLivePreview() {
   const [key, setKey] = useState(0);
   return (
-    <div className="relative w-full rounded-xl overflow-hidden border border-primary/20" style={{ height: '280px' }}>
-      <div
-        style={{
-          position: 'absolute',
-          width: '200%',
-          height: '200%',
-          transform: 'scale(0.5)',
-          transformOrigin: 'top left',
-          pointerEvents: 'none',
-        }}
-      >
-        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-          {/* Override fixed positioning by containing it */}
-          <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', contain: 'layout size style' }}>
-            <LoadingScreen onComplete={() => setKey(k => k + 1)} isPublic={true} key={key} />
-          </div>
-        </div>
-      </div>
+    <div className="relative w-full rounded-xl overflow-hidden border border-primary/20" style={{ height: '300px' }}>
+      <LoadingScreen onComplete={() => setKey(k => k + 1)} isPublic={true} embedded={true} key={key} />
     </div>
   );
 }
