@@ -68,36 +68,36 @@ type MessagePart = { text: string; highlight?: boolean };
 
 const LOADING_MESSAGES: MessagePart[][] = [
   [
-    { text: 'Earn ' },
+    { text: 'Host games. Earn ' },
     { text: '10%', highlight: true },
-    { text: ' from hosting games. ' },
-    { text: 'Average yearly ROI: 16%', highlight: true },
+    { text: ' — ' },
+    { text: '16% yearly ROI.', highlight: true },
   ],
   [
     { text: 'Earn ' },
     { text: '30% for life', highlight: true },
-    { text: ' on every hand your recruits play. ' },
-    { text: 'Just share your link — no extra steps required.', highlight: false },
+    { text: ' from recruits. ' },
+    { text: 'Just share your link.', highlight: false },
   ],
   [
-    { text: 'Earn ' },
+    { text: 'Organize private tables. Earn ' },
     { text: '10%', highlight: true },
-    { text: ' from organizing private tables. ' },
-    { text: 'Stackable with affiliate and hosting rewards.', highlight: true },
+    { text: ' — ' },
+    { text: 'stackable.', highlight: true },
   ],
   [
-    { text: 'Automatic payouts — ' },
+    { text: 'Auto payouts — ' },
     { text: 'every 3 days.', highlight: true },
   ],
   [
-    { text: 'The best players fold ' },
+    { text: 'Best players fold ' },
     { text: '70–80%', highlight: true },
-    { text: ' of their hands.' },
+    { text: ' of hands.' },
   ],
   [
-    { text: 'House rake is ' },
+    { text: 'House rake: ' },
     { text: '5%', highlight: true },
-    { text: ' of each pot.' },
+    { text: ' per pot.' },
   ],
 ];
 
