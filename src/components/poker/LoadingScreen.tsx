@@ -245,8 +245,6 @@ const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: Loadin
                 className="text-center leading-relaxed"
                 style={{
                   fontSize: 'clamp(0.7rem, 2vh, 1rem)',
-                }}
-                style={{
                   fontFamily: "'Cinzel', serif",
                   color: '#F2D27A',
                   fontWeight: 700,
