@@ -809,7 +809,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
             style={{ top: isLandscapeMobile ? '16%' : isCompact ? '20%' : '26%' }}
             data-pot-display
           >
-            <PotDisplay pot={gameState.pot} rakeAmount={gameState.rakeAmount} smallBlind={gameState.smallBlind} bigBlind={gameState.bigBlind} rakeBreakdown={gameState.rakeBreakdown ?? null} showdown={gameState.showdown} />
+            <PotDisplay pot={gameState.pot} rakeAmount={gameState.rakeAmount} smallBlind={gameState.smallBlind} bigBlind={gameState.bigBlind} rakeBreakdown={gameState.rakeBreakdown ?? null} showdown={gameState.showdown} isCompact={isLandscapeMobile} />
           </div>
 
           {/* Win chip animation - inside table so chips fly BEHIND player avatars (z-5 < z-10) */}
