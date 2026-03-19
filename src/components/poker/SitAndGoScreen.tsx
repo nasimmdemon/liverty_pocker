@@ -130,7 +130,7 @@ const TierPopup = ({
             </h2>
           </div>
           <button
-            className="w-8 h-8 rounded-full border border-primary/40 flex items-center justify-center hover:bg-primary/20 transition-colors"
+            className="w-9 h-9 rounded-full border border-primary/40 flex items-center justify-center hover:bg-primary/20 transition-colors touch-manipulation shrink-0"
             onClick={onClose}
           >
             <X size={16} className="text-primary" />
