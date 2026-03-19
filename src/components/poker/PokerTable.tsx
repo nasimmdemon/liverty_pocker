@@ -168,9 +168,11 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const isCompact = isMobile || isLandscapeMobile; // landscape mobile = extra compact layout
 
   const seatPositions = (
-    isCompact
-      ? seatAnchorOverrides?.mobile ?? SEAT_POSITIONS_MOBILE
-      : seatAnchorOverrides?.desktop ?? SEAT_POSITIONS_DESKTOP
+    isLandscapeMobile
+      ? seatAnchorOverrides?.mobile ?? SEAT_POSITIONS_LANDSCAPE
+      : isMobile
+        ? seatAnchorOverrides?.mobile ?? SEAT_POSITIONS_MOBILE
+        : seatAnchorOverrides?.desktop ?? SEAT_POSITIONS_DESKTOP
   );
 
   // Multiplayer: active players only, user always at bottom center, dynamic positions (include user with 0 chips so they stay visible for rebuy)
