@@ -301,7 +301,7 @@ const SitAndGoScreen = ({
         {onTestingMode && (
           <div className="absolute top-3 right-3 z-10">
             <motion.button
-              className="casino-btn text-[10px] sm:text-xs px-3 py-1.5"
+              className="casino-btn text-[10px] sm:text-xs px-3 sm:px-4 py-2 sm:py-2 min-h-[40px] touch-manipulation"
               onClick={onTestingMode}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
