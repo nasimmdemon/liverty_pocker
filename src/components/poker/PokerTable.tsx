@@ -695,11 +695,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
         )}
       </AnimatePresence>
 
-      {/* Blinds info */}
-      <div className="absolute top-11 sm:top-14 left-1/2 -translate-x-1/2 z-30 flex gap-2 sm:gap-3">
-        <span className="text-[10px] sm:text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">SB: ${formatChips(gameState.smallBlind)}</span>
-        <span className="text-[10px] sm:text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">BB: ${formatChips(gameState.bigBlind)}</span>
-      </div>
+      {/* Blinds info merged into PotDisplay — removed standalone blinds row to prevent collision */}
 
       {/* Table area — centered with padding; landscape mobile: extra compact, more bottom padding so user cards don't overlap buttons */}
       <div
