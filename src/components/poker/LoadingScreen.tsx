@@ -171,11 +171,14 @@ const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: Loadin
       <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/70 pointer-events-none" />
 
       {/* Content area - title + message + loading bar grouped */}
-      <div className="relative z-10 flex flex-col items-center justify-end min-h-full pb-[120px] sm:pb-[140px] px-4">
-        <div className="w-full max-w-xl mx-auto flex flex-col items-center gap-5">
+      <div className="relative z-10 flex flex-col items-center justify-end min-h-full px-4" style={{ paddingBottom: 'clamp(40px, 15vh, 140px)' }}>
+        <div className="w-full max-w-xl mx-auto flex flex-col items-center" style={{ gap: 'clamp(8px, 2vh, 20px)' }}>
           {/* Title */}
           <motion.h2
-            className="text-xl sm:text-2xl md:text-3xl tracking-[0.2em] text-center"
+            className="tracking-[0.2em] text-center"
+            style={{
+              fontSize: 'clamp(1rem, 3vh, 1.875rem)',
+            }}
             style={{
               fontFamily: "'Bebas Neue', sans-serif",
               color: '#F2D27A',
