@@ -332,7 +332,7 @@ const SitAndGoScreen = ({
         <div className="relative z-10 flex flex-col sm:flex-row gap-4 sm:gap-6">
           {/* Public */}
           <motion.button
-            className="group flex flex-col items-center gap-3 px-10 sm:px-14 py-8 sm:py-10 rounded-2xl border-2 border-primary/40 hover:border-primary transition-all"
+            className="group flex flex-col items-center gap-2 sm:gap-3 px-8 sm:px-14 py-6 sm:py-10 rounded-2xl border-2 border-primary/40 hover:border-primary transition-all touch-manipulation"
             style={{
               background: 'linear-gradient(180deg, hsl(120 20% 12%) 0%, hsl(120 15% 7%) 100%)',
             }}
