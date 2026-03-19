@@ -197,8 +197,6 @@ const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: Loadin
                 className="text-center text-white/80 leading-relaxed"
                 style={{
                   fontSize: 'clamp(0.7rem, 2vh, 1rem)',
-                }}
-                style={{
                   fontFamily: "'Cinzel', serif",
                   fontStyle: 'italic',
                   letterSpacing: '0.1em',
