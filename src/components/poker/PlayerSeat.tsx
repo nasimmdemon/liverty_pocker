@@ -88,8 +88,8 @@ const PlayerSeat = ({
 
   // Avatar sizes: smaller on mobile; extra small in landscape; folded = smaller and darker
   const baseSize = isUser
-    ? (isLandscapeMobile ? 54 : isMobile ? 72 : 144)
-    : (isLandscapeMobile ? 44 : isMobile ? 56 : 120);
+    ? (isLandscapeMobile ? 46 : isMobile ? 72 : 144)
+    : (isLandscapeMobile ? 36 : isMobile ? 56 : 120);
   const avatarSizePx = hasFolded ? Math.round(baseSize * 0.82) : baseSize;
 
   const borderClass = hasLeft

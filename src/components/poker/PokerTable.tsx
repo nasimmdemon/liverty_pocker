@@ -33,6 +33,7 @@ import ChipAnimation, { type ChipBet } from './ChipAnimation';
 import WinChipAnimation from './WinChipAnimation';
 import { BOT_CHAT_MESSAGES } from './GameChat';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsLandscapeMobile } from '@/hooks/use-orientation';
 import { playFoldSound, playWinSound, playCardRevealSound, playYourTurnSound, playCheckSound, playTickSound, unlockAudio } from '@/lib/sounds';
 import { runAntiCheatOnExit } from '@/lib/antiCheat';
 import { formatChips } from '@/lib/formatChips';
@@ -129,7 +130,7 @@ interface PokerTableProps {
 
 const DEFAULT_CARD_BACK = '/card_bg_1.png';
 
-const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlind = 10, turnTimer: turnTimerProp, isTestingTable = false, gameMode = 'sit-and-go', testCommission, cardBack: cardBackProp, onExit, isLandscapeMobile = false, seatAnchorOverrides, multiplayer }: PokerTableProps) => {
+const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlind = 10, turnTimer: turnTimerProp, isTestingTable = false, gameMode = 'sit-and-go', testCommission, cardBack: cardBackProp, onExit, isLandscapeMobile: isLandscapeMobileProp = false, seatAnchorOverrides, multiplayer }: PokerTableProps) => {
   const cardBack = cardBackProp ?? DEFAULT_CARD_BACK;
   const TURN_DURATION = turnTimerProp ?? DEFAULT_TURN_DURATION;
   const isMultiplayer = !!multiplayer;
@@ -152,10 +153,12 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const botTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  const isLandscapeMobileDetected = useIsLandscapeMobile();
+  const isLandscapeMobile = isLandscapeMobileProp || isLandscapeMobileDetected;
   const isCompact = isMobile || isLandscapeMobile; // landscape mobile = extra compact layout
 
   const seatPositions = (
-    isMobile
+    isCompact
       ? seatAnchorOverrides?.mobile ?? SEAT_POSITIONS_MOBILE
       : seatAnchorOverrides?.desktop ?? SEAT_POSITIONS_DESKTOP
   );
@@ -630,9 +633,9 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       <div className="absolute inset-0 bg-black/40" />
 
       {/* Top bar */}
-      <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-3 py-2 lg:px-4 lg:py-3">
+      <div className={`absolute top-0 left-0 right-0 z-30 flex items-center justify-between ${isCompact ? 'px-2 py-1' : 'px-3 py-2 lg:px-4 lg:py-3'}`}>
         <button
-          className="w-10 h-10 sm:w-10 sm:h-10 rounded-lg border-2 border-primary flex items-center justify-center bg-secondary hover:bg-primary/20 transition-colors touch-manipulation"
+          className={`${isCompact ? 'w-8 h-8' : 'w-10 h-10 sm:w-10 sm:h-10'} rounded-lg border-2 border-primary flex items-center justify-center bg-secondary hover:bg-primary/20 transition-colors touch-manipulation`}
           onClick={() => {
             const canLeaveNoPenalty = userAlone || gameState?.showdown;
             if (canLeaveNoPenalty) {
@@ -642,7 +645,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
             }
           }}
         >
-          <ArrowLeft size={18} className="text-primary" />
+          <ArrowLeft size={isCompact ? 14 : 18} className="text-primary" />
         </button>
         <div className="flex items-center gap-2 sm:gap-3">
           <span
@@ -663,8 +666,8 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           <span className="text-muted-foreground text-[10px] sm:text-xs">|</span>
           <span className="text-primary text-[10px] sm:text-xs font-bold uppercase">{gameState.phase}</span>
         </div>
-        <button className="w-10 h-10 sm:w-10 sm:h-10 rounded-lg border-2 border-primary flex items-center justify-center touch-manipulation" style={{ background: 'hsl(var(--casino-dark))' }}>
-          <Settings size={18} className="text-primary" />
+        <button className={`${isCompact ? 'w-8 h-8' : 'w-10 h-10 sm:w-10 sm:h-10'} rounded-lg border-2 border-primary flex items-center justify-center touch-manipulation`} style={{ background: 'hsl(var(--casino-dark))' }}>
+          <Settings size={isCompact ? 14 : 18} className="text-primary" />
         </button>
       </div>
 
@@ -697,12 +700,12 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
 
       {/* Blinds info merged into PotDisplay — removed standalone blinds row to prevent collision */}
 
-      {/* Table area — centered with padding; landscape mobile: extra compact, more bottom padding so user cards don't overlap buttons */}
+      {/* Table area — centered with padding; landscape mobile: extra compact */}
       <div
         className="absolute inset-0 flex items-center justify-center flex-1 min-h-0"
         style={{
-          paddingBottom: isLandscapeMobile ? '88px' : isMobile ? '100px' : '90px',
-          paddingTop: isLandscapeMobile ? '28px' : isMobile ? '48px' : '60px',
+          paddingBottom: isLandscapeMobile ? '72px' : isMobile ? '100px' : '90px',
+          paddingTop: isLandscapeMobile ? '20px' : isMobile ? '48px' : '60px',
         }}
         data-landscape-mobile={isLandscapeMobile ? 'true' : undefined}
       >

@@ -25,7 +25,25 @@ export function useIsPortraitOnMobile(): boolean {
   return isPortraitOnMobile;
 }
 
-/** @deprecated Use useIsPortraitOnMobile instead */
-export function useIsLandscapeOnMobile(): boolean {
-  return false;
+/** Returns true on landscape mobile devices (short height, wide width) */
+export function useIsLandscapeMobile(): boolean {
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      const h = window.innerHeight;
+      const w = window.innerWidth;
+      // Landscape mobile: height is small (< 500px) and width is wider than height
+      setIsLandscape(h < 500 && w > h);
+    };
+    check();
+    window.addEventListener('resize', check);
+    window.addEventListener('orientationchange', check);
+    return () => {
+      window.removeEventListener('resize', check);
+      window.removeEventListener('orientationchange', check);
+    };
+  }, []);
+
+  return isLandscape;
 }
