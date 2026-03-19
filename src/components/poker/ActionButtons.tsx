@@ -131,7 +131,7 @@ const ActionButtons = ({
                       value={Math.min(Math.max(betAmount, minTotal), maxTotal)}
                       onChange={(e) => setBetAmount(Number(e.target.value))}
                       disabled={disabled || range <= 0}
-                      className="bet-amount-slider w-full h-4 sm:h-5 rounded-full appearance-none cursor-pointer
+                      className="bet-amount-slider w-full h-5 sm:h-5 rounded-full appearance-none cursor-pointer touch-manipulation
                         disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
