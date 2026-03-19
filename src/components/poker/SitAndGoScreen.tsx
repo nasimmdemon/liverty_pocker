@@ -729,73 +729,65 @@ const SitAndGoScreen = ({
         </motion.div>
       )}
 
-      {/* Divider — only for public */}
+      {/* Buy-in + Join — compact row for public */}
       {tableType === 'public' && (
-        <div className="relative z-10 w-[85%] sm:w-[70%] max-w-lg h-px bg-primary/30 my-3 sm:my-4" />
-      )}
-
-      {/* Entrance Amount / Buy-in — only for public; label differs by mode */}
-      {tableType === 'public' && (
-      <motion.div
-        className="relative z-10 flex flex-col items-center gap-2 sm:gap-3 w-[95%] sm:w-[80%] max-w-sm px-2"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-      >
-        <h2
-          className="text-lg sm:text-2xl tracking-wider"
-          style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
+        <motion.div
+          className="relative z-10 flex flex-col items-center gap-2 w-full max-w-2xl px-4 mt-1"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
         >
-          {gameMode === 'tournament' ? 'BUY-IN AMOUNT' : 'ENTRANCE AMOUNT'}
-        </h2>
+          <div
+            className="w-full rounded-xl border border-primary/25 px-4 py-3"
+            style={{ background: 'linear-gradient(180deg, hsl(0 0% 8% / 0.9) 0%, hsl(0 0% 5% / 0.9) 100%)' }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3
+                className="text-sm sm:text-base tracking-wider"
+                style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
+              >
+                {gameMode === 'tournament' ? 'BUY-IN' : 'ENTRANCE'}
+              </h3>
+              <span
+                className="text-lg sm:text-xl tracking-wider font-bold"
+                style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
+              >
+                ${formatChips(entranceAmount)}
+              </span>
+            </div>
+            <div className="w-full flex items-center gap-3">
+              <span className="text-muted-foreground text-[10px]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                ${formatChips(minEntrance)}
+              </span>
+              <input
+                type="range"
+                min={minEntrance}
+                max={maxEntrance}
+                step={500}
+                value={entranceAmount}
+                onChange={(e) => setEntranceAmount(Number(e.target.value))}
+                className="bet-amount-slider flex-1 h-4 rounded-full appearance-none cursor-pointer touch-manipulation"
+              />
+              <span className="text-muted-foreground text-[10px]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                ${formatChips(maxEntrance)}
+              </span>
+            </div>
+          </div>
 
-        <div className="w-full flex items-center gap-2 sm:gap-4">
-          <span className="text-muted-foreground text-xs" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-            ${formatChips(minEntrance)}
-          </span>
-          <input
-            type="range"
-            min={minEntrance}
-            max={maxEntrance}
-            step={500}
-            value={entranceAmount}
-            onChange={(e) => setEntranceAmount(Number(e.target.value))}
-            className="flex-1 accent-[hsl(var(--casino-gold))] h-2 rounded-full appearance-none cursor-pointer"
-            style={{
-              background: `linear-gradient(to right, hsl(var(--casino-gold)) 0%, hsl(var(--casino-gold)) ${((entranceAmount - minEntrance) / (maxEntrance - minEntrance)) * 100}%, hsl(var(--muted)) ${((entranceAmount - minEntrance) / (maxEntrance - minEntrance)) * 100}%, hsl(var(--muted)) 100%)`,
-            }}
-          />
-          <span className="text-muted-foreground text-xs" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-            ${formatChips(maxEntrance)}
-          </span>
-        </div>
-
-        <span
-          className="text-2xl sm:text-3xl tracking-wider"
-          style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
-        >
-          ${formatChips(entranceAmount)}
-        </span>
-      </motion.div>
-      )}
-
-      {/* Join Button — only for public */}
-      {tableType === 'public' && (
-      <motion.button
-        className="relative z-10 mt-4 sm:mt-6 group mb-6"
-        onClick={handleJoin}
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.45, type: 'spring' }}
-        whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        <img
-          src={joinTableChip}
-          alt="Join Table"
-          className="w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] group-hover:drop-shadow-[0_8px_32px_hsl(var(--casino-gold)/0.4)] transition-all duration-300"
-        />
-      </motion.button>
+          {/* Join button */}
+          <motion.button
+            className="group mt-1 mb-4"
+            onClick={handleJoin}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <img
+              src={joinTableChip}
+              alt="Join Table"
+              className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] group-hover:drop-shadow-[0_8px_32px_hsl(var(--casino-gold)/0.4)] transition-all duration-300"
+            />
+          </motion.button>
+        </motion.div>
       )}
 
       {/* Create/Join modals — for private */}
