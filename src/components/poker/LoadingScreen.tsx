@@ -80,7 +80,7 @@ const LOADING_MESSAGES: MessagePart[][] = [
     { text: '16% ROI.', highlight: true },
   ],
   [
-    { text: 'Invite friends. Earn ' },
+    { text: 'Invite by sharing the link. Earn ' },
     { text: '10%', highlight: true },
     { text: ' — stacks with ' },
     { text: 'affiliation.', highlight: true },
