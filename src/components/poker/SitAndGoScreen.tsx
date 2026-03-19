@@ -230,6 +230,7 @@ const SitAndGoScreen = ({
   const [gameMode, setGameMode] = useState<GameMode>('tournament');
   const [tableType, setTableType] = useState<TableType | null>(null);
   const [selectedTierPopup, setSelectedTierPopup] = useState<TierData | null>(null);
+  const [expandedTier, setExpandedTier] = useState<TierData | null>(null);
   const [entranceAmount, setEntranceAmount] = useState(5000);
   const [selectedStake, setSelectedStake] = useState<{ small: number; big: number } | null>(null);
   const funds = 9;
