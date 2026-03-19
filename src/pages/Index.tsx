@@ -199,6 +199,8 @@ const Index = () => {
           key="testing"
           onStartGame={handleStartTestGame}
           onBack={() => setScreen('sitandgo')}
+          funds={funds}
+          onTopUp={(amount) => setFunds(prev => prev + amount)}
         />
       )}
       {screen === 'loading' && <LoadingScreen key="loading" onComplete={handleLoadingComplete} isPublic={tableConfig.isPublic} />}
