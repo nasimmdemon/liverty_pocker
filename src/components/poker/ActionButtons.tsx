@@ -72,13 +72,13 @@ const ActionButtons = ({
       <div className={`px-2 sm:px-4 lg:px-6 ${isMobile ? 'py-1' : 'py-1.5 sm:py-3'}`}>
         <div className={`flex flex-col ${isMobile ? 'gap-1' : 'gap-2 sm:gap-3'} max-w-2xl mx-auto`}>
           {/* Row 1: Chat, Chips, Fold, Check/Call, Bet, All In */}
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+          <div className={`flex flex-wrap items-center justify-center ${isMobile ? 'gap-1.5' : 'gap-2 sm:gap-3'}`}>
             <GameChat onSendMessage={onSendMessage} isMobile={isMobile} />
-            <div className="flex flex-col items-center shrink-0 px-2 sm:px-3 py-1.5 rounded-lg bg-background/80 border-2 border-primary/40">
-              <span className="text-primary font-display text-sm sm:text-lg font-bold leading-tight">
+            <div className={`flex flex-col items-center shrink-0 ${isMobile ? 'px-1.5 py-0.5' : 'px-2 sm:px-3 py-1.5'} rounded-lg bg-background/80 border-2 border-primary/40`}>
+              <span className={`text-primary font-display ${isMobile ? 'text-xs' : 'text-sm sm:text-lg'} font-bold leading-tight`}>
                 ${formatChips(chipCount)}
               </span>
-              <span className="text-muted-foreground text-[8px] sm:text-[9px] uppercase tracking-wider">Chips</span>
+              <span className={`text-muted-foreground ${isMobile ? 'text-[7px]' : 'text-[8px] sm:text-[9px]'} uppercase tracking-wider`}>Chips</span>
             </div>
             <div className="flex gap-2 flex-wrap justify-center">
               <button className={btnClass} onClick={() => { hapticMedium(); onFold(); }} disabled={disabled}>
