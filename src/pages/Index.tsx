@@ -54,6 +54,7 @@ const Index = () => {
   }, [refCodeFromUrl]);
   const { user, loading, incrementBotMatches, canInviteFriends, profile } = useAuth();
   const [screen, setScreen] = useState<Screen>('start');
+  const [funds, setFunds] = useState(9); // Player funds (will connect to backend later)
   const [tableConfig, setTableConfig] = useState<TableConfig>({ buyIn: 1500, smallBlind: 5, bigBlind: 10 });
   const [multiplayerConfig, setMultiplayerConfig] = useState<MultiplayerConfig | null>(null);
 
