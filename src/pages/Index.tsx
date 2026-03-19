@@ -65,6 +65,8 @@ const Index = () => {
 
   const handleJoinTable = useCallback((buyIn: number, smallBlind: number, bigBlind: number, gameMode?: 'tournament' | 'sit-and-go', cardBack?: string) => {
     const mode = gameMode ?? 'sit-and-go';
+    // Deduct funds
+    setFunds(prev => Math.max(0, prev - buyIn));
     setTableConfig({
       buyIn,
       smallBlind,
