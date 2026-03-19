@@ -90,14 +90,8 @@ const ANIM_CATEGORIES: AnimCategory[] = [
   {
     title: 'TRANSITIONS', emoji: '🔄',
     items: [
-      { id: 'loading-to-game', label: 'Loading → Game', description: 'Full loading screen transition' },
+      { id: 'loading-to-game', label: 'Loading Screen', description: 'Full live loading screen with characters & messages' },
       { id: 'screen-fade', label: 'Screen Fade', description: 'Crossfade between screens' },
-    ],
-  },
-  {
-    title: 'LOADING SCREEN', emoji: '📺',
-    items: [
-      { id: 'loading-screen-live', label: 'Live Loading Screen', description: 'Full loading screen with characters & messages' },
     ],
   },
 ];
@@ -105,8 +99,7 @@ const ANIM_CATEGORIES: AnimCategory[] = [
 const ANIM_DURATIONS: Record<string, number> = {
   'chip-to-pot': 1200, 'win-chips': 2200, 'card-deal': 1500, 'card-flip': 1200,
   'timer-ring': 10500, 'fold-fade': 1800, 'rake-split': 3000, 'receive-money': 2500,
-  'winner-banner': 3000, 'loading-to-game': 4000, 'screen-fade': 2500,
-  'loading-screen-live': 24000,
+  'winner-banner': 3000, 'loading-to-game': 24000, 'screen-fade': 2500,
 };
 
 /* ── Animation Preview Container ── */
