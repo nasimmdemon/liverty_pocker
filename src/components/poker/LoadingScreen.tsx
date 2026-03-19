@@ -178,8 +178,6 @@ const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: Loadin
             className="tracking-[0.2em] text-center"
             style={{
               fontSize: 'clamp(1rem, 3vh, 1.875rem)',
-            }}
-            style={{
               fontFamily: "'Bebas Neue', sans-serif",
               color: '#F2D27A',
               textShadow: '0 2px 20px rgba(0,0,0,0.8)',
