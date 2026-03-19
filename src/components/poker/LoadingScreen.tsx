@@ -168,11 +168,11 @@ const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: Loadin
         </motion.div>
       </AnimatePresence>
       {/* Dark gradient overlay for readability */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/60 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/40 pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/70 pointer-events-none" />
 
       {/* Content area - title + message + loading bar grouped */}
-      <div className="relative z-10 flex flex-col items-center justify-end min-h-full px-4" style={{ paddingBottom: 'clamp(40px, 15vh, 140px)' }}>
+      <div className="relative z-10 flex flex-col items-center justify-end min-h-full px-4" style={{ paddingBottom: 'clamp(16px, 8vh, 140px)' }}>
         <div className="w-full max-w-xl mx-auto flex flex-col items-center" style={{ gap: 'clamp(8px, 2vh, 20px)' }}>
           {/* Title */}
           <motion.h2
