@@ -40,7 +40,7 @@ interface MultiplayerConfig {
 const Index = () => {
   const [searchParams] = useSearchParams();
   const { showPrompt: showAddToHomeScreen, platform } = useAddToHomeScreen();
-  const isPortraitOnMobile = useIsPortraitOnMobile();
+  const isPortraitOnMobile = false; // No longer restricting orientation
   const joinCodeFromUrl = searchParams.get('join');
   const refCodeFromUrl = searchParams.get('ref');
 
