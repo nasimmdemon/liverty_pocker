@@ -42,18 +42,18 @@ import { toast } from '@/hooks/use-toast';
 // 6-player positions — zones and seats use IDENTICAL positions so avatars sit inside circles
 const SEAT_POSITIONS_DESKTOP = [
   { top: '95%', left: '50%' },   // 0: Bottom center (user)
-  { top: '80%', left: '10%' },   // 1: Bottom left
-  { top: '20%', left: '10%' },   // 2: Top left
-  { top: '8%', left: '50%' },    // 3: Top center
-  { top: '20%', left: '90%' },   // 4: Top right
-  { top: '80%', left: '90%' },   // 5: Bottom right
+  { top: '78%', left: '8%' },    // 1: Bottom left
+  { top: '18%', left: '8%' },    // 2: Top left
+  { top: '3%', left: '50%' },    // 3: Top center — pushed up to avoid pot collision
+  { top: '18%', left: '92%' },   // 4: Top right
+  { top: '78%', left: '92%' },   // 5: Bottom right
 ];
 
 const SEAT_POSITIONS_MOBILE = [
   { top: '97%', left: '50%' },
   { top: '82%', left: '8%' },
   { top: '18%', left: '8%' },
-  { top: '6%', left: '50%' },
+  { top: '2%', left: '50%' },    // Top center — pushed up
   { top: '18%', left: '92%' },
   { top: '82%', left: '92%' },
 ];
