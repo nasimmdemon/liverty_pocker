@@ -90,14 +90,8 @@ const ANIM_CATEGORIES: AnimCategory[] = [
   {
     title: 'TRANSITIONS', emoji: '🔄',
     items: [
-      { id: 'loading-to-game', label: 'Loading → Game', description: 'Full loading screen transition' },
+      { id: 'loading-to-game', label: 'Loading Screen', description: 'Full live loading screen with characters & messages' },
       { id: 'screen-fade', label: 'Screen Fade', description: 'Crossfade between screens' },
-    ],
-  },
-  {
-    title: 'LOADING SCREEN', emoji: '📺',
-    items: [
-      { id: 'loading-screen-live', label: 'Live Loading Screen', description: 'Full loading screen with characters & messages' },
     ],
   },
 ];
@@ -105,8 +99,7 @@ const ANIM_CATEGORIES: AnimCategory[] = [
 const ANIM_DURATIONS: Record<string, number> = {
   'chip-to-pot': 1200, 'win-chips': 2200, 'card-deal': 1500, 'card-flip': 1200,
   'timer-ring': 10500, 'fold-fade': 1800, 'rake-split': 3000, 'receive-money': 2500,
-  'winner-banner': 3000, 'loading-to-game': 4000, 'screen-fade': 2500,
-  'loading-screen-live': 24000,
+  'winner-banner': 3000, 'loading-to-game': 24000, 'screen-fade': 2500,
 };
 
 /* ── Animation Preview Container ── */
@@ -123,8 +116,8 @@ function AnimationPreview({ id, looping }: { id: string; looping: boolean }) {
   }, [id, looping, cycle]);
 
   return (
-    <div className={`relative w-full ${id === 'loading-screen-live' ? 'h-[300px]' : 'h-40'} rounded-xl overflow-hidden flex items-center justify-center`}
-      style={id === 'loading-screen-live' ? {} : { background: 'radial-gradient(ellipse at center, rgba(30,60,30,0.9) 0%, rgba(10,20,10,0.95) 100%)' }}
+    <div className={`relative w-full ${id === 'loading-to-game' ? 'h-[300px]' : 'h-40'} rounded-xl overflow-hidden flex items-center justify-center`}
+      style={id === 'loading-to-game' ? {} : { background: 'radial-gradient(ellipse at center, rgba(30,60,30,0.9) 0%, rgba(10,20,10,0.95) 100%)' }}
     >
       <AnimatePresence mode="wait">
         <motion.div key={`${id}-${cycle}`} className="flex items-center justify-center gap-4 w-full h-full"
@@ -141,7 +134,7 @@ function AnimationPreview({ id, looping }: { id: string; looping: boolean }) {
           {id === 'winner-banner' && <WinnerBannerPreview />}
           {id === 'loading-to-game' && <LoadingToGamePreview />}
           {id === 'screen-fade' && <ScreenFadePreview />}
-          {id === 'loading-screen-live' && <LoadingScreenLivePreview />}
+          
         </motion.div>
       </AnimatePresence>
       <button onClick={restart} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors" title="Replay">
@@ -301,31 +294,10 @@ function WinnerBannerPreview() {
 }
 
 function LoadingToGamePreview() {
+  const [key, setKey] = useState(0);
   return (
-    <div className="relative w-full h-full rounded-xl overflow-hidden">
-      <motion.div className="absolute inset-0 flex flex-col items-center justify-center"
-        style={{ background: 'linear-gradient(180deg, rgba(15,15,15,1) 0%, rgba(5,20,5,0.9) 100%)' }}
-        initial={{ opacity: 1 }} animate={{ opacity: [1, 1, 0] }} transition={{ duration: 3.5, times: [0, 0.7, 1] }}
-      >
-        <span className="text-xs tracking-[0.2em] mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif", color: '#F2D27A' }}>FINDING TABLE FOR YOU</span>
-        <div className="w-32 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(242,210,122,0.3)' }}>
-          <motion.div className="h-full rounded-full" style={{ background: 'linear-gradient(90deg, #C9A227, #F2D27A)' }}
-            initial={{ width: '0%' }} animate={{ width: '100%' }} transition={{ duration: 2.5, ease: 'linear' }}
-          />
-        </div>
-        <motion.span className="text-[9px] text-muted-foreground mt-2 italic" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
-          Earn 30% from invited players — for life.
-        </motion.span>
-      </motion.div>
-      <motion.div className="absolute inset-0 flex items-center justify-center"
-        style={{ background: 'radial-gradient(ellipse at center, rgba(30,80,30,0.9) 0%, rgba(10,30,10,1) 100%)' }}
-        initial={{ opacity: 0 }} animate={{ opacity: [0, 0, 1] }} transition={{ duration: 3.5, times: [0, 0.7, 1] }}
-      >
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-20 h-12 rounded-full" style={{ background: 'radial-gradient(ellipse, rgba(30,100,30,0.8), rgba(20,60,20,0.6))', border: '2px solid rgba(242,210,122,0.4)' }} />
-          <span className="text-[10px] text-primary tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>TABLE READY</span>
-        </div>
-      </motion.div>
+    <div className="relative w-full rounded-xl overflow-hidden" style={{ height: '300px' }}>
+      <LoadingScreen onComplete={() => setKey(k => k + 1)} isPublic={true} embedded={true} key={key} />
     </div>
   );
 }
@@ -340,15 +312,6 @@ function ScreenFadePreview() {
         style={{ background: 'radial-gradient(ellipse, rgba(30,60,30,0.95), rgba(10,20,10,1))' }}
         initial={{ opacity: 0 }} animate={{ opacity: [0, 0, 1, 1] }} transition={{ duration: 2, times: [0, 0.4, 0.5, 1] }}
       ><span className="text-sm text-primary tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>SCREEN B</span></motion.div>
-    </div>
-  );
-}
-
-function LoadingScreenLivePreview() {
-  const [key, setKey] = useState(0);
-  return (
-    <div className="relative w-full rounded-xl overflow-hidden border border-primary/20" style={{ height: '300px' }}>
-      <LoadingScreen onComplete={() => setKey(k => k + 1)} isPublic={true} embedded={true} key={key} />
     </div>
   );
 }
