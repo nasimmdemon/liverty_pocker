@@ -48,10 +48,10 @@ const StartScreen = ({ onPlay, onWatchAndEarn }: StartScreenProps) => {
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
             to="/profile"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors touch-manipulation min-h-[40px]"
             title="Profile"
           >
-            <User className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" style={{ color: '#F2D27A' }} />
+            <User className="h-5 w-5 shrink-0" style={{ color: '#F2D27A' }} />
             <span className="text-sm sm:text-base tracking-wider" style={{ fontFamily: "'Bebas Neue', 'Cinzel', serif", color: '#F2D27A' }}>
               PROFILE
             </span>
