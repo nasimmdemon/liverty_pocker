@@ -57,8 +57,8 @@ const ActionButtons = ({
     setShowBetBar(true);
   };
 
-  const btnClass = 'casino-btn text-[11px] sm:text-sm px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl font-bold min-h-[36px] sm:min-h-[44px]';
-  const goldBtnClass = 'casino-btn-mobile-gold text-[11px] sm:text-sm px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl font-bold min-h-[36px] sm:min-h-[44px]';
+  const btnClass = 'casino-btn text-[11px] sm:text-sm px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold min-h-[40px] sm:min-h-[44px] min-w-[52px] sm:min-w-[60px] touch-manipulation';
+  const goldBtnClass = 'casino-btn-mobile-gold text-[11px] sm:text-sm px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold min-h-[40px] sm:min-h-[44px] min-w-[52px] sm:min-w-[60px] touch-manipulation';
 
   return (
     <motion.div
@@ -68,8 +68,8 @@ const ActionButtons = ({
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 0.5 }}
     >
-      <div className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4">
-        <div className="flex flex-col gap-3 max-w-2xl mx-auto">
+      <div className="px-2 sm:px-4 lg:px-6 py-1.5 sm:py-3">
+        <div className="flex flex-col gap-2 sm:gap-3 max-w-2xl mx-auto">
           {/* Row 1: Chat, Chips, Fold, Check/Call, Bet, All In */}
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
             <GameChat onSendMessage={onSendMessage} isMobile={isMobile} />
@@ -131,14 +131,14 @@ const ActionButtons = ({
                       value={Math.min(Math.max(betAmount, minTotal), maxTotal)}
                       onChange={(e) => setBetAmount(Number(e.target.value))}
                       disabled={disabled || range <= 0}
-                      className="bet-amount-slider w-full h-4 sm:h-5 rounded-full appearance-none cursor-pointer
+                      className="bet-amount-slider w-full h-5 sm:h-5 rounded-full appearance-none cursor-pointer touch-manipulation
                         disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-                    <div className="flex items-center gap-1 sm:gap-2 border-2 border-primary/40 rounded-xl px-3 py-2 bg-background/80">
+                    <div className="flex items-center gap-1.5 sm:gap-2 border-2 border-primary/40 rounded-xl px-3 py-1.5 sm:py-2 bg-background/80">
                       <button
-                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 disabled:opacity-50 transition-colors"
+                        className="w-9 h-9 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 disabled:opacity-50 transition-colors touch-manipulation"
                         onClick={() => setBetAmount((a) => Math.max(minTotal, Math.min(a - stepSize, maxTotal)))}
                         disabled={disabled || betAmount <= minTotal}
                       >
@@ -148,7 +148,7 @@ const ActionButtons = ({
                         ${formatChips(Math.min(betAmount, chipCount))}
                       </span>
                       <button
-                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 disabled:opacity-50 transition-colors"
+                        className="w-9 h-9 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 disabled:opacity-50 transition-colors touch-manipulation"
                         onClick={() => setBetAmount((a) => Math.min(a + stepSize, maxTotal))}
                         disabled={disabled || betAmount >= maxTotal}
                       >
@@ -163,7 +163,7 @@ const ActionButtons = ({
                       Set
                     </button>
                     <button
-                      className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 text-muted-foreground hover:text-foreground transition-colors"
+                      className="w-9 h-9 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
                       onClick={() => setShowBetBar(false)}
                       title="Cancel"
                     >
