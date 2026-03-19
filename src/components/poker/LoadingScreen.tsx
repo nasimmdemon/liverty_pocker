@@ -126,7 +126,7 @@ const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: Loadin
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentMessage((p) => (p + 1) % LOADING_MESSAGES.length);
-    }, 4000);
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
