@@ -57,8 +57,8 @@ const ActionButtons = ({
     setShowBetBar(true);
   };
 
-  const btnClass = 'casino-btn text-[11px] sm:text-sm px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl font-bold min-h-[36px] sm:min-h-[44px]';
-  const goldBtnClass = 'casino-btn-mobile-gold text-[11px] sm:text-sm px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl font-bold min-h-[36px] sm:min-h-[44px]';
+  const btnClass = 'casino-btn text-[11px] sm:text-sm px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold min-h-[40px] sm:min-h-[44px] min-w-[52px] sm:min-w-[60px] touch-manipulation';
+  const goldBtnClass = 'casino-btn-mobile-gold text-[11px] sm:text-sm px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold min-h-[40px] sm:min-h-[44px] min-w-[52px] sm:min-w-[60px] touch-manipulation';
 
   return (
     <motion.div
