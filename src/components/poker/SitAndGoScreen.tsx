@@ -86,7 +86,6 @@ interface SitAndGoScreenProps {
   joinCodeFromUrl?: string | null;
   funds?: number;
 }
-}
 
 // ── Tier Detail Popup ──────────────────────────────────────
 const TierPopup = ({
