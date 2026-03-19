@@ -9,6 +9,7 @@ import pokerRoomBg from '@/assets/poker-room-bg.png';
 interface StartScreenProps {
   onPlay: () => void;
   onWatchAndEarn?: () => void;
+  funds?: number;
 }
 
 const StartScreen = ({ onPlay, onWatchAndEarn }: StartScreenProps) => {
