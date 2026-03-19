@@ -68,7 +68,7 @@ const StartScreen = ({ onPlay, onWatchAndEarn, funds = 0 }: StartScreenProps) =>
             className="text-base sm:text-xl md:text-2xl tracking-wider"
             style={{ fontFamily: "'Bebas Neue', 'Cinzel', serif", color: '#F2D27A' }}
           >
-            FUNDS: 999$
+            FUNDS: {funds}$
           </span>
           <button
             onClick={() => signOut()}

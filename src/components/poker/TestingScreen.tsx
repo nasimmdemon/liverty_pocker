@@ -320,7 +320,7 @@ function ScreenFadePreview() {
 
 /* ── Main Component ── */
 
-const TestingScreen = ({ onStartGame, onBack }: TestingScreenProps) => {
+const TestingScreen = ({ onStartGame, onBack, funds = 0, onTopUp }: TestingScreenProps) => {
   const [activeTab, setActiveTab] = useState<Tab>('config');
   const [botCount, setBotCount] = useState(5);
   const [smallBlind, setSmallBlind] = useState(5);
