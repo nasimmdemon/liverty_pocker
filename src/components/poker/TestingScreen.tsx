@@ -116,8 +116,8 @@ function AnimationPreview({ id, looping }: { id: string; looping: boolean }) {
   }, [id, looping, cycle]);
 
   return (
-    <div className={`relative w-full ${id === 'loading-screen-live' ? 'h-[300px]' : 'h-40'} rounded-xl overflow-hidden flex items-center justify-center`}
-      style={id === 'loading-screen-live' ? {} : { background: 'radial-gradient(ellipse at center, rgba(30,60,30,0.9) 0%, rgba(10,20,10,0.95) 100%)' }}
+    <div className={`relative w-full ${id === 'loading-to-game' ? 'h-[300px]' : 'h-40'} rounded-xl overflow-hidden flex items-center justify-center`}
+      style={id === 'loading-to-game' ? {} : { background: 'radial-gradient(ellipse at center, rgba(30,60,30,0.9) 0%, rgba(10,20,10,0.95) 100%)' }}
     >
       <AnimatePresence mode="wait">
         <motion.div key={`${id}-${cycle}`} className="flex items-center justify-center gap-4 w-full h-full"
