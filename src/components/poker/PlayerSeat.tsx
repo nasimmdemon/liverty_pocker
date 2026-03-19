@@ -127,15 +127,15 @@ const PlayerSeat = ({
             ...(isUser
               ? {
                   bottom: '100%',
-                  marginBottom: isLandscapeMobile ? -4 : isMobile ? -12 : -32, // landscape: slight overlap, cards stay above buttons
-                  width: isLandscapeMobile ? 90 : isMobile ? 110 : 240,
-                  height: isLandscapeMobile ? 52 : isMobile ? 64 : 128,
+                  marginBottom: isLandscapeMobile ? 0 : isMobile ? -12 : -32,
+                  width: isLandscapeMobile ? 70 : isMobile ? 110 : 240,
+                  height: isLandscapeMobile ? 40 : isMobile ? 64 : 128,
                 }
               : {
                   bottom: '100%',
                   marginBottom: isMobile ? 4 : 8,
-                  width: isMobile ? 56 : 112,
-                  height: isMobile ? 32 : 60,
+                  width: isLandscapeMobile ? 44 : isMobile ? 56 : 112,
+                  height: isLandscapeMobile ? 26 : isMobile ? 32 : 60,
                 }),
           }}
         >

@@ -430,29 +430,31 @@
   /* Mobile landscape — compact layout */
   @media (max-width: 900px) and (orientation: landscape) {
     .poker-table-felt {
-      width: 86vw !important;
-      height: 58vh !important;
+      width: 82vw !important;
+      height: 56vh !important;
     }
   }
 
   /* Landscape mobile extra compact — smaller avatars, wider table */
   [data-landscape-mobile="true"] .player-position-zone {
-    width: 40px !important;
-    height: 40px !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-width: 1px !important;
   }
   [data-landscape-mobile="true"] .player-position-zone[data-is-user="true"] {
-    width: 50px !important;
-    height: 50px !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-width: 1.5px !important;
   }
   [data-landscape-mobile="true"] .poker-table-felt {
-    width: 86vw !important;
-    height: 54vh !important;
+    width: 82vw !important;
+    height: 52vh !important;
   }
 
   /* Very short viewports (landscape phones) — shrink table further */
   @media (max-height: 420px) {
     .poker-table-felt {
-      height: 50vh !important;
+      height: 48vh !important;
     }
   }
 
