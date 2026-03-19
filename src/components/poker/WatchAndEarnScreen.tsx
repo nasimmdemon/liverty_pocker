@@ -101,12 +101,12 @@ const WatchAndEarnScreen = ({ onClaim, onBack }: WatchAndEarnScreenProps) => {
         </motion.button>
       </div>
 
-      {/* Main content — centered, balanced layout */}
+      {/* Main content */}
       <div className="relative z-20 flex-1 flex flex-col min-h-0 overflow-y-auto">
-        {/* Headlines — center top */}
-        <div className="text-center px-4 pt-1 pb-6 sm:pb-8">
+        {/* Headlines */}
+        <div className="text-center px-4 pt-1 pb-4 sm:pb-6">
           <h2
-            className="text-xl sm:text-2xl md:text-3xl lg:text-[2rem] font-bold tracking-[0.06em] uppercase"
+            className="text-xl sm:text-2xl md:text-3xl lg:text-[2.2rem] font-bold tracking-[0.06em] uppercase"
             style={{
               fontFamily: "'Cinzel', serif",
               color: '#F2D27A',
@@ -116,25 +116,25 @@ const WatchAndEarnScreen = ({ onClaim, onBack }: WatchAndEarnScreenProps) => {
             WATCH & EARN {REWARD_AMOUNT} CASH REWARD
           </h2>
           <p
-            className="mt-2 text-sm sm:text-base font-semibold tracking-[0.12em] uppercase"
+            className="mt-1.5 text-sm sm:text-base font-semibold tracking-[0.12em] uppercase"
             style={{ fontFamily: "'Inter', sans-serif", color: '#F2D27A' }}
           >
             PLAY FIRST GAME FOR FREE!
           </p>
         </div>
 
-        {/* Two-column: features left | TV + email + instruction right */}
-        <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-8 md:gap-12 lg:gap-16 px-4 sm:px-6 pb-10 max-w-5xl mx-auto w-full">
-          {/* Features box — left, dark panel with thin gold border */}
+        {/* Two-column layout: features left | TV right */}
+        <div className="flex flex-col md:flex-row items-center md:items-center justify-center gap-6 md:gap-16 lg:gap-24 px-6 sm:px-10 pb-6 max-w-6xl mx-auto w-full flex-1">
+          {/* Features checklist — left */}
           <div
-            className="w-full max-w-[280px] md:max-w-[220px] lg:max-w-[260px] rounded-2xl p-5 shrink-0"
+            className="w-full max-w-[300px] md:max-w-[280px] rounded-2xl p-6 shrink-0"
             style={{
-              background: 'rgba(0, 0, 0, 0.5)',
-              border: '1px solid rgba(242, 210, 122, 0.4)',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+              background: 'rgba(0, 0, 0, 0.45)',
+              border: '1px solid rgba(242, 210, 122, 0.35)',
+              boxShadow: '0 4px 30px rgba(0,0,0,0.4)',
             }}
           >
-            <ul className="space-y-4">
+            <ul className="space-y-5">
               {CHECKLIST.map((item, i) => (
                 <li key={i} className="flex items-center gap-3">
                   <span
@@ -144,7 +144,7 @@ const WatchAndEarnScreen = ({ onClaim, onBack }: WatchAndEarnScreenProps) => {
                     <Check className="h-2.5 w-2.5 stroke-[3]" />
                   </span>
                   <span
-                    className="text-[13px] leading-snug text-white/95"
+                    className="text-[13px] sm:text-sm leading-snug text-white/95"
                     style={{ fontFamily: "'Inter', sans-serif" }}
                   >
                     {item}
@@ -154,14 +154,14 @@ const WatchAndEarnScreen = ({ onClaim, onBack }: WatchAndEarnScreenProps) => {
             </ul>
           </div>
 
-          {/* TV + email + instruction — center-right column */}
-          <div className="flex flex-col items-center w-full max-w-[320px] sm:max-w-[360px]">
-            {/* TV — clickable, no play overlay */}
+          {/* TV + email + instruction — right */}
+          <div className="flex flex-col items-center w-full max-w-[340px] sm:max-w-[380px]">
+            {/* TV */}
             <button
               type="button"
               onClick={openVideoPopup}
               disabled={hasCompleted}
-              className={`relative w-full aspect-[4/3] max-h-[280px] bg-transparent border-0 p-0 ${
+              className={`relative w-full aspect-[4/3] max-h-[260px] bg-transparent border-0 p-0 ${
                 hasCompleted ? 'cursor-default opacity-50' : 'cursor-pointer'
               }`}
               aria-label="Tap the TV to watch and earn"
@@ -172,18 +172,18 @@ const WatchAndEarnScreen = ({ onClaim, onBack }: WatchAndEarnScreenProps) => {
               />
             </button>
 
-            {/* Email — bold gold, uppercase */}
+            {/* Email */}
             <p
-              className="mt-6 text-center text-sm sm:text-base font-bold tracking-[0.08em] uppercase break-all px-2"
+              className="mt-8 text-center text-sm sm:text-base font-bold tracking-[0.08em] uppercase break-all px-2"
               style={{ fontFamily: "'Inter', sans-serif", color: '#F2D27A' }}
             >
               EMAIL: {emailDisplay}
             </p>
 
-            {/* Instruction — small gold, centered */}
+            {/* Instruction */}
             <p
-              className="mt-4 text-center text-[10px] sm:text-[11px] leading-relaxed tracking-wide uppercase max-w-[300px] sm:max-w-[340px] px-2"
-              style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(242, 210, 122, 0.9)' }}
+              className="mt-3 text-center text-[10px] sm:text-[11px] leading-relaxed tracking-wide uppercase max-w-[320px] sm:max-w-[360px] px-2"
+              style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(242, 210, 122, 0.85)' }}
             >
               {INSTRUCTION_TEXT}
             </p>
