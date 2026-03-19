@@ -610,6 +610,11 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
     gameState?.communityCards?.filter(c => c.faceUp).map(c => `${c.rank}${c.suit}`).sort().join(',') ?? '',
   ]);
 
+  const userChipsOnExit = gameState?.players?.find(p => p.isUser)?.chips ?? 0;
+  const handleExit = useCallback(() => {
+    onExit?.(userChipsOnExit);
+  }, [onExit, userChipsOnExit]);
+
   if (!gameState) return null;
 
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
@@ -638,12 +643,6 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           .map(([k, v]) => [Number(k), { id: v.timestamp, text: v.text, playerName: v.playerName }])
       )
     : chatBubbles;
-
-  const userChipsOnExit = userPlayer?.chips ?? 0;
-
-  const handleExit = useCallback(() => {
-    onExit?.(userChipsOnExit);
-  }, [onExit, userChipsOnExit]);
 
   return (
     <div className="relative w-full min-h-[100dvh] h-[100dvh] max-h-[100dvh] overflow-hidden bg-background flex flex-col" onClick={handleTableClick}>
