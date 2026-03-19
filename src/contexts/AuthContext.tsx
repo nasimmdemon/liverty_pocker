@@ -19,6 +19,7 @@ export interface UserProfile {
   displayName: string | null;
   photoURL: string | null;
   botMatchesPlayed: number;
+  handsPlayed: number;
   createdAt: number;
   referralCode?: string;
   referredBy?: string;
