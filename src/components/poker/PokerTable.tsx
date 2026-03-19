@@ -806,7 +806,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           {/* Pot zone — above cards; compact: higher for clear separation */}
           <div
             className="absolute left-1/2 -translate-x-1/2 z-20"
-            style={{ top: isCompact ? '20%' : '26%' }}
+            style={{ top: isLandscapeMobile ? '16%' : isCompact ? '20%' : '26%' }}
             data-pot-display
           >
             <PotDisplay pot={gameState.pot} rakeAmount={gameState.rakeAmount} smallBlind={gameState.smallBlind} bigBlind={gameState.bigBlind} rakeBreakdown={gameState.rakeBreakdown ?? null} showdown={gameState.showdown} />
