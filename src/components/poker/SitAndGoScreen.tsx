@@ -21,6 +21,7 @@ interface TierData {
   key: TierKey;
   label: string;
   emoji: string;
+  commission: string;        // Sit & Go commission %
   tournamentEntrance: string;
   organizerProfit: number;
   affiliateShare: number;
