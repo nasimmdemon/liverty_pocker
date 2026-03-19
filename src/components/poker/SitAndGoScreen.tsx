@@ -236,6 +236,17 @@ const SitAndGoScreen = ({
   const [selectedTierPopup, setSelectedTierPopup] = useState<TierData | null>(null);
   const [expandedTier, setExpandedTier] = useState<TierData | null>(null);
   const [selectedStake, setSelectedStake] = useState<{ small: number; big: number } | null>(null);
+  const [showPromotion, setShowPromotion] = useState<TierKey | null>(null);
+
+  // Tier progression: 100 hands per tier to unlock next
+  const HANDS_PER_TIER = 100;
+  const handsPlayed = profile?.handsPlayed ?? 0;
+  const tierOrder: TierKey[] = ['human', 'rat', 'cat', 'dog'];
+  const unlockedTierIndex = Math.min(Math.floor(handsPlayed / HANDS_PER_TIER) + 1, tierOrder.length); // +1 because human is always unlocked
+  const unlockedTiers = new Set(tierOrder.slice(0, unlockedTierIndex));
+  const currentTierIndex = unlockedTierIndex - 1;
+  const handsInCurrentTier = handsPlayed % HANDS_PER_TIER;
+  const nextTier = currentTierIndex < tierOrder.length - 1 ? TIERS[currentTierIndex + 1] : null;
   const funds = fundsProp;
   // Buy-in range correlates to player funds
   const minEntrance = Math.max(1, Math.floor(funds * 0.1 * 10) / 10);
