@@ -3,11 +3,20 @@
  *
  * House rake: 5% from every pot (capped), min pot 60 for rake to apply.
  *
- * The rake is then split:
- *   - Affiliate share: 30% (referred player in hand; affiliate NOT at table)
- *   - Hoster share:    10% (host is player at table)
- *   - Inviter share:   10% (private tables only; Sit & Go / Tournament = 0)
- *   - House revenue:   remainder
+ * The rake is then split PER-PLAYER based on their role attribution:
+ *
+ * For each player's contribution to rake:
+ *   1. If player has affiliate → 30% to affiliate (affiliate overrides host)
+ *   2. If player was invited by table creator AND table is private → 10% to inviter
+ *   3. If player has host AND player does NOT have affiliate → 10% to host
+ *   4. Remainder → house
+ *
+ * Conflict Rules:
+ *   A. Affiliate > Host (no double counting)
+ *   B. Inviter = 0 for Sit & Go / Tournament (only private tables)
+ *   C. Host gets nothing for players who have an affiliate
+ *   D. Creator can be both inviter + host (stacks: 10% + 10% = 20%)
+ *   E. Missing roles → share goes to house
  *
  * Tier-based TOURNAMENT ENTRANCE fees (separate from pot rake):
  *   Human → 11%
@@ -25,16 +34,16 @@ const HOUSE_RAKE_PERCENT = 5;
 export const MIN_POT_FOR_RAKE = 60;
 const MAX_RAKE_CAP = 50; // max rake per pot in chips
 
-// Rake split percentages (of the rake amount)
+// Rake split percentages (of the rake amount, applied per-player)
 const AFFILIATE_SHARE_PERCENT = 30;
 const HOSTER_SHARE_PERCENT = 10;
 const INVITER_SHARE_PERCENT = 10;
 
 export interface RakeBreakdown {
   totalRake: number;       // total taken from pot
-  affiliateShare: number;  // 30% or 0 if affiliate at table
-  hosterShare: number;     // 10% or 0 if host not at table
-  inviterShare: number;    // 10% or 0 (S&G/tournament or not private)
+  affiliateShare: number;  // sum of affiliate shares across all players
+  hosterShare: number;     // sum of host shares across all players
+  inviterShare: number;    // sum of inviter shares (private only)
   houseRevenue: number;    // remainder
   netPot: number;          // pot after rake
   rakePercent: number;     // always 5
@@ -44,8 +53,8 @@ export interface RakeContext {
   pot: number;
   winnerIds: number[];
   playersInHand: Player[];
-  affiliateId: string | null;
-  affiliateAtTable: boolean;
+  affiliateId: string | null;       // DEPRECATED — kept for backward compat
+  affiliateAtTable: boolean;        // DEPRECATED
   hostId: string | null;
   hostAtTable: boolean;
   inviterId: string | null;
@@ -54,8 +63,6 @@ export interface RakeContext {
 
 /**
  * Calculate the rake and its breakdown for a given pot (legacy, no context).
- * @param pot  Total pot before rake
- * @param cap  Max rake cap (defaults to MAX_RAKE_CAP)
  */
 export function calculateRake(pot: number, cap: number = MAX_RAKE_CAP): RakeBreakdown {
   const rawRake = Math.floor(pot * HOUSE_RAKE_PERCENT / 100);
@@ -77,8 +84,14 @@ export function calculateRake(pot: number, cap: number = MAX_RAKE_CAP): RakeBrea
 }
 
 /**
- * Calculate rake with full context (affiliation, host, inviter).
- * Min pot 60 for rake to apply.
+ * Per-player rake distribution with conflict resolution.
+ *
+ * For each player's proportional share of the rake:
+ *   - Rule A: if player.referredBy exists → 30% → affiliate, host gets 0 for this player
+ *   - Rule B: if table is private AND player.invitedBy exists → 10% → inviter
+ *   - Rule C: Sit & Go / Tournament → inviter = 0 always
+ *   - Rule D: if player has NO affiliate AND hostId at table → 10% → host
+ *   - Rule E: remainder → house
  */
 export function calculateRakeWithContext(
   ctx: RakeContext,
@@ -99,20 +112,84 @@ export function calculateRakeWithContext(
   const rawRake = Math.floor(ctx.pot * HOUSE_RAKE_PERCENT / 100);
   const totalRake = Math.min(rawRake, cap);
 
-  const affiliateShare = ctx.affiliateAtTable
-    ? 0
-    : ctx.affiliateId
-      ? Math.floor(totalRake * AFFILIATE_SHARE_PERCENT / 100)
-      : 0;
+  if (totalRake === 0) {
+    return {
+      totalRake: 0,
+      affiliateShare: 0,
+      hosterShare: 0,
+      inviterShare: 0,
+      houseRevenue: 0,
+      netPot: ctx.pot,
+      rakePercent: HOUSE_RAKE_PERCENT,
+    };
+  }
 
-  const hosterShare = ctx.hostAtTable && ctx.hostId
-    ? Math.floor(totalRake * HOSTER_SHARE_PERCENT / 100)
-    : 0;
+  const players = ctx.playersInHand;
+  const playerCount = players.length;
 
-  const inviterShare = ctx.isPrivateTable && ctx.inviterId
-    ? Math.floor(totalRake * INVITER_SHARE_PERCENT / 100)
-    : 0;
+  if (playerCount === 0) {
+    return {
+      totalRake,
+      affiliateShare: 0,
+      hosterShare: 0,
+      inviterShare: 0,
+      houseRevenue: totalRake,
+      netPot: ctx.pot - totalRake,
+      rakePercent: HOUSE_RAKE_PERCENT,
+    };
+  }
 
+  // Calculate each player's proportional contribution to the pot
+  // Use totalHandBet + totalRoundBet as contribution weight
+  const contributions = players.map(p => (p.totalHandBet ?? 0) + (p.totalRoundBet ?? 0));
+  const totalContributions = contributions.reduce((a, b) => a + b, 0);
+
+  // If no contributions tracked, split evenly
+  const weights = totalContributions > 0
+    ? contributions.map(c => c / totalContributions)
+    : contributions.map(() => 1 / playerCount);
+
+  let affiliateShareTotal = 0;
+  let hosterShareTotal = 0;
+  let inviterShareTotal = 0;
+
+  const hostId = ctx.hostId;
+  const hostAtTable = ctx.hostAtTable;
+  const isPrivate = ctx.isPrivateTable;
+  const inviterId = ctx.inviterId;
+
+  // Set of player userIds at table (to check if affiliate is at table)
+  const tableUserIds = new Set(players.map(p => p.userId).filter(Boolean));
+
+  for (let i = 0; i < players.length; i++) {
+    const player = players[i];
+    const playerRakeShare = totalRake * weights[i]; // this player's portion of the rake
+
+    const hasAffiliate = !!player.referredBy;
+    // Affiliate is at table → their share goes to house (Rule: affiliate NOT at table)
+    const affiliateIsAtTable = hasAffiliate && tableUserIds.has(player.referredBy!);
+    const affiliateValid = hasAffiliate && !affiliateIsAtTable;
+
+    // Rule A: Affiliate gets 30% of this player's rake share
+    if (affiliateValid) {
+      affiliateShareTotal += playerRakeShare * AFFILIATE_SHARE_PERCENT / 100;
+    }
+
+    // Rule B: Inviter gets 10% only on private tables
+    if (isPrivate && inviterId) {
+      inviterShareTotal += playerRakeShare * INVITER_SHARE_PERCENT / 100;
+    }
+
+    // Rule D: Host gets 10% ONLY if player has NO affiliate (Affiliate > Host)
+    if (hostAtTable && hostId && !affiliateValid) {
+      hosterShareTotal += playerRakeShare * HOSTER_SHARE_PERCENT / 100;
+    }
+  }
+
+  // Floor all values to prevent floating point overshoot
+  const affiliateShare = Math.floor(affiliateShareTotal);
+  const hosterShare = Math.floor(hosterShareTotal);
+  const inviterShare = Math.floor(inviterShareTotal);
   const houseRevenue = totalRake - affiliateShare - hosterShare - inviterShare;
 
   return {
