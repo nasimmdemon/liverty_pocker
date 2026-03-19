@@ -215,51 +215,86 @@ export default function ReferAndEarn() {
         </div>
       </div>
 
-      {/* Main content — centered block on landscape, vertical on portrait */}
-      <div className={`relative z-10 flex-1 flex min-h-0 overflow-auto ${isLandscapeMobile ? 'justify-center items-center px-4 py-4' : 'flex-col sm:flex-row items-center justify-center gap-8 sm:gap-12 px-4 py-6'}`}>
-        {/* Left: 2 avatars — hidden on landscape */}
-        {!isLandscapeMobile && (
-          <div className="flex flex-col gap-5 sm:gap-6 shrink-0">
-            {[0, 1].map((i) => {
-              const referred = referredAvatars[i];
-              const imgSrc = referred?.photoURL ?? DEFAULT_AVATARS[i];
-              return (
-                <div
-                  key={i}
-                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-[4px] overflow-hidden shadow-lg"
-                  style={{
-                    borderColor: '#E5B84A',
-                    boxShadow: '0 0 20px rgba(229, 184, 74, 0.3)',
-                  }}
-                >
-                  {referred?.photoURL ? (
-                    <Avatar className="w-full h-full">
-                      <AvatarImage src={referred.photoURL} alt={referred.displayName} />
-                      <AvatarFallback className="bg-muted text-primary text-xl">
-                        {referred.displayName?.charAt(0)?.toUpperCase() || '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                  ) : (
-                    <img
-                      src={imgSrc}
-                      alt={`Player ${i + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                </div>
-              );
-            })}
+      {/* Main content */}
+      <div className={`relative z-10 flex-1 flex min-h-0 overflow-auto ${isLandscapeMobile ? 'flex-row items-center justify-center gap-4 px-3 py-3' : 'flex-col sm:flex-row items-center justify-center gap-8 sm:gap-12 px-4 py-6'}`}>
+        {/* Left: current user + referred players avatars — modern cluster (landscape) or column (portrait) */}
+        {user && (
+          <div className={`shrink-0 flex items-center ${isLandscapeMobile ? 'flex-row' : 'flex-col'} gap-4`}>
+            {/* Current user avatar */}
+            <div
+              className={`rounded-full border-2 overflow-hidden shrink-0 ${isLandscapeMobile ? 'w-10 h-10' : 'w-20 h-20 sm:w-24 sm:h-24 border-[4px]'}`}
+              style={{
+                borderColor: '#E5B84A',
+                boxShadow: '0 0 16px rgba(229, 184, 74, 0.3)',
+              }}
+            >
+              <Avatar className="w-full h-full">
+                <AvatarImage src={user.photoURL ?? undefined} alt={user.displayName ?? 'You'} />
+                <AvatarFallback className="bg-muted text-primary text-lg">
+                  {user.displayName?.charAt(0)?.toUpperCase() ?? user.email?.charAt(0)?.toUpperCase() ?? '?'}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+            {/* Referred players — modern cluster: alternating big/small on landscape */}
+            {isLandscapeMobile && referredAvatars.length > 0 && (
+              <div className="flex items-end gap-0.5">
+                {referredAvatars.slice(0, 6).map((r, i) => {
+                  const sizes = [36, 28, 32, 24, 28, 20];
+                  const size = sizes[i % sizes.length];
+                  return (
+                    <div
+                      key={i}
+                      className="rounded-full border-2 overflow-hidden shrink-0 -ml-2 first:ml-0 ring-2 ring-black/60"
+                      style={{
+                        width: size,
+                        height: size,
+                        borderColor: '#E5B84A',
+                        boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+                      }}
+                    >
+                      {r.photoURL ? (
+                        <Avatar className="w-full h-full">
+                          <AvatarImage src={r.photoURL} alt={r.displayName} />
+                          <AvatarFallback className="bg-muted text-primary text-[10px]">
+                            {r.displayName?.charAt(0)?.toUpperCase() || '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                      ) : (
+                        <img src={DEFAULT_AVATARS[i % 2]} alt={r.displayName} className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {!isLandscapeMobile && referredAvatars[0] && (
+              <div
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-[4px] overflow-hidden shadow-lg"
+                style={{ borderColor: '#E5B84A', boxShadow: '0 0 20px rgba(229, 184, 74, 0.3)' }}
+              >
+                {referredAvatars[0].photoURL ? (
+                  <Avatar className="w-full h-full">
+                    <AvatarImage src={referredAvatars[0].photoURL} alt={referredAvatars[0].displayName} />
+                    <AvatarFallback className="bg-muted text-primary text-xl">
+                      {referredAvatars[0].displayName?.charAt(0)?.toUpperCase() || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <img src={DEFAULT_AVATARS[0]} alt="Referred" className="w-full h-full object-cover" />
+                )}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Center: QR + content — compact centered block on landscape */}
-        <div className={`flex items-center gap-3 ${isLandscapeMobile ? 'flex-row justify-center items-center flex-wrap shrink-0' : 'flex-col sm:items-start gap-4 sm:gap-5 w-full max-w-sm'}`}>
-          {/* QR Code + Counters — compact on landscape */}
+        {/* Center: main content — horizontal rows on landscape for better use of space */}
+        <div className={`flex ${isLandscapeMobile ? 'flex-col gap-2 max-w-[280px]' : 'flex-col sm:items-start gap-4 sm:gap-5 w-full max-w-sm'}`}>
+          {/* Row 1: QR + Copy + Search (horizontal on landscape) */}
           {inviteUrl && (
-            <div className={`flex ${isLandscapeMobile ? 'flex-row items-center gap-2 shrink-0' : 'flex-col gap-3 w-full'}`}>
-              <div className={`flex items-center ${isLandscapeMobile ? 'flex-row gap-2' : 'flex-row gap-4 justify-center sm:justify-start'}`}>
+            <div className={`flex ${isLandscapeMobile ? 'flex-row items-center gap-2 flex-wrap' : 'flex-col gap-3 w-full'}`}>
+              <div className={`flex items-center ${isLandscapeMobile ? 'gap-1.5' : 'gap-4 justify-center sm:justify-start'}`}>
                 <div
-                  className={`rounded-xl border-2 shrink-0 ${isLandscapeMobile ? 'p-1.5' : 'p-3'}`}
+                  className={`rounded-lg border-2 shrink-0 ${isLandscapeMobile ? 'p-1' : 'p-3'}`}
                   style={{
                     background: 'rgba(0,0,0,0.5)',
                     borderColor: 'rgba(229, 184, 74, 0.6)',
@@ -268,33 +303,28 @@ export default function ReferAndEarn() {
                 >
                   <QRCodeSVG
                     value={inviteUrl}
-                    size={isLandscapeMobile ? 72 : 130}
+                    size={isLandscapeMobile ? 56 : 130}
                     level="M"
                     bgColor="#0a0a0a"
                     fgColor="#E5B84A"
                     includeMargin={false}
                   />
                 </div>
-                <div className={`flex flex-col ${isLandscapeMobile ? 'gap-0.5' : 'gap-2'}`}>
-                  <div className={`flex items-center gap-1 text-[#F2D27A] ${isLandscapeMobile ? 'text-[10px]' : ''}`} style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                    <Crown className={`shrink-0 ${isLandscapeMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                    <span className="font-medium tracking-wide">{stats.played}/2</span>
+                <div className={`flex flex-col ${isLandscapeMobile ? 'gap-0' : 'gap-2'}`}>
+                  <div className={`flex items-center gap-1 text-[#F2D27A] ${isLandscapeMobile ? 'text-[9px]' : ''}`} style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                    <Crown className={isLandscapeMobile ? 'h-2.5 w-2.5' : 'h-4 w-4'} />
+                    <span>{stats.played}/2</span>
                   </div>
-                  <div className={`flex items-center gap-1 text-[#F2D27A] ${isLandscapeMobile ? 'text-[10px]' : ''}`} style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                    <User className={`shrink-0 ${isLandscapeMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                    <span className="font-medium tracking-wide">{stats.joined}/2</span>
+                  <div className={`flex items-center gap-1 text-[#F2D27A] ${isLandscapeMobile ? 'text-[9px]' : ''}`} style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                    <User className={isLandscapeMobile ? 'h-2.5 w-2.5' : 'h-4 w-4'} />
+                    <span>{stats.joined}/2</span>
                   </div>
-                  <div className={`flex items-center gap-1 text-[#F2D27A] ${isLandscapeMobile ? 'text-[10px]' : ''}`} style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                    <Mail className={`shrink-0 ${isLandscapeMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                    <span className="font-medium tracking-wide">{stats.invited}/2</span>
+                  <div className={`flex items-center gap-1 text-[#F2D27A] ${isLandscapeMobile ? 'text-[9px]' : ''}`} style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                    <Mail className={isLandscapeMobile ? 'h-2.5 w-2.5' : 'h-4 w-4'} />
+                    <span>{stats.invited}/2</span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleShare}
-                    className={`text-[#F2D27A] hover:bg-white/10 w-fit ${isLandscapeMobile ? 'h-6 w-6' : ''}`}
-                  >
-                    <Share2 className={isLandscapeMobile ? 'h-3.5 w-3.5' : 'h-5 w-5'} />
+                  <Button variant="ghost" size="icon" onClick={handleShare} className={`text-[#F2D27A] hover:bg-white/10 h-5 w-5 shrink-0 ${!isLandscapeMobile && 'h-8 w-8'}`}>
+                    <Share2 className={isLandscapeMobile ? 'h-3 w-3' : 'h-5 w-5'} />
                   </Button>
                 </div>
               </div>
@@ -302,82 +332,65 @@ export default function ReferAndEarn() {
                 variant="outline"
                 size="sm"
                 onClick={handleCopyLink}
-                className={`border-[#E5B84A]/50 text-[#F2D27A] hover:bg-white/10 shrink-0 ${isLandscapeMobile ? 'px-2 py-1 text-[10px] h-7' : 'w-fit'}`}
+                className={`border-[#E5B84A]/50 text-[#F2D27A] hover:bg-white/10 shrink-0 ${isLandscapeMobile ? 'px-2 py-1 text-[9px] h-7' : 'w-fit'}`}
               >
-                <Copy className={`mr-2 ${isLandscapeMobile ? 'h-3 w-3' : 'h-4 w-4'}`} /> Copy invite link
+                <Copy className={`mr-1.5 ${isLandscapeMobile ? 'h-2.5 w-2.5' : 'h-4 w-4'}`} /> Copy link
               </Button>
             </div>
           )}
 
           {!inviteUrl && (
-            <div className="flex items-center gap-2 text-[#F2D27A]">
-              <span className="text-sm">Loading your referral link...</span>
-            </div>
+            <div className="flex items-center gap-2 text-[#F2D27A] text-sm">Loading your referral link...</div>
           )}
 
-          {/* Search bar — compact on landscape */}
-          <div className={`relative shrink-0 ${isLandscapeMobile ? 'w-36 min-w-[120px]' : 'w-full'}`}>
-            <Input
-              placeholder="Search for friend by username"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className={`pl-3 pr-10 rounded-xl border-2 bg-black/30 text-foreground placeholder:text-muted-foreground/80 ${isLandscapeMobile ? 'h-8 text-[10px]' : 'pl-4 pr-12 h-12'}`}
-              style={{ borderColor: 'rgba(229, 184, 74, 0.5)' }}
-            />
-            <button
-              type="button"
-              onClick={handleSearch}
-              className={`absolute right-2 top-1/2 -translate-y-1/2 text-[#F2D27A] ${isLandscapeMobile ? 'right-1.5' : ''}`}
-            >
-              <Search className={isLandscapeMobile ? 'h-3.5 w-3.5' : 'h-5 w-5'} />
-            </button>
-          </div>
-
-          {searchResults.length > 0 && (
-            <div className={`rounded-lg bg-black/60 border border-[#E5B84A]/30 p-2 space-y-1 ${isLandscapeMobile ? 'absolute top-full left-0 right-0 z-30 mt-1 max-h-24 overflow-y-auto' : 'w-full'}`}>
-              {searchResults.map((u) => (
-                <button
-                  key={u.uid}
-                  onClick={() => handleInviteUser(u)}
-                  className={`w-full flex items-center gap-2 rounded hover:bg-white/10 text-left ${isLandscapeMobile ? 'p-1.5' : 'p-2'}`}
-                >
-                  <Avatar className={isLandscapeMobile ? 'h-6 w-6' : 'h-8 w-8'}>
-                    <AvatarImage src={u.photoURL ?? undefined} />
-                    <AvatarFallback>{u.displayName?.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <span className={`text-foreground ${isLandscapeMobile ? 'text-[10px]' : 'text-sm'}`}>{u.displayName}</span>
+          {/* Row 2: Search + Timer + Ready (horizontal on landscape) */}
+          <div className={`flex ${isLandscapeMobile ? 'flex-row items-center gap-2 flex-wrap' : 'flex-col gap-4 w-full'}`}>
+            <div className={`relative shrink-0 ${isLandscapeMobile ? 'w-28' : 'w-full'}`}>
+              <div className="relative">
+                <Input
+                  placeholder="Search friends"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  className={`rounded-lg border-2 bg-black/30 text-foreground placeholder:text-muted-foreground/80 ${isLandscapeMobile ? 'h-7 pl-2 pr-8 text-[9px]' : 'pl-4 pr-12 h-12'}`}
+                  style={{ borderColor: 'rgba(229, 184, 74, 0.5)' }}
+                />
+                <button type="button" onClick={handleSearch} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[#F2D27A]">
+                  <Search className={isLandscapeMobile ? 'h-3 w-3' : 'h-5 w-5'} />
                 </button>
-              ))}
+              </div>
+              {searchResults.length > 0 && (
+                <div className={`rounded-lg bg-black/60 border border-[#E5B84A]/30 p-1.5 space-y-0.5 absolute top-full left-0 z-30 mt-1 max-h-20 overflow-y-auto w-full ${isLandscapeMobile ? 'text-[9px]' : ''}`}>
+                  {searchResults.map((u) => (
+                    <button key={u.uid} onClick={() => handleInviteUser(u)} className="w-full flex items-center gap-1.5 p-1.5 rounded hover:bg-white/10 text-left">
+                      <Avatar className={isLandscapeMobile ? 'h-5 w-5' : 'h-8 w-8'}>
+                        <AvatarImage src={u.photoURL ?? undefined} />
+                        <AvatarFallback className="text-[10px]">{u.displayName?.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-foreground truncate">{u.displayName}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-
-          {/* Reservation timer — compact on landscape */}
-          <div className={isLandscapeMobile ? 'w-28 min-w-0 shrink-0' : 'w-full'}>
-            <p
-              className={`mb-1 tracking-wide ${isLandscapeMobile ? 'text-[9px]' : 'text-sm sm:text-base mb-2'}`}
-              style={{ fontFamily: "'Bebas Neue', sans-serif", color: '#F2D27A' }}
+            <div className={`shrink-0 ${isLandscapeMobile ? 'w-24' : 'w-full'}`}>
+              <p className={`text-[#F2D27A] tracking-wide ${isLandscapeMobile ? 'text-[8px] mb-0.5' : 'text-sm mb-2'}`} style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                Reserved {formatTime(reservationSeconds)}
+              </p>
+              <Progress value={progressPercent} className={`bg-black/50 rounded-full [&>div]:bg-[#E5B84A] [&>div]:rounded-full ${isLandscapeMobile ? 'h-1' : 'h-2'}`} />
+            </div>
+            <Button
+              onClick={() => navigate('/')}
+              className={`font-bold uppercase tracking-[0.15em] text-white shrink-0 ${isLandscapeMobile ? 'h-7 px-4 text-[10px]' : 'w-full h-14 sm:h-16 text-xl'}`}
+              style={{
+                background: 'linear-gradient(180deg, #C0392B 0%, #8B1A1A 50%, #6B1010 100%)',
+                border: '2px solid #F2D27A',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+              }}
             >
-              Reserved for {formatTime(reservationSeconds)}
-            </p>
-            <Progress
-              value={progressPercent}
-              className={`bg-black/50 rounded-full overflow-hidden [&>div]:bg-[#E5B84A] [&>div]:rounded-full ${isLandscapeMobile ? 'h-1.5' : 'h-2'}`}
-            />
+              READY?
+            </Button>
           </div>
-
-          {/* READY? button — compact on landscape */}
-          <Button
-            onClick={() => navigate('/')}
-            className={`font-bold uppercase tracking-[0.2em] text-white shrink-0 ${isLandscapeMobile ? 'h-8 px-4 text-xs' : 'w-full h-14 sm:h-16 text-xl'}`}
-            style={{
-              background: 'linear-gradient(180deg, #C0392B 0%, #8B1A1A 50%, #6B1010 100%)',
-              border: '3px solid #F2D27A',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.5), 0 0 30px rgba(242, 210, 122, 0.2)',
-            }}
-          >
-            READY?
-          </Button>
         </div>
       </div>
 
