@@ -167,9 +167,9 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/60 pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/70 pointer-events-none" />
 
-      {/* Content area - title + loading bar grouped, clearly separated from messages */}
-      <div className="relative z-10 flex flex-col items-center justify-end min-h-full pb-[180px] sm:pb-[200px] px-4">
-        <div className="w-full max-w-xl mx-auto space-y-5">
+      {/* Content area - title + message + loading bar grouped */}
+      <div className="relative z-10 flex flex-col items-center justify-end min-h-full pb-[120px] sm:pb-[140px] px-4">
+        <div className="w-full max-w-xl mx-auto flex flex-col items-center gap-5">
           {/* Title */}
           <motion.h2
             className="text-xl sm:text-2xl md:text-3xl tracking-[0.2em] text-center"
@@ -185,7 +185,33 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
             {isPublic ? 'FINDING TABLE FOR YOU' : 'CREATING TABLE FOR YOU'}
           </motion.h2>
 
-          {/* Progress bar - clearly above messages */}
+          {/* Rotating message - between title and progress bar */}
+          <div className="w-full max-w-md mx-auto min-h-[28px] flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={currentMessage}
+                className="text-center text-white/95 text-sm sm:text-base leading-relaxed"
+                style={{
+                  fontFamily: "'Cinzel', serif",
+                  fontStyle: 'italic',
+                  letterSpacing: '0.1em',
+                  textShadow: '0 2px 20px rgba(0,0,0,0.95), 0 0 40px rgba(242,210,122,0.15)',
+                }}
+                initial={{ opacity: 0, x: -40 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 40 }}
+                transition={{ duration: 0.5 }}
+              >
+                {LOADING_MESSAGES[currentMessage].map((part, i) => (
+                  <span key={i} style={part.highlight ? { color: '#F2D27A', fontWeight: 700, fontStyle: 'normal' } : undefined}>
+                    {part.text}
+                  </span>
+                ))}
+              </motion.p>
+            </AnimatePresence>
+          </div>
+
+          {/* Progress bar */}
           <div className="w-full max-w-sm mx-auto">
             <div
               className="relative h-2 rounded-full overflow-hidden"
@@ -207,41 +233,10 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
               />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Message strip - separate at very bottom, animated style */}
-      <div
-        className="absolute bottom-0 left-0 right-0 z-20 py-6 sm:py-8 px-6 sm:px-10"
-        style={{
-          background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 70%, transparent 100%)',
-        }}
-      >
-        <div className="w-full max-w-2xl mx-auto">
-          <AnimatePresence mode="wait">
-            <motion.p
-              key={currentMessage}
-              className="text-center text-white/95 text-sm sm:text-base leading-relaxed max-w-xl mx-auto"
-              style={{
-                fontFamily: "'Cinzel', serif",
-                fontStyle: 'italic',
-                letterSpacing: '0.1em',
-                textShadow: '0 2px 20px rgba(0,0,0,0.95), 0 0 40px rgba(242,210,122,0.15)',
-              }}
-              initial={{ opacity: 0, x: -40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 40 }}
-              transition={{ duration: 0.5 }}
-            >
-              {LOADING_MESSAGES[currentMessage].map((part, i) => (
-                <span key={i} style={part.highlight ? { color: '#F2D27A', fontWeight: 700, fontStyle: 'normal' } : undefined}>
-                  {part.text}
-                </span>
-              ))}
-            </motion.p>
-          </AnimatePresence>
+          {/* Decorative divider */}
           <motion.div
-            className="h-px w-16 sm:w-24 mx-auto mt-4 opacity-60"
+            className="h-px w-16 sm:w-24 opacity-60"
             style={{ background: 'linear-gradient(90deg, transparent, rgba(242,210,122,0.8), transparent)' }}
             animate={{ opacity: [0.4, 0.8, 0.4] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
