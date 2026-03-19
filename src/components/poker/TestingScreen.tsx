@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import LoadingScreen from './LoadingScreen';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Copy, Check, Percent, Play, RotateCcw } from 'lucide-react';
 import pokerTableBg from '@/assets/poker-table-bg.png';
@@ -93,12 +94,19 @@ const ANIM_CATEGORIES: AnimCategory[] = [
       { id: 'screen-fade', label: 'Screen Fade', description: 'Crossfade between screens' },
     ],
   },
+  {
+    title: 'LOADING SCREEN', emoji: '📺',
+    items: [
+      { id: 'loading-screen-live', label: 'Live Loading Screen', description: 'Full loading screen with characters & messages' },
+    ],
+  },
 ];
 
 const ANIM_DURATIONS: Record<string, number> = {
   'chip-to-pot': 1200, 'win-chips': 2200, 'card-deal': 1500, 'card-flip': 1200,
   'timer-ring': 10500, 'fold-fade': 1800, 'rake-split': 3000, 'receive-money': 2500,
   'winner-banner': 3000, 'loading-to-game': 4000, 'screen-fade': 2500,
+  'loading-screen-live': 24000,
 };
 
 /* ── Animation Preview Container ── */
@@ -115,8 +123,8 @@ function AnimationPreview({ id, looping }: { id: string; looping: boolean }) {
   }, [id, looping, cycle]);
 
   return (
-    <div className="relative w-full h-40 rounded-xl overflow-hidden flex items-center justify-center"
-      style={{ background: 'radial-gradient(ellipse at center, rgba(30,60,30,0.9) 0%, rgba(10,20,10,0.95) 100%)' }}
+    <div className={`relative w-full ${id === 'loading-screen-live' ? 'h-[300px]' : 'h-40'} rounded-xl overflow-hidden flex items-center justify-center`}
+      style={id === 'loading-screen-live' ? {} : { background: 'radial-gradient(ellipse at center, rgba(30,60,30,0.9) 0%, rgba(10,20,10,0.95) 100%)' }}
     >
       <AnimatePresence mode="wait">
         <motion.div key={`${id}-${cycle}`} className="flex items-center justify-center gap-4 w-full h-full"
@@ -133,6 +141,7 @@ function AnimationPreview({ id, looping }: { id: string; looping: boolean }) {
           {id === 'winner-banner' && <WinnerBannerPreview />}
           {id === 'loading-to-game' && <LoadingToGamePreview />}
           {id === 'screen-fade' && <ScreenFadePreview />}
+          {id === 'loading-screen-live' && <LoadingScreenLivePreview />}
         </motion.div>
       </AnimatePresence>
       <button onClick={restart} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors" title="Replay">
@@ -331,6 +340,15 @@ function ScreenFadePreview() {
         style={{ background: 'radial-gradient(ellipse, rgba(30,60,30,0.95), rgba(10,20,10,1))' }}
         initial={{ opacity: 0 }} animate={{ opacity: [0, 0, 1, 1] }} transition={{ duration: 2, times: [0, 0.4, 0.5, 1] }}
       ><span className="text-sm text-primary tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>SCREEN B</span></motion.div>
+    </div>
+  );
+}
+
+function LoadingScreenLivePreview() {
+  const [key, setKey] = useState(0);
+  return (
+    <div className="relative w-full rounded-xl overflow-hidden border border-primary/20" style={{ height: '300px' }}>
+      <LoadingScreen onComplete={() => setKey(k => k + 1)} isPublic={true} embedded={true} key={key} />
     </div>
   );
 }

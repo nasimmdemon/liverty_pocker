@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface LoadingScreenProps {
   onComplete: () => void;
   isPublic?: boolean;
+  embedded?: boolean;
 }
 
 const LOADING_DURATION = 24;
@@ -98,7 +99,7 @@ const LOADING_MESSAGES: MessagePart[][] = [
   ],
 ];
 
-const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
+const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: LoadingScreenProps) => {
   const [currentMessage, setCurrentMessage] = useState(0);
   const [currentFrame, setCurrentFrame] = useState(0);
 
@@ -131,7 +132,7 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
 
   return (
     <motion.div
-      className="fixed inset-0 flex flex-col overflow-hidden"
+      className={`${embedded ? 'absolute' : 'fixed'} inset-0 flex flex-col overflow-hidden`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
