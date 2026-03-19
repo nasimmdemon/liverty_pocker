@@ -178,7 +178,7 @@ const TierPopup = ({
               return (
                 <motion.button
                   key={i}
-                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border-2 border-primary/30 hover:border-primary/70 transition-all"
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-primary/30 hover:border-primary/70 transition-all touch-manipulation min-h-[48px]"
                   style={{
                     background: isFree
                       ? 'linear-gradient(180deg, hsl(120 25% 16%) 0%, hsl(120 20% 10%) 100%)'
