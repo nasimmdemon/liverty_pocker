@@ -158,7 +158,7 @@ const ActionButtons = ({
                     </div>
                     <button
                       className={goldBtnClass}
-                      onClick={handleSet}
+                      onClick={() => { hapticMedium(); handleSet(); }}
                       disabled={disabled}
                     >
                       Set

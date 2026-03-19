@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, UserPlus, Lock } from 'lucide-react';
+import { hapticLight, hapticMedium, hapticHeavy } from '@/lib/haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import CreateGameModal from '@/components/multiplayer/CreateGameModal';
 import JoinGameModal from '@/components/multiplayer/JoinGameModal';
