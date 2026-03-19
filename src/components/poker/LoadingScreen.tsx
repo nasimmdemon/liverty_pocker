@@ -242,11 +242,14 @@ const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: Loadin
           </div>
 
           {/* Highlighted text below progress bar */}
-          <div className="w-full max-w-md mx-auto min-h-[24px] flex items-center justify-center -mt-1">
+          <div className="w-full max-w-md mx-auto flex items-center justify-center" style={{ minHeight: 'clamp(16px, 3vh, 24px)' }}>
             <AnimatePresence mode="wait">
               <motion.p
                 key={`hl-${currentMessage}`}
-                className="text-center text-sm sm:text-base leading-relaxed"
+                className="text-center leading-relaxed"
+                style={{
+                  fontSize: 'clamp(0.7rem, 2vh, 1rem)',
+                }}
                 style={{
                   fontFamily: "'Cinzel', serif",
                   color: '#F2D27A',
