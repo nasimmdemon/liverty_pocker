@@ -825,10 +825,11 @@ const SitAndGoScreen = ({
                 type="range"
                 min={minEntrance}
                 max={maxEntrance}
-                step={500}
-                value={entranceAmount}
-                onChange={(e) => setEntranceAmount(Number(e.target.value))}
+                step={stepSize}
+                value={Math.min(Math.max(entranceAmount, minEntrance), maxEntrance)}
+                onChange={(e) => setEntranceAmount(Math.round(Number(e.target.value) * 10) / 10)}
                 className="bet-amount-slider flex-1 h-4 rounded-full appearance-none cursor-pointer touch-manipulation"
+                style={{ transition: 'none' }}
               />
               <span className="text-muted-foreground text-[10px]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                 ${formatChips(maxEntrance)}
