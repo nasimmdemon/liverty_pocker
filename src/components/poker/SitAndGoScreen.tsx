@@ -577,15 +577,30 @@ const SitAndGoScreen = ({
                   </div>
                 </div>
 
-                {/* Stake options — horizontal scroll for compact layout */}
-                <div className="px-3 py-2 flex flex-wrap gap-1.5 sm:gap-2">
+                {/* Stake label */}
+                <div className="px-3 pt-2 pb-1">
+                  <span className="text-muted-foreground text-[9px] uppercase tracking-widest" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                    {gameMode === 'sit-and-go' ? 'Small / Big Blind' : 'Buy-in Options'}
+                  </span>
+                </div>
+
+                {/* Stake options */}
+                <div className="px-3 pb-2 flex flex-wrap gap-1.5 sm:gap-2">
                   {(gameMode === 'sit-and-go' ? expandedTier.sitAndGoOptions : expandedTier.tournamentOptions).map((opt, i) => {
                     const isFree = opt.startsWith('FREE ');
                     const cleanOpt = isFree ? opt.replace('FREE ', '') : opt;
-                    const parts = cleanOpt.replace('$', '').split('-');
+                    // Remove $ from data since we add it in display
+                    const rawOpt = cleanOpt.replace(/\$/g, '');
+                    const parts = rawOpt.split('-');
                     const small = parseFloat(parts[0]);
                     const big = parts.length > 1 ? parseFloat(parts[1]) : small;
                     const isActive = selectedStake?.small === small && selectedStake?.big === big;
+
+                    // Display label
+                    const displayLabel = gameMode === 'sit-and-go'
+                      ? `${small} / ${big}`
+                      : `$${small.toFixed(2)}`;
+
                     return (
                       <motion.button
                         key={i}
@@ -609,7 +624,7 @@ const SitAndGoScreen = ({
                       >
                         <span className="text-foreground text-xs sm:text-sm tracking-wider flex items-center gap-1.5">
                           {isFree && <span className="text-green-400 text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-500/20">FREE</span>}
-                          {gameMode === 'sit-and-go' ? cleanOpt : `$${cleanOpt}`}
+                          {displayLabel}
                         </span>
                         {isActive && (
                           <span className="text-primary text-[10px]">✓</span>
