@@ -1,8 +1,9 @@
 import { Share, Download } from 'lucide-react';
-import type { MobilePlatform } from '@/hooks/use-add-to-home-screen';
+import { setSkipInstall, type MobilePlatform } from '@/hooks/use-add-to-home-screen';
 
 interface AddToHomeScreenOverlayProps {
   platform: MobilePlatform;
+  onContinueInBrowser?: () => void;
 }
 
 const IOS_INSTRUCTIONS = [
@@ -19,7 +20,7 @@ const ANDROID_INSTRUCTIONS = [
   '4. Open Liberty Poker from your home screen for the full experience',
 ];
 
-export default function AddToHomeScreenOverlay({ platform }: AddToHomeScreenOverlayProps) {
+export default function AddToHomeScreenOverlay({ platform, onContinueInBrowser }: AddToHomeScreenOverlayProps) {
   const isIOS = platform === 'ios';
   const instructions = isIOS ? IOS_INSTRUCTIONS : ANDROID_INSTRUCTIONS;
   const Icon = isIOS ? Share : Download;
@@ -56,6 +57,16 @@ export default function AddToHomeScreenOverlay({ platform }: AddToHomeScreenOver
         <p className="text-xs text-muted-foreground">
           After adding, open the app from your home screen to play.
         </p>
+        <button
+          type="button"
+          onClick={() => {
+            setSkipInstall();
+            onContinueInBrowser?.();
+          }}
+          className="mt-4 text-sm text-muted-foreground underline hover:text-foreground transition-colors"
+        >
+          Continue in browser instead
+        </button>
       </div>
     </div>
   );

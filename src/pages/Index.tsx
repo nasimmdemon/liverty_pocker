@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAddToHomeScreen } from '@/hooks/use-add-to-home-screen';
+import { useIsLandscapeMobile } from '@/hooks/use-orientation';
 import AddToHomeScreenOverlay from '@/components/AddToHomeScreenOverlay';
 import LoginScreen from '@/components/auth/LoginScreen';
 import StartScreen from '@/components/poker/StartScreen';
@@ -40,7 +41,8 @@ interface MultiplayerConfig {
 const Index = () => {
   const [searchParams] = useSearchParams();
   const { showPrompt: showAddToHomeScreen, platform } = useAddToHomeScreen();
-  const isPortraitOnMobile = false; // No longer restricting orientation
+  const [skipInstall, setSkipInstallState] = useState(false);
+  const isLandscapeMobile = useIsLandscapeMobile();
   const joinCodeFromUrl = searchParams.get('join');
   const refCodeFromUrl = searchParams.get('ref');
 
@@ -144,13 +146,37 @@ const Index = () => {
     );
   }
 
-  // Mobile browser: require add-to-home-screen for full web app experience
-  if (showAddToHomeScreen && platform) {
-    return <AddToHomeScreenOverlay platform={platform} />;
+  // Mobile browser: prompt add-to-home-screen (can skip to continue in browser)
+  if (showAddToHomeScreen && platform && !skipInstall) {
+    return (
+      <AddToHomeScreenOverlay
+        platform={platform}
+        onContinueInBrowser={() => setSkipInstallState(true)}
+      />
+    );
   }
 
   if (!user) {
     return <LoginScreen refCodeFromUrl={refCodeFromUrl} />;
+  }
+
+  // Mobile: portrait only — block landscape with rotate prompt
+  if (isLandscapeMobile) {
+    return (
+      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6 text-center">
+        <div className="w-16 h-16 mb-4 rounded-full border-2 border-primary flex items-center justify-center animate-pulse">
+          <svg className="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-bold text-primary mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+          Please rotate to portrait
+        </h2>
+        <p className="text-muted-foreground text-sm">
+          Liberty Poker is playable only in portrait mode. Please rotate your device to continue.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -203,7 +229,7 @@ const Index = () => {
           testCommission={tableConfig.testCommission}
           cardBack={tableConfig.cardBack}
           onExit={handleExitTable}
-          isLandscapeMobile={isPortraitOnMobile}
+          isLandscapeMobile={isLandscapeMobile}
         />
       )}
       {screen === 'multiplayer-lobby' && multiplayerConfig && (
@@ -230,7 +256,7 @@ const Index = () => {
           isHost={multiplayerConfig.isHost}
           initialRoom={multiplayerConfig.room!}
           onExit={() => { setScreen('start'); setMultiplayerConfig(null); }}
-          isLandscapeMobile={isPortraitOnMobile}
+          isLandscapeMobile={isLandscapeMobile}
         />
       )}
     </AnimatePresence>

@@ -3,10 +3,11 @@
   "short_name": "Liberty Poker",
   "description": "Liberty Poker - Play poker and earn",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#b8860b",
-  "orientation": "landscape",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "/logo.png",
