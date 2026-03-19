@@ -38,7 +38,7 @@ function CharacterOverlay({ screen }: { screen: (typeof LOADING_SCREENS)[0] }) {
         key={screen.character}
         src={screen.character}
         alt=""
-        className="h-[95vh] max-h-[800px] w-auto object-contain object-bottom block"
+        className="h-[80vh] max-h-[800px] w-auto object-contain object-bottom block"
         loading="eager"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{
@@ -171,12 +171,13 @@ const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: Loadin
       <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/70 pointer-events-none" />
 
       {/* Content area - title + message + loading bar grouped */}
-      <div className="relative z-10 flex flex-col items-center justify-end min-h-full pb-[120px] sm:pb-[140px] px-4">
-        <div className="w-full max-w-xl mx-auto flex flex-col items-center gap-5">
+      <div className="relative z-10 flex flex-col items-center justify-end min-h-full px-4" style={{ paddingBottom: 'clamp(40px, 15vh, 140px)' }}>
+        <div className="w-full max-w-xl mx-auto flex flex-col items-center" style={{ gap: 'clamp(8px, 2vh, 20px)' }}>
           {/* Title */}
           <motion.h2
-            className="text-xl sm:text-2xl md:text-3xl tracking-[0.2em] text-center"
+            className="tracking-[0.2em] text-center"
             style={{
+              fontSize: 'clamp(1rem, 3vh, 1.875rem)',
               fontFamily: "'Bebas Neue', sans-serif",
               color: '#F2D27A',
               textShadow: '0 2px 20px rgba(0,0,0,0.8)',
@@ -189,12 +190,13 @@ const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: Loadin
           </motion.h2>
 
           {/* Rotating message - non-highlighted text below title */}
-          <div className="w-full max-w-md mx-auto min-h-[24px] flex items-center justify-center -mt-2">
+          <div className="w-full max-w-md mx-auto flex items-center justify-center" style={{ minHeight: 'clamp(16px, 3vh, 24px)' }}>
             <AnimatePresence mode="wait">
               <motion.p
                 key={`msg-${currentMessage}`}
-                className="text-center text-white/80 text-sm sm:text-base leading-relaxed"
+                className="text-center text-white/80 leading-relaxed"
                 style={{
+                  fontSize: 'clamp(0.7rem, 2vh, 1rem)',
                   fontFamily: "'Cinzel', serif",
                   fontStyle: 'italic',
                   letterSpacing: '0.1em',
@@ -236,12 +238,13 @@ const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: Loadin
           </div>
 
           {/* Highlighted text below progress bar */}
-          <div className="w-full max-w-md mx-auto min-h-[24px] flex items-center justify-center -mt-1">
+          <div className="w-full max-w-md mx-auto flex items-center justify-center" style={{ minHeight: 'clamp(16px, 3vh, 24px)' }}>
             <AnimatePresence mode="wait">
               <motion.p
                 key={`hl-${currentMessage}`}
-                className="text-center text-sm sm:text-base leading-relaxed"
+                className="text-center leading-relaxed"
                 style={{
+                  fontSize: 'clamp(0.7rem, 2vh, 1rem)',
                   fontFamily: "'Cinzel', serif",
                   color: '#F2D27A',
                   fontWeight: 700,
