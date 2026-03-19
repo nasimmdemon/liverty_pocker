@@ -134,7 +134,7 @@ function AnimationPreview({ id, looping }: { id: string; looping: boolean }) {
           {id === 'winner-banner' && <WinnerBannerPreview />}
           {id === 'loading-to-game' && <LoadingToGamePreview />}
           {id === 'screen-fade' && <ScreenFadePreview />}
-          {id === 'loading-screen-live' && <LoadingScreenLivePreview />}
+          
         </motion.div>
       </AnimatePresence>
       <button onClick={restart} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors" title="Replay">
