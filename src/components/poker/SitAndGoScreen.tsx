@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Users, UserPlus } from 'lucide-react';
+import { X, Users, UserPlus, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import CreateGameModal from '@/components/multiplayer/CreateGameModal';
 import JoinGameModal from '@/components/multiplayer/JoinGameModal';
