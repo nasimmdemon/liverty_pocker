@@ -5,6 +5,8 @@ import { formatChips } from '@/lib/formatChips';
 interface PotDisplayProps {
   pot: number;
   rakeAmount?: number;
+  smallBlind?: number;
+  bigBlind?: number;
 }
 
 const PotDisplay = ({ pot, rakeAmount = 0 }: PotDisplayProps) => {
