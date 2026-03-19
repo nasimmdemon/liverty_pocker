@@ -159,8 +159,8 @@ const TierPopup = ({
           </div>
         </div>
 
-        {/* Options list */}
-        <div className="px-4 py-3">
+        {/* Options list - scrollable */}
+        <div className="px-4 py-3 overflow-y-auto flex-1 min-h-0">
           <h3
             className="text-sm tracking-wider mb-2 text-muted-foreground"
             style={{ fontFamily: "'Bebas Neue', sans-serif" }}
