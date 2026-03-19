@@ -132,7 +132,7 @@ const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: Loadin
 
   return (
     <motion.div
-      className="fixed inset-0 flex flex-col overflow-hidden"
+      className={`${embedded ? 'absolute' : 'fixed'} inset-0 flex flex-col overflow-hidden`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
