@@ -93,6 +93,12 @@ const ANIM_CATEGORIES: AnimCategory[] = [
       { id: 'screen-fade', label: 'Screen Fade', description: 'Crossfade between screens' },
     ],
   },
+  {
+    title: 'LOADING SCREEN', emoji: '📺',
+    items: [
+      { id: 'loading-screen-live', label: 'Live Loading Screen', description: 'Full loading screen with characters & messages' },
+    ],
+  },
 ];
 
 const ANIM_DURATIONS: Record<string, number> = {
