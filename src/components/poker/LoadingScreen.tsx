@@ -69,25 +69,25 @@ type MessagePart = { text: string; highlight?: boolean };
 const LOADING_MESSAGES: MessagePart[][] = [
   [
     { text: 'Earn ' },
-    { text: '30%', highlight: true },
-    { text: ' from invited players — ' },
-    { text: 'for life.', highlight: true },
-  ],
-  [
-    { text: 'Host games. Earn ' },
-    { text: '10% instant', highlight: true },
-    { text: ' — ' },
-    { text: '16% ROI.', highlight: true },
-  ],
-  [
-    { text: 'Invite by sharing the link. Earn ' },
     { text: '10%', highlight: true },
-    { text: ' — stacks with ' },
-    { text: 'affiliation.', highlight: true },
+    { text: ' from hosting games. ' },
+    { text: 'Average yearly ROI: 16%', highlight: true },
   ],
   [
-    { text: 'Auto payouts — ' },
-    { text: 'every week.', highlight: true },
+    { text: 'Earn ' },
+    { text: '30% for life', highlight: true },
+    { text: ' on every hand your recruits play. ' },
+    { text: 'Just share your link — no extra steps required.', highlight: false },
+  ],
+  [
+    { text: 'Earn ' },
+    { text: '10%', highlight: true },
+    { text: ' from organizing private tables. ' },
+    { text: 'Stackable with affiliate and hosting rewards.', highlight: true },
+  ],
+  [
+    { text: 'Automatic payouts — ' },
+    { text: 'every 3 days.', highlight: true },
   ],
   [
     { text: 'The best players fold ' },
