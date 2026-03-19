@@ -504,7 +504,7 @@ const SitAndGoScreen = ({
           <div className="grid grid-cols-4 gap-1.5 sm:gap-3 w-full">
             {TIERS.map((tier) => {
               const isSelected = expandedTier?.key === tier.key;
-              const isLocked = tier.key === 'cat' || tier.key === 'dog';
+              const isLocked = !unlockedTiers.has(tier.key);
               return (
                 <motion.button
                   key={tier.key}
