@@ -454,11 +454,12 @@ const SitAndGoScreen = ({
         )}
       </div>
 
-      {/* Game Mode Tabs — distinct separation: Tournament (purple) vs Sit & Go (green) */}
+      {/* Unified content column — consistent width */}
       {tableType === 'public' && (
-        <>
+        <div className="relative z-10 flex flex-col items-center w-full max-w-[640px] px-4 gap-3 pb-6">
+          {/* Game Mode Tabs */}
           <motion.div
-            className="relative z-10 flex items-center gap-2 sm:gap-3 mt-1"
+            className="flex items-center gap-2 sm:gap-3"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
@@ -478,34 +479,35 @@ const SitAndGoScreen = ({
               🎰 SIT & GO
             </button>
           </motion.div>
+
+          {/* Divider */}
           <div
-            className="relative z-10 w-[85%] sm:w-[70%] max-w-lg h-px my-3 sm:my-4"
+            className="w-full h-px"
             style={{
               background: gameMode === 'tournament'
                 ? 'linear-gradient(90deg, transparent, hsl(350 50% 45% / 0.5), transparent)'
                 : 'linear-gradient(90deg, transparent, hsl(140 50% 45% / 0.5), transparent)',
             }}
           />
-        </>
-      )}
 
-      {/* PUBLIC: Tier cards with inline expansion */}
-      {tableType === 'public' && (
-        <motion.div
-          className="relative z-10 flex flex-col items-center gap-2 px-4 w-full max-w-2xl"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <h2
+          {/* SELECT TIER heading */}
+          <motion.h2
             className="text-lg sm:text-2xl tracking-wider"
             style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
           >
             SELECT TIER
-          </h2>
+          </motion.h2>
 
-          {/* Tier cards — horizontal row */}
-          <div className="grid grid-cols-4 gap-1.5 sm:gap-3 w-full">
+          {/* Tier cards — full width row */}
+          <motion.div
+            className="grid grid-cols-4 gap-1.5 sm:gap-3 w-full"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
             {TIERS.map((tier) => {
               const isSelected = expandedTier?.key === tier.key;
               const isLocked = !unlockedTiers.has(tier.key);
@@ -538,7 +540,6 @@ const SitAndGoScreen = ({
                       layoutId="tier-glow"
                     />
                   )}
-                  {/* Lock overlay for Cat & Dog */}
                   {isLocked && (
                     <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/40 rounded-xl">
                       <Lock size={20} className="text-muted-foreground" />
@@ -561,9 +562,9 @@ const SitAndGoScreen = ({
                 </motion.button>
               );
             })}
-          </div>
+          </motion.div>
 
-          {/* Expanded tier options — inline below cards */}
+          {/* Expanded tier options — full width */}
           <AnimatePresence mode="wait">
             {expandedTier && (
               <motion.div
@@ -577,9 +578,9 @@ const SitAndGoScreen = ({
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.25 }}
               >
-                {/* Promotion progress bar to next tier */}
+                {/* Promotion progress bar */}
                 {nextTier ? (
-                  <div className="px-3 py-2.5 border-b border-primary/15">
+                  <div className="px-4 py-2.5 border-b border-primary/15">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[9px] uppercase tracking-widest text-muted-foreground" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                         Next: {nextTier.emoji} {nextTier.label}
@@ -605,7 +606,7 @@ const SitAndGoScreen = ({
                     </span>
                   </div>
                 ) : (
-                  <div className="px-3 py-2 border-b border-primary/15 text-center">
+                  <div className="px-4 py-2 border-b border-primary/15 text-center">
                     <span className="text-[9px] uppercase tracking-widest text-primary" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                       🏆 Max Tier Reached
                     </span>
@@ -613,25 +614,23 @@ const SitAndGoScreen = ({
                 )}
 
                 {/* Stake label */}
-                <div className="px-3 pt-2 pb-1">
+                <div className="px-4 pt-2 pb-1">
                   <span className="text-muted-foreground text-[9px] uppercase tracking-widest" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                     {gameMode === 'sit-and-go' ? 'Small / Big Blind' : 'Buy-in Options'}
                   </span>
                 </div>
 
-                {/* Stake options */}
-                <div className="px-3 pb-2 flex flex-wrap gap-1.5 sm:gap-2">
+                {/* Stake options — grid for consistent sizing */}
+                <div className="px-4 pb-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {(gameMode === 'sit-and-go' ? expandedTier.sitAndGoOptions : expandedTier.tournamentOptions).map((opt, i) => {
                     const isFree = opt.startsWith('FREE ');
                     const cleanOpt = isFree ? opt.replace('FREE ', '') : opt;
-                    // Remove $ from data since we add it in display
                     const rawOpt = cleanOpt.replace(/\$/g, '');
                     const parts = rawOpt.split('-');
                     const small = parseFloat(parts[0]);
                     const big = parts.length > 1 ? parseFloat(parts[1]) : small;
                     const isActive = selectedStake?.small === small && selectedStake?.big === big;
 
-                    // Display label
                     const displayLabel = gameMode === 'sit-and-go'
                       ? `${small} / ${big}`
                       : `$${small.toFixed(2)}`;
@@ -639,7 +638,7 @@ const SitAndGoScreen = ({
                     return (
                       <motion.button
                         key={i}
-                        className={`flex-1 min-w-[100px] flex items-center justify-between px-3 py-2 rounded-lg border transition-all touch-manipulation ${
+                        className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-all touch-manipulation ${
                           isActive
                             ? 'border-primary bg-primary/15 shadow-[0_0_12px_hsl(var(--casino-gold)/0.2)]'
                             : isFree
@@ -675,7 +674,7 @@ const SitAndGoScreen = ({
           {/* Selected stake display */}
           {selectedStake && !expandedTier && (
             <motion.div
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-primary/30 bg-primary/5"
+              className="w-full flex items-center gap-2 px-4 py-2 rounded-lg border border-primary/30 bg-primary/5"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             >
@@ -687,118 +686,8 @@ const SitAndGoScreen = ({
               </span>
             </motion.div>
           )}
-        </motion.div>
-      )}
 
-      {/* PRIVATE: Create or Join table — centered in middle of screen */}
-      {tableType === 'private' && (
-        <motion.div
-          className="relative z-10 flex-1 flex flex-col items-center justify-center gap-4 px-4 w-full max-w-lg"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <h2
-            className="text-lg sm:text-2xl tracking-wider"
-            style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
-          >
-            CREATE OR JOIN TABLE
-          </h2>
-          <p className="text-muted-foreground text-[10px] sm:text-xs text-center max-w-sm mb-2">
-            Create your own table or join an existing game with a code.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 w-full max-w-md">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <motion.button
-                    className="group flex flex-col items-center gap-3 px-8 sm:px-12 py-6 sm:py-8 rounded-2xl border-2 border-primary/40 hover:border-primary transition-all w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      background: "linear-gradient(180deg, hsl(220 55% 18%) 0%, hsl(220 50% 10%) 100%)",
-                    }}
-                    onClick={() => canInviteFriends && setShowCreateModal(true)}
-                    disabled={!canInviteFriends}
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.25 }}
-                    whileHover={{ scale: 1.03, boxShadow: '0 0 24px hsl(var(--casino-gold) / 0.25)' }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Users className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
-                    <span
-                      className="text-xl sm:text-2xl tracking-wider"
-                      style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
-                    >
-                      CREATE GAME
-                    </span>
-                    <span className="text-muted-foreground text-[10px] sm:text-xs max-w-[140px] text-center">
-                      Host a table and invite friends with a link
-                    </span>
-                    {!canInviteFriends && (
-                      <span className="text-[10px] text-primary/80 mt-1">
-                        ({botMatchesPlayed}/{BOT_MATCHES_REQUIRED} bot matches to unlock)
-                      </span>
-                    )}
-                  </motion.button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {canInviteFriends
-                    ? 'Create a game and invite friends'
-                    : `Play ${BOT_MATCHES_REQUIRED} bot matches to unlock`}
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <motion.button
-                    className="group flex flex-col items-center gap-3 px-8 sm:px-12 py-6 sm:py-8 rounded-2xl border-2 border-primary/40 hover:border-primary transition-all w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      background: "linear-gradient(180deg, hsl(140 55% 18%) 0%, hsl(140 50% 10%) 100%)",
-                    }}
-                    onClick={() => canInviteFriends && setShowJoinModal(true)}
-                    disabled={!canInviteFriends}
-                    initial={{ x: 20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    whileHover={{ scale: 1.03, boxShadow: '0 0 24px hsl(var(--casino-gold) / 0.25)' }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <UserPlus className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
-                    <span
-                      className="text-xl sm:text-2xl tracking-wider"
-                      style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
-                    >
-                      JOIN GAME
-                    </span>
-                    <span className="text-muted-foreground text-[10px] sm:text-xs max-w-[140px] text-center">
-                      Enter a code to join an existing table
-                    </span>
-                    {!canInviteFriends && (
-                      <span className="text-[10px] text-primary/80 mt-1">
-                        ({botMatchesPlayed}/{BOT_MATCHES_REQUIRED} bot matches to unlock)
-                      </span>
-                    )}
-                  </motion.button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {canInviteFriends
-                    ? 'Join a game with invite code'
-                    : `Play ${BOT_MATCHES_REQUIRED} bot matches to unlock`}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Buy-in + Join — compact row for public */}
-      {tableType === 'public' && (
-        <motion.div
-          className="relative z-10 flex flex-col items-center gap-2 w-full max-w-2xl px-4 mt-1"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-        >
+          {/* Buy-in slider — full width, same container */}
           <div
             className="w-full rounded-xl border border-primary/25 px-4 py-3"
             style={{ background: 'linear-gradient(180deg, hsl(0 0% 8% / 0.9) 0%, hsl(0 0% 5% / 0.9) 100%)' }}
@@ -850,7 +739,7 @@ const SitAndGoScreen = ({
               className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] group-hover:drop-shadow-[0_8px_32px_hsl(var(--casino-gold)/0.4)] transition-all duration-300"
             />
           </motion.button>
-        </motion.div>
+        </div>
       )}
 
       {/* Create/Join modals — for private */}
