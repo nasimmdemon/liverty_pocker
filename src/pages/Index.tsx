@@ -171,7 +171,7 @@ const Index = () => {
       )}
     <AnimatePresence mode="wait">
       {screen === 'start' && (
-        <StartScreen key="start" onPlay={handlePlay} onWatchAndEarn={handleWatchAndEarn} />
+        <StartScreen key="start" onPlay={handlePlay} onWatchAndEarn={handleWatchAndEarn} funds={funds} />
       )}
       {screen === 'watch-and-earn' && (
         <WatchAndEarnScreen
