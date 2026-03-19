@@ -666,8 +666,8 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           <span className="text-muted-foreground text-[10px] sm:text-xs">|</span>
           <span className="text-primary text-[10px] sm:text-xs font-bold uppercase">{gameState.phase}</span>
         </div>
-        <button className="w-10 h-10 sm:w-10 sm:h-10 rounded-lg border-2 border-primary flex items-center justify-center touch-manipulation" style={{ background: 'hsl(var(--casino-dark))' }}>
-          <Settings size={18} className="text-primary" />
+        <button className={`${isCompact ? 'w-8 h-8' : 'w-10 h-10 sm:w-10 sm:h-10'} rounded-lg border-2 border-primary flex items-center justify-center touch-manipulation`} style={{ background: 'hsl(var(--casino-dark))' }}>
+          <Settings size={isCompact ? 14 : 18} className="text-primary" />
         </button>
       </div>
 
