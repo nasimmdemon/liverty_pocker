@@ -136,9 +136,9 @@ const ActionButtons = ({
                     />
                   </div>
                   <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-                    <div className="flex items-center gap-1 sm:gap-2 border-2 border-primary/40 rounded-xl px-3 py-2 bg-background/80">
+                    <div className="flex items-center gap-1.5 sm:gap-2 border-2 border-primary/40 rounded-xl px-3 py-1.5 sm:py-2 bg-background/80">
                       <button
-                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 disabled:opacity-50 transition-colors"
+                        className="w-9 h-9 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 disabled:opacity-50 transition-colors touch-manipulation"
                         onClick={() => setBetAmount((a) => Math.max(minTotal, Math.min(a - stepSize, maxTotal)))}
                         disabled={disabled || betAmount <= minTotal}
                       >
