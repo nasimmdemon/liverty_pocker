@@ -700,12 +700,12 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
 
       {/* Blinds info merged into PotDisplay — removed standalone blinds row to prevent collision */}
 
-      {/* Table area — centered with padding; landscape mobile: extra compact, more bottom padding so user cards don't overlap buttons */}
+      {/* Table area — centered with padding; landscape mobile: extra compact */}
       <div
         className="absolute inset-0 flex items-center justify-center flex-1 min-h-0"
         style={{
-          paddingBottom: isLandscapeMobile ? '88px' : isMobile ? '100px' : '90px',
-          paddingTop: isLandscapeMobile ? '28px' : isMobile ? '48px' : '60px',
+          paddingBottom: isLandscapeMobile ? '72px' : isMobile ? '100px' : '90px',
+          paddingTop: isLandscapeMobile ? '20px' : isMobile ? '48px' : '60px',
         }}
         data-landscape-mobile={isLandscapeMobile ? 'true' : undefined}
       >
