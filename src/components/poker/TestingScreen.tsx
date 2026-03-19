@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import LoadingScreen from './LoadingScreen';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Check, Percent, Play, RotateCcw } from 'lucide-react';
+import { Copy, Check, Percent, Play, RotateCcw, Plus } from 'lucide-react';
+import { formatChips } from '@/lib/formatChips';
 import pokerTableBg from '@/assets/poker-table-bg.png';
 import ChipIcon from './ChipIcon';
 import type { TestCommissionConfig } from '@/lib/gameLogic';
@@ -10,6 +11,8 @@ import type { PlayingCard as CardType, Rank } from '@/lib/gameTypes';
 interface TestingScreenProps {
   onStartGame: (config: TestingConfig) => void;
   onBack: () => void;
+  funds?: number;
+  onTopUp?: (amount: number) => void;
 }
 
 export type { TestCommissionConfig };
@@ -318,7 +321,7 @@ function ScreenFadePreview() {
 
 /* ── Main Component ── */
 
-const TestingScreen = ({ onStartGame, onBack }: TestingScreenProps) => {
+const TestingScreen = ({ onStartGame, onBack, funds = 0, onTopUp }: TestingScreenProps) => {
   const [activeTab, setActiveTab] = useState<Tab>('config');
   const [botCount, setBotCount] = useState(5);
   const [smallBlind, setSmallBlind] = useState(5);
@@ -481,6 +484,31 @@ const TestingScreen = ({ onStartGame, onBack }: TestingScreenProps) => {
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>
+
+            {/* Top Up Funds */}
+            <div className="rounded-xl overflow-hidden" style={{ background: 'linear-gradient(145deg, rgba(30,28,24,0.9) 0%, rgba(18,16,14,0.95) 100%)', border: '1px solid rgba(242,210,122,0.25)', boxShadow: '0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)' }}>
+              <div className="px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Plus className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-sm font-medium text-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>Top Up Funds</span>
+                </div>
+                <span className="text-primary font-bold text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                  ${formatChips(funds)}
+                </span>
+              </div>
+              <div className="px-4 pb-4 pt-1 flex gap-2 border-t border-white/5">
+                {[5, 10, 50, 100].map(amount => (
+                  <button
+                    key={amount}
+                    onClick={() => onTopUp?.(amount)}
+                    className="flex-1 py-2 text-xs tracking-wider rounded-lg border-2 border-primary/30 hover:border-primary/60 hover:bg-primary/10 text-primary transition-all"
+                    style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                  >
+                    +${amount}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Share link */}

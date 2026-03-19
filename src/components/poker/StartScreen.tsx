@@ -9,9 +9,10 @@ import pokerRoomBg from '@/assets/poker-room-bg.png';
 interface StartScreenProps {
   onPlay: () => void;
   onWatchAndEarn?: () => void;
+  funds?: number;
 }
 
-const StartScreen = ({ onPlay, onWatchAndEarn }: StartScreenProps) => {
+const StartScreen = ({ onPlay, onWatchAndEarn, funds = 0 }: StartScreenProps) => {
   const { user, signOut } = useAuth();
   return (
     <motion.div
@@ -67,7 +68,7 @@ const StartScreen = ({ onPlay, onWatchAndEarn }: StartScreenProps) => {
             className="text-base sm:text-xl md:text-2xl tracking-wider"
             style={{ fontFamily: "'Bebas Neue', 'Cinzel', serif", color: '#F2D27A' }}
           >
-            FUNDS: 999$
+            FUNDS: {funds}$
           </span>
           <button
             onClick={() => signOut()}

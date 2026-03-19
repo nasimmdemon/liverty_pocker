@@ -84,6 +84,7 @@ interface SitAndGoScreenProps {
   onMultiplayerCreate?: (room: import('@/lib/multiplayer').GameRoom) => void;
   onMultiplayerJoin?: (gameId: string, room?: any) => void;
   joinCodeFromUrl?: string | null;
+  funds?: number;
 }
 
 // ── Tier Detail Popup ──────────────────────────────────────
@@ -225,6 +226,7 @@ const SitAndGoScreen = ({
   onMultiplayerCreate,
   onMultiplayerJoin,
   joinCodeFromUrl,
+  funds: fundsProp = 9,
 }: SitAndGoScreenProps) => {
   const { user, profile } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -234,9 +236,9 @@ const SitAndGoScreen = ({
   const [selectedTierPopup, setSelectedTierPopup] = useState<TierData | null>(null);
   const [expandedTier, setExpandedTier] = useState<TierData | null>(null);
   const [selectedStake, setSelectedStake] = useState<{ small: number; big: number } | null>(null);
-  const funds = 9;
+  const funds = fundsProp;
   // Buy-in range correlates to player funds
-  const minEntrance = Math.max(1, Math.floor(funds * 0.1 * 10) / 10);  // 10% of funds, min $1
+  const minEntrance = Math.max(1, Math.floor(funds * 0.1 * 10) / 10);
   const maxEntrance = Math.max(minEntrance + 1, funds);
   const [entranceAmount, setEntranceAmount] = useState(Math.round((minEntrance + maxEntrance) / 2 * 10) / 10);
 

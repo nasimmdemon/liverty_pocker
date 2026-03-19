@@ -54,6 +54,7 @@ const Index = () => {
   }, [refCodeFromUrl]);
   const { user, loading, incrementBotMatches, canInviteFriends, profile } = useAuth();
   const [screen, setScreen] = useState<Screen>('start');
+  const [funds, setFunds] = useState(9); // Player funds (will connect to backend later)
   const [tableConfig, setTableConfig] = useState<TableConfig>({ buyIn: 1500, smallBlind: 5, bigBlind: 10 });
   const [multiplayerConfig, setMultiplayerConfig] = useState<MultiplayerConfig | null>(null);
 
@@ -64,6 +65,8 @@ const Index = () => {
 
   const handleJoinTable = useCallback((buyIn: number, smallBlind: number, bigBlind: number, gameMode?: 'tournament' | 'sit-and-go', cardBack?: string) => {
     const mode = gameMode ?? 'sit-and-go';
+    // Deduct funds
+    setFunds(prev => Math.max(0, prev - buyIn));
     setTableConfig({
       buyIn,
       smallBlind,
@@ -168,7 +171,7 @@ const Index = () => {
       )}
     <AnimatePresence mode="wait">
       {screen === 'start' && (
-        <StartScreen key="start" onPlay={handlePlay} onWatchAndEarn={handleWatchAndEarn} />
+        <StartScreen key="start" onPlay={handlePlay} onWatchAndEarn={handleWatchAndEarn} funds={funds} />
       )}
       {screen === 'watch-and-earn' && (
         <WatchAndEarnScreen
@@ -188,6 +191,7 @@ const Index = () => {
           onMultiplayerCreate={handleMultiplayerCreate}
           onMultiplayerJoin={handleMultiplayerJoin}
           joinCodeFromUrl={joinCodeFromUrl}
+          funds={funds}
         />
       )}
       {screen === 'testing' && (
@@ -195,6 +199,8 @@ const Index = () => {
           key="testing"
           onStartGame={handleStartTestGame}
           onBack={() => setScreen('sitandgo')}
+          funds={funds}
+          onTopUp={(amount) => setFunds(prev => prev + amount)}
         />
       )}
       {screen === 'loading' && <LoadingScreen key="loading" onComplete={handleLoadingComplete} isPublic={tableConfig.isPublic} />}
