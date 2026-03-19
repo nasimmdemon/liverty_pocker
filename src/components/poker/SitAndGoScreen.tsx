@@ -84,6 +84,8 @@ interface SitAndGoScreenProps {
   onMultiplayerCreate?: (room: import('@/lib/multiplayer').GameRoom) => void;
   onMultiplayerJoin?: (gameId: string, room?: any) => void;
   joinCodeFromUrl?: string | null;
+  funds?: number;
+}
 }
 
 // ── Tier Detail Popup ──────────────────────────────────────
