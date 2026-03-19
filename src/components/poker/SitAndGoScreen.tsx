@@ -511,7 +511,7 @@ const SitAndGoScreen = ({
                     fontFamily: "'Bebas Neue', sans-serif",
                     opacity: isLocked ? 0.5 : 1,
                   }}
-                  onClick={() => !isLocked && setExpandedTier(isSelected ? null : tier)}
+                  onClick={() => { if (!isLocked) { hapticLight(); setExpandedTier(isSelected ? null : tier); } }}
                   whileTap={isLocked ? {} : { scale: 0.96 }}
                 >
                   {isSelected && (
