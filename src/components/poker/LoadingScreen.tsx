@@ -185,27 +185,25 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
             {isPublic ? 'FINDING TABLE FOR YOU' : 'CREATING TABLE FOR YOU'}
           </motion.h2>
 
-          {/* Rotating message - between title and progress bar */}
-          <div className="w-full max-w-md mx-auto min-h-[28px] flex items-center justify-center">
+          {/* Rotating message - non-highlighted text below title */}
+          <div className="w-full max-w-md mx-auto min-h-[24px] flex items-center justify-center -mt-2">
             <AnimatePresence mode="wait">
               <motion.p
-                key={currentMessage}
-                className="text-center text-white/95 text-sm sm:text-base leading-relaxed"
+                key={`msg-${currentMessage}`}
+                className="text-center text-white/80 text-sm sm:text-base leading-relaxed"
                 style={{
                   fontFamily: "'Cinzel', serif",
                   fontStyle: 'italic',
                   letterSpacing: '0.1em',
-                  textShadow: '0 2px 20px rgba(0,0,0,0.95), 0 0 40px rgba(242,210,122,0.15)',
+                  textShadow: '0 2px 20px rgba(0,0,0,0.95)',
                 }}
                 initial={{ opacity: 0, x: -40 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 40 }}
                 transition={{ duration: 0.5 }}
               >
-                {LOADING_MESSAGES[currentMessage].map((part, i) => (
-                  <span key={i} style={part.highlight ? { color: '#F2D27A', fontWeight: 700, fontStyle: 'normal' } : undefined}>
-                    {part.text}
-                  </span>
+                {LOADING_MESSAGES[currentMessage].filter(p => !p.highlight).map((part, i) => (
+                  <span key={i}>{part.text}</span>
                 ))}
               </motion.p>
             </AnimatePresence>
@@ -232,6 +230,31 @@ const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
                 transition={{ duration: LOADING_DURATION, ease: 'linear' }}
               />
             </div>
+          </div>
+
+          {/* Highlighted text below progress bar */}
+          <div className="w-full max-w-md mx-auto min-h-[24px] flex items-center justify-center -mt-1">
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={`hl-${currentMessage}`}
+                className="text-center text-sm sm:text-base leading-relaxed"
+                style={{
+                  fontFamily: "'Cinzel', serif",
+                  color: '#F2D27A',
+                  fontWeight: 700,
+                  letterSpacing: '0.1em',
+                  textShadow: '0 0 30px rgba(242,210,122,0.3)',
+                }}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.5, delay: 0.15 }}
+              >
+                {LOADING_MESSAGES[currentMessage].filter(p => p.highlight).map((part, i) => (
+                  <span key={i}>{part.text} </span>
+                ))}
+              </motion.p>
+            </AnimatePresence>
           </div>
 
           {/* Decorative divider */}
