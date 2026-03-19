@@ -7,6 +7,13 @@
         { "fieldPath": "inviteCode", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "analytics_visits",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "lastSeen", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -9,6 +9,7 @@ import { unlockAudio } from "@/lib/sounds";
 import Index from "./pages/Index";
 import ReferAndEarn from "./pages/ReferAndEarn";
 import Profile from "./pages/Profile";
+import MonitorDashboard from "./pages/MonitorDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => {
           <Route path="/" element={<Index />} />
           <Route path="/refer" element={<ReferAndEarn />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/monitor" element={<MonitorDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

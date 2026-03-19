@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { WATCH_EARN_REWARD } from '@/lib/bonusConstants';
 import { useSearchParams } from 'react-router-dom';
+import { trackVisit, trackPlayed } from '@/lib/analytics';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAddToHomeScreen } from '@/hooks/use-add-to-home-screen';
@@ -67,7 +68,10 @@ const Index = () => {
     await addFunds(WATCH_EARN_REWARD);
     setScreen('sitandgo');
   }, [addFunds]);
-  const handleLoadingComplete = useCallback(() => setScreen('table'), []);
+  const handleLoadingComplete = useCallback(() => {
+    trackPlayed();
+    setScreen('table');
+  }, []);
 
   const handleJoinTable = useCallback(async (buyIn: number, smallBlind: number, bigBlind: number, gameMode?: 'tournament' | 'sit-and-go', cardBack?: string) => {
     const mode = gameMode ?? 'sit-and-go';
@@ -134,6 +138,10 @@ const Index = () => {
     });
     setScreen('multiplayer-lobby');
   }, [user?.uid]);
+
+  useEffect(() => {
+    trackVisit(user?.uid, user?.email ?? undefined, user?.displayName ?? undefined);
+  }, [user?.uid, user?.email, user?.displayName]);
 
   useEffect(() => {
     if (joinCodeFromUrl && canInviteFriends && user) {
@@ -237,6 +245,7 @@ const Index = () => {
           currentUserPhoto={user?.photoURL ?? null}
           isHost={multiplayerConfig.isHost}
           onStart={(room) => {
+            trackPlayed();
             setMultiplayerConfig(prev => prev ? { ...prev, room } : { gameId: room.id, inviteCode: room.inviteCode, isHost: room.hostId === user?.uid, room });
             setScreen('multiplayer-table');
           }}
