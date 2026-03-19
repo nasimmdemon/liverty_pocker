@@ -279,7 +279,7 @@ const PlayerSeat = ({
                 left: '50%',
                 top: 0,
                 transformOrigin: 'top center',
-                transform: `translateX(${i === 0 ? '-68%' : '-28%'}) rotate(${i === 0 ? 18 : -18}deg) scale(${isUser ? (isLandscapeMobile ? 0.75 : isMobile ? 0.9 : 1.5) : (isLandscapeMobile ? 0.5 : isMobile ? 0.4 : 0.6)})`,
+                transform: `translateX(${i === 0 ? '-68%' : '-28%'}) rotate(${i === 0 ? 18 : -18}deg) scale(${isUser ? (isLandscapeMobile ? 0.6 : isMobile ? 0.9 : 1.5) : (isLandscapeMobile ? 0.35 : isMobile ? 0.4 : 0.6)})`,
                 zIndex: i,
               }}
             >

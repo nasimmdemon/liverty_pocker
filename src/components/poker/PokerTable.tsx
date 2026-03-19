@@ -716,8 +716,8 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       <div
         className="absolute inset-0 flex items-center justify-center flex-1 min-h-0"
         style={{
-          paddingBottom: isLandscapeMobile ? '72px' : isMobile ? '100px' : '90px',
-          paddingTop: isLandscapeMobile ? '20px' : isMobile ? '48px' : '60px',
+          paddingBottom: isLandscapeMobile ? '64px' : isMobile ? '100px' : '90px',
+          paddingTop: isLandscapeMobile ? '16px' : isMobile ? '48px' : '60px',
         }}
         data-landscape-mobile={isLandscapeMobile ? 'true' : undefined}
       >
