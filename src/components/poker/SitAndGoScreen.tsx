@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useIsLandscapeMobile } from '@/hooks/use-orientation';
 import { X, Users, UserPlus, Lock } from 'lucide-react';
 import { hapticLight, hapticMedium, hapticHeavy, hapticSuccess } from '@/lib/haptics';
 import { useAuth } from '@/contexts/AuthContext';
@@ -229,6 +230,7 @@ const SitAndGoScreen = ({
   funds: fundsProp = 9,
 }: SitAndGoScreenProps) => {
   const { user, profile } = useAuth();
+  const isLandscapeMobile = useIsLandscapeMobile();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(!!joinCodeFromUrl);
   const [gameMode, setGameMode] = useState<GameMode>('tournament');
@@ -763,7 +765,7 @@ const SitAndGoScreen = ({
             Create your own table or join an existing game with a code.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 w-full max-w-md">
+          <div className={`flex gap-4 sm:gap-6 w-full max-w-md ${isLandscapeMobile ? 'flex-row justify-center items-center' : 'flex-col sm:flex-row'}`}>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>

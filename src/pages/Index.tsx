@@ -101,10 +101,18 @@ const Index = () => {
     setScreen('loading');
   }, []);
 
-  const handleExitTable = useCallback(() => {
+  const handleExitTable = useCallback((userChips?: number) => {
     incrementBotMatches();
+    // Add winnings to funds when leaving regular table (not test, not multiplayer)
+    if (!tableConfig.isTestingTable && userChips != null && userChips > 0) {
+      const buyIn = tableConfig.buyIn;
+      const profit = Math.round((userChips - buyIn) * 100) / 100;
+      if (profit > 0) {
+        addFunds(profit);
+      }
+    }
     setScreen('start');
-  }, [incrementBotMatches]);
+  }, [incrementBotMatches, tableConfig.isTestingTable, tableConfig.buyIn, addFunds]);
 
   const handleMultiplayerCreate = useCallback((room: import('@/lib/multiplayer').GameRoom) => {
     setMultiplayerConfig({

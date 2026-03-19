@@ -64,6 +64,8 @@
     touch-action: manipulation; /* prevent double-tap zoom on mobile */
   }
   body {
+    /* Safe area for viewport-fit=cover (notches, home indicator on mobile) */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     @apply bg-background text-foreground font-sans;
     font-family: 'Inter', sans-serif;
   }

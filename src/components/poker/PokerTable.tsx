@@ -130,7 +130,7 @@ interface PokerTableProps {
   gameMode?: 'tournament' | 'sit-and-go';
   testCommission?: import('@/lib/gameLogic').TestCommissionConfig;
   cardBack?: string;
-  onExit?: () => void;
+  onExit?: (userChips?: number) => void;
   isLandscapeMobile?: boolean;
   seatAnchorOverrides?: {
     desktop?: { top: string; left: string }[];
@@ -639,6 +639,12 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       )
     : chatBubbles;
 
+  const userChipsOnExit = userPlayer?.chips ?? 0;
+
+  const handleExit = useCallback(() => {
+    onExit?.(userChipsOnExit);
+  }, [onExit, userChipsOnExit]);
+
   return (
     <div className="relative w-full min-h-[100dvh] h-[100dvh] max-h-[100dvh] overflow-hidden bg-background flex flex-col" onClick={handleTableClick}>
       {/* Game table background — luxurious vault/room (bg.jpg) */}
@@ -658,7 +664,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           onClick={() => {
             const canLeaveNoPenalty = userAlone || gameState?.showdown;
             if (canLeaveNoPenalty) {
-              onExit?.();
+              handleExit();
             } else {
               setShowLeaveConfirm(true);
             }
@@ -717,7 +723,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
               </p>
               <button
                 className="casino-btn px-6 py-3"
-                onClick={() => onExit?.()}
+                onClick={handleExit}
               >
                 Leave Table
               </button>
@@ -907,7 +913,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
                     variant: 'destructive',
                   });
                 }
-                onExit?.();
+                handleExit();
               }}
             >
               Leave
@@ -941,7 +947,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
             ))}
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setShowRebuyDialog(false); onExit?.(); }}>
+            <AlertDialogCancel onClick={() => { setShowRebuyDialog(false); handleExit(); }}>
               Leave Table
             </AlertDialogCancel>
           </AlertDialogFooter>
@@ -997,7 +1003,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
             <AlertDialogAction
               onClick={() => {
                 if (eliminatedPlayer?.isUser) {
-                  onExit?.();
+                  handleExit();
                 }
                 setEliminatedPlayer(null);
               }}
@@ -1036,7 +1042,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
               </p>
               <button
                 className="casino-btn px-6 py-2 rounded-xl font-bold"
-                onClick={() => onExit?.()}
+                onClick={handleExit}
               >
                 Return to Lobby
               </button>
