@@ -4,6 +4,15 @@
  */
 
 let audioContext: AudioContext | null = null;
+let globalMuted = false;
+
+export function setGlobalMuted(muted: boolean): void {
+  globalMuted = muted;
+}
+
+export function isGlobalMuted(): boolean {
+  return globalMuted;
+}
 
 function getAudioContext(): AudioContext | null {
   if (audioContext && audioContext.state !== 'closed') return audioContext;
@@ -41,6 +50,7 @@ function playToneInternal(ctx: AudioContext, freq: number, durationMs: number, v
 }
 
 function playTone(freq: number, durationMs: number, volume = 0.3, type: OscillatorType = 'sine'): void {
+  if (globalMuted) return;
   const ctx = getAudioContext();
   if (!ctx) return;
   if (ctx.state === 'suspended') {

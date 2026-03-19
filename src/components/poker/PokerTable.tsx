@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Settings } from 'lucide-react';
+import { ArrowLeft, Settings, Volume2, VolumeX } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +34,7 @@ import WinChipAnimation from './WinChipAnimation';
 import { BOT_CHAT_MESSAGES } from './GameChat';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useIsLandscapeMobile } from '@/hooks/use-orientation';
-import { playFoldSound, playWinSound, playCardRevealSound, playYourTurnSound, playCheckSound, playTickSound, unlockAudio } from '@/lib/sounds';
+import { playFoldSound, playWinSound, playCardRevealSound, playYourTurnSound, playCheckSound, playTickSound, unlockAudio, setGlobalMuted, isGlobalMuted } from '@/lib/sounds';
 import { runAntiCheatOnExit } from '@/lib/antiCheat';
 import { formatChips } from '@/lib/formatChips';
 import { calculateWinProbability } from '@/lib/winProbability';
@@ -215,6 +215,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const prevIsUserTurnRef = useRef(false);
 
   const playChipsSound = useCallback(() => {
+    if (isGlobalMuted()) return;
     try {
       const audio = new Audio('/chips_sound_effect.mp3');
       audio.volume = 0.8;
@@ -281,6 +282,11 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const [userAlone, setUserAlone] = useState(false);
   const [showWinningChanceBar, setShowWinningChanceBar] = useState(true);
   const [showWinnerPopup, setShowWinnerPopup] = useState(true);
+  const [soundMuted, setSoundMuted] = useState(false);
+
+  useEffect(() => {
+    setGlobalMuted(soundMuted);
+  }, [soundMuted]);
 
   useEffect(() => {
     if (gameState?.showdown && gameState.winnerId !== null && prevGameStateRef.current && !prevGameStateRef.current.showdown) {
@@ -678,6 +684,18 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           <span className="text-muted-foreground text-[10px] sm:text-xs">|</span>
           <span className="text-primary text-[10px] sm:text-xs font-bold uppercase">{gameState.phase}</span>
         </div>
+        <button
+          className={`${isCompact ? 'w-8 h-8' : 'w-10 h-10 sm:w-10 sm:h-10'} rounded-lg border-2 border-primary flex items-center justify-center touch-manipulation hover:bg-primary/10 transition-colors`}
+          style={{ background: 'hsl(var(--casino-dark))' }}
+          onClick={() => setSoundMuted((m) => !m)}
+          title={soundMuted ? 'Unmute sounds' : 'Mute sounds'}
+        >
+          {soundMuted ? (
+            <VolumeX size={isCompact ? 14 : 18} className="text-primary" />
+          ) : (
+            <Volume2 size={isCompact ? 14 : 18} className="text-primary" />
+          )}
+        </button>
         <button className={`${isCompact ? 'w-8 h-8' : 'w-10 h-10 sm:w-10 sm:h-10'} rounded-lg border-2 border-primary flex items-center justify-center touch-manipulation`} style={{ background: 'hsl(var(--casino-dark))' }}>
           <Settings size={isCompact ? 14 : 18} className="text-primary" />
         </button>
@@ -834,7 +852,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
                 <PlayerSeat
                   player={player}
                   seatIndex={'isTopSeat' in pos && pos.isTopSeat ? 3 : i}
-                  onClickAvatar={setSelectedPlayer}
+                  onClickAvatar={(p) => { if (!p.isUser) setSelectedPlayer(p); }}
                   timerProgress={player.isTurn ? timerProgress : 0}
                   isDealer={player.id === gameState.dealerIndex}
                   isSmallBlind={player.id === gameState.smallBlindIndex}
