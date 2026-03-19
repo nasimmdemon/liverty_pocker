@@ -100,14 +100,14 @@ const TierPopup = ({
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center px-3 py-2"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
       <motion.div
-        className="relative z-10 w-full max-w-md rounded-2xl border-2 border-primary/60 overflow-hidden"
+        className="relative z-10 w-full max-w-md max-h-[95vh] rounded-2xl border-2 border-primary/60 overflow-hidden flex flex-col"
         style={{
           background: 'linear-gradient(180deg, hsl(0 0% 10%) 0%, hsl(0 0% 6%) 100%)',
         }}
@@ -130,7 +130,7 @@ const TierPopup = ({
             </h2>
           </div>
           <button
-            className="w-8 h-8 rounded-full border border-primary/40 flex items-center justify-center hover:bg-primary/20 transition-colors"
+            className="w-9 h-9 rounded-full border border-primary/40 flex items-center justify-center hover:bg-primary/20 transition-colors touch-manipulation shrink-0"
             onClick={onClose}
           >
             <X size={16} className="text-primary" />
@@ -159,8 +159,8 @@ const TierPopup = ({
           </div>
         </div>
 
-        {/* Options list */}
-        <div className="px-4 py-3">
+        {/* Options list - scrollable */}
+        <div className="px-4 py-3 overflow-y-auto flex-1 min-h-0">
           <h3
             className="text-sm tracking-wider mb-2 text-muted-foreground"
             style={{ fontFamily: "'Bebas Neue', sans-serif" }}
@@ -178,7 +178,7 @@ const TierPopup = ({
               return (
                 <motion.button
                   key={i}
-                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border-2 border-primary/30 hover:border-primary/70 transition-all"
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-primary/30 hover:border-primary/70 transition-all touch-manipulation min-h-[48px]"
                   style={{
                     background: isFree
                       ? 'linear-gradient(180deg, hsl(120 25% 16%) 0%, hsl(120 20% 10%) 100%)'
@@ -289,7 +289,7 @@ const SitAndGoScreen = ({
         {/* Back button */}
         <div className="absolute top-3 left-3 z-10">
           <motion.button
-            className="casino-btn text-[10px] sm:text-xs px-3 py-1.5"
+            className="casino-btn text-[10px] sm:text-xs px-3 sm:px-4 py-2 sm:py-2 min-h-[40px] touch-manipulation"
             onClick={onBack}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -301,7 +301,7 @@ const SitAndGoScreen = ({
         {onTestingMode && (
           <div className="absolute top-3 right-3 z-10">
             <motion.button
-              className="casino-btn text-[10px] sm:text-xs px-3 py-1.5"
+              className="casino-btn text-[10px] sm:text-xs px-3 sm:px-4 py-2 sm:py-2 min-h-[40px] touch-manipulation"
               onClick={onTestingMode}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -332,7 +332,7 @@ const SitAndGoScreen = ({
         <div className="relative z-10 flex flex-col sm:flex-row gap-4 sm:gap-6">
           {/* Public */}
           <motion.button
-            className="group flex flex-col items-center gap-3 px-10 sm:px-14 py-8 sm:py-10 rounded-2xl border-2 border-primary/40 hover:border-primary transition-all"
+            className="group flex flex-col items-center gap-2 sm:gap-3 px-8 sm:px-14 py-6 sm:py-10 rounded-2xl border-2 border-primary/40 hover:border-primary transition-all touch-manipulation"
             style={{
               background: 'linear-gradient(180deg, hsl(120 20% 12%) 0%, hsl(120 15% 7%) 100%)',
             }}
@@ -357,7 +357,7 @@ const SitAndGoScreen = ({
 
           {/* Private */}
           <motion.button
-            className="group flex flex-col items-center gap-3 px-10 sm:px-14 py-8 sm:py-10 rounded-2xl border-2 border-primary/40 hover:border-primary transition-all"
+            className="group flex flex-col items-center gap-2 sm:gap-3 px-8 sm:px-14 py-6 sm:py-10 rounded-2xl border-2 border-primary/40 hover:border-primary transition-all touch-manipulation"
             style={{
               background: 'linear-gradient(180deg, hsl(0 20% 12%) 0%, hsl(0 15% 7%) 100%)',
             }}
@@ -399,7 +399,7 @@ const SitAndGoScreen = ({
       {/* Top bar */}
       <div className="relative z-10 w-full flex-shrink-0 flex justify-between items-center px-3 sm:px-6 py-3 sm:py-4">
         <motion.button
-          className="casino-btn text-[10px] sm:text-xs px-2 sm:px-4 py-1.5 sm:py-2 shrink-0"
+          className="casino-btn text-[10px] sm:text-xs px-3 sm:px-4 py-2 sm:py-2 min-h-[40px] shrink-0 touch-manipulation"
           onClick={() => setTableType(null)}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -421,7 +421,7 @@ const SitAndGoScreen = ({
 
         {onTestingMode && (
           <motion.button
-            className="casino-btn text-[10px] sm:text-xs px-2 sm:px-4 py-1.5 sm:py-2 shrink-0"
+            className="casino-btn text-[10px] sm:text-xs px-3 sm:px-4 py-2 sm:py-2 min-h-[40px] shrink-0 touch-manipulation"
             onClick={onTestingMode}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

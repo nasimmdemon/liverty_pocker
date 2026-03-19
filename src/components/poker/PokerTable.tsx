@@ -632,7 +632,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-3 py-2 lg:px-4 lg:py-3">
         <button
-          className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border-2 border-primary flex items-center justify-center bg-secondary hover:bg-primary/20 transition-colors"
+          className="w-10 h-10 sm:w-10 sm:h-10 rounded-lg border-2 border-primary flex items-center justify-center bg-secondary hover:bg-primary/20 transition-colors touch-manipulation"
           onClick={() => {
             const canLeaveNoPenalty = userAlone || gameState?.showdown;
             if (canLeaveNoPenalty) {
@@ -663,7 +663,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           <span className="text-muted-foreground text-[10px] sm:text-xs">|</span>
           <span className="text-primary text-[10px] sm:text-xs font-bold uppercase">{gameState.phase}</span>
         </div>
-        <button className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border-2 border-primary flex items-center justify-center" style={{ background: 'hsl(var(--casino-dark))' }}>
+        <button className="w-10 h-10 sm:w-10 sm:h-10 rounded-lg border-2 border-primary flex items-center justify-center touch-manipulation" style={{ background: 'hsl(var(--casino-dark))' }}>
           <Settings size={18} className="text-primary" />
         </button>
       </div>
