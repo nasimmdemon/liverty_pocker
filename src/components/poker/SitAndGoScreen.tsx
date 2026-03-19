@@ -399,7 +399,7 @@ const SitAndGoScreen = ({
       {/* Top bar */}
       <div className="relative z-10 w-full flex-shrink-0 flex justify-between items-center px-3 sm:px-6 py-3 sm:py-4">
         <motion.button
-          className="casino-btn text-[10px] sm:text-xs px-2 sm:px-4 py-1.5 sm:py-2 shrink-0"
+          className="casino-btn text-[10px] sm:text-xs px-3 sm:px-4 py-2 sm:py-2 min-h-[40px] shrink-0 touch-manipulation"
           onClick={() => setTableType(null)}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
