@@ -430,12 +430,12 @@ const SitAndGoScreen = ({
           ← BACK
         </motion.button>
 
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] sm:text-xs px-2 py-1 rounded-full border border-primary/40 text-primary uppercase tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+        <div className="flex items-center gap-3">
+          <span className="text-xs sm:text-sm px-3 py-1.5 rounded-full border border-primary/40 text-primary uppercase tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
             {tableType === 'public' ? '🌐 Public' : '🔒 Private'}
           </span>
           <span
-            className="text-lg sm:text-xl tracking-wider"
+            className="text-xl sm:text-2xl tracking-wider"
             style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
           >
             FUNDS: {funds} $
@@ -454,25 +454,26 @@ const SitAndGoScreen = ({
         )}
       </div>
 
-      {/* Unified content column — consistent width */}
+      {/* Unified content column — centered, larger elements */}
       {tableType === 'public' && (
-        <div className="relative z-10 flex flex-col items-center w-full max-w-[640px] px-4 gap-3 pb-6">
+        <div className="relative z-10 flex-1 flex flex-col justify-center items-center w-full max-w-[680px] px-4 py-4 overflow-y-auto">
+          <div className="flex flex-col items-center w-full gap-4 sm:gap-5">
           {/* Game Mode Tabs */}
           <motion.div
-            className="flex items-center gap-2 sm:gap-3"
+            className="flex items-center gap-3 sm:gap-4"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
             <button
-              className={tabBtnClass(gameMode === 'tournament')}
+              className={`${tabBtnClass(gameMode === 'tournament')} text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3`}
               style={tabBtnStyle(true, gameMode === 'tournament')}
               onClick={() => setGameMode('tournament')}
             >
               🏆 TOURNAMENT
             </button>
             <button
-              className={tabBtnClass(gameMode === 'sit-and-go')}
+              className={`${tabBtnClass(gameMode === 'sit-and-go')} text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3`}
               style={tabBtnStyle(false, gameMode === 'sit-and-go')}
               onClick={() => setGameMode('sit-and-go')}
             >
@@ -492,7 +493,7 @@ const SitAndGoScreen = ({
 
           {/* SELECT TIER heading */}
           <motion.h2
-            className="text-lg sm:text-2xl tracking-wider"
+            className="text-xl sm:text-3xl tracking-wider"
             style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -501,9 +502,9 @@ const SitAndGoScreen = ({
             SELECT TIER
           </motion.h2>
 
-          {/* Tier cards — full width row */}
+          {/* Tier cards — full width row, larger */}
           <motion.div
-            className="grid grid-cols-4 gap-1.5 sm:gap-3 w-full"
+            className="grid grid-cols-4 gap-2 sm:gap-4 w-full"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -514,7 +515,7 @@ const SitAndGoScreen = ({
               return (
                 <motion.button
                   key={tier.key}
-                  className={`relative flex flex-col items-center gap-1 px-2 py-2 sm:py-3 rounded-xl border-2 transition-all overflow-hidden touch-manipulation ${
+                  className={`relative flex flex-col items-center gap-1.5 px-3 py-3 sm:py-5 rounded-xl border-2 transition-all overflow-hidden touch-manipulation ${
                     isLocked
                       ? 'border-muted/30 cursor-not-allowed'
                       : isSelected
@@ -542,14 +543,14 @@ const SitAndGoScreen = ({
                   )}
                   {isLocked && (
                     <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/40 rounded-xl">
-                      <Lock size={20} className="text-muted-foreground" />
+                      <Lock size={24} className="text-muted-foreground" />
                     </div>
                   )}
-                  <span className={`text-2xl sm:text-3xl ${isLocked ? 'grayscale' : ''}`}>{tier.emoji}</span>
-                  <span className="text-xs sm:text-sm tracking-wider leading-tight" style={{ color: isLocked ? 'hsl(var(--muted-foreground))' : `hsl(${tier.color})` }}>
+                  <span className={`text-3xl sm:text-4xl ${isLocked ? 'grayscale' : ''}`}>{tier.emoji}</span>
+                  <span className="text-sm sm:text-base tracking-wider leading-tight" style={{ color: isLocked ? 'hsl(var(--muted-foreground))' : `hsl(${tier.color})` }}>
                     {tier.label}
                   </span>
-                  <span className="text-muted-foreground text-[8px] sm:text-[9px] leading-tight">
+                  <span className="text-muted-foreground text-[10px] sm:text-xs leading-tight">
                     {tier.key === 'human' ? 'FREE • ' : ''}{tier.tournamentEntrance} fee
                   </span>
                   {isSelected && (
@@ -580,16 +581,16 @@ const SitAndGoScreen = ({
               >
                 {/* Promotion progress bar */}
                 {nextTier ? (
-                  <div className="px-4 py-2.5 border-b border-primary/15">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[9px] uppercase tracking-widest text-muted-foreground" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                  <div className="px-5 py-3.5 border-b border-primary/15">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs sm:text-sm uppercase tracking-widest text-muted-foreground" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                         Next: {nextTier.emoji} {nextTier.label}
                       </span>
-                      <span className="text-[10px] text-primary font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                      <span className="text-sm text-primary font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                         {handsInCurrentTier} / {HANDS_PER_TIER}
                       </span>
                     </div>
-                    <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'hsl(0 0% 10%)', border: '1px solid hsl(var(--casino-gold) / 0.3)' }}>
+                    <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: 'hsl(0 0% 10%)', border: '1px solid hsl(var(--casino-gold) / 0.3)' }}>
                       <motion.div
                         className="h-full rounded-full"
                         style={{
@@ -601,27 +602,27 @@ const SitAndGoScreen = ({
                         transition={{ duration: 0.6, ease: 'easeOut' }}
                       />
                     </div>
-                    <span className="text-[8px] text-muted-foreground/60 mt-1 block text-center">
+                    <span className="text-[10px] sm:text-xs text-muted-foreground/60 mt-1.5 block text-center">
                       Play {HANDS_PER_TIER - handsInCurrentTier} more public hands to unlock {nextTier.label}
                     </span>
                   </div>
                 ) : (
-                  <div className="px-4 py-2 border-b border-primary/15 text-center">
-                    <span className="text-[9px] uppercase tracking-widest text-primary" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                  <div className="px-5 py-3 border-b border-primary/15 text-center">
+                    <span className="text-xs sm:text-sm uppercase tracking-widest text-primary" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                       🏆 Max Tier Reached
                     </span>
                   </div>
                 )}
 
                 {/* Stake label */}
-                <div className="px-4 pt-2 pb-1">
-                  <span className="text-muted-foreground text-[9px] uppercase tracking-widest" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                <div className="px-5 pt-3 pb-2">
+                  <span className="text-muted-foreground text-xs sm:text-sm uppercase tracking-widest" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                     {gameMode === 'sit-and-go' ? 'Small / Big Blind' : 'Buy-in Options'}
                   </span>
                 </div>
 
                 {/* Stake options — grid for consistent sizing */}
-                <div className="px-4 pb-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="px-5 pb-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                   {(gameMode === 'sit-and-go' ? expandedTier.sitAndGoOptions : expandedTier.tournamentOptions).map((opt, i) => {
                     const isFree = opt.startsWith('FREE ');
                     const cleanOpt = isFree ? opt.replace('FREE ', '') : opt;
@@ -638,7 +639,7 @@ const SitAndGoScreen = ({
                     return (
                       <motion.button
                         key={i}
-                        className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-all touch-manipulation ${
+                        className={`flex items-center justify-between px-4 py-3 sm:py-3.5 rounded-lg border transition-all touch-manipulation ${
                           isActive
                             ? 'border-primary bg-primary/15 shadow-[0_0_12px_hsl(var(--casino-gold)/0.2)]'
                             : isFree
@@ -656,12 +657,12 @@ const SitAndGoScreen = ({
                         whileTap={{ scale: 0.97 }}
                         onClick={() => handleTierSelect(small, big)}
                       >
-                        <span className="text-foreground text-xs sm:text-sm tracking-wider flex items-center gap-1.5">
-                          {isFree && <span className="text-green-400 text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-500/20">FREE</span>}
+                        <span className="text-foreground text-sm sm:text-base tracking-wider flex items-center gap-2">
+                          {isFree && <span className="text-green-400 text-xs font-bold px-2 py-1 rounded bg-green-500/20">FREE</span>}
                           {displayLabel}
                         </span>
                         {isActive && (
-                          <span className="text-primary text-[10px]">✓</span>
+                          <span className="text-primary text-sm">✓</span>
                         )}
                       </motion.button>
                     );
@@ -674,12 +675,12 @@ const SitAndGoScreen = ({
           {/* Selected stake display */}
           {selectedStake && !expandedTier && (
             <motion.div
-              className="w-full flex items-center gap-2 px-4 py-2 rounded-lg border border-primary/30 bg-primary/5"
+              className="w-full flex items-center gap-3 px-5 py-3 rounded-lg border border-primary/30 bg-primary/5"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             >
-              <span className="text-muted-foreground text-xs" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>SELECTED:</span>
-              <span className="text-primary text-sm font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+              <span className="text-muted-foreground text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>SELECTED:</span>
+              <span className="text-primary text-base font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                 {gameMode === 'sit-and-go'
                   ? `${selectedStake.small} / ${selectedStake.big} (SB/BB)`
                   : `$${selectedStake.small} Buy-in`}
@@ -689,25 +690,25 @@ const SitAndGoScreen = ({
 
           {/* Buy-in slider — full width, same container */}
           <div
-            className="w-full rounded-xl border border-primary/25 px-4 py-3"
+            className="w-full rounded-xl border border-primary/25 px-5 py-4"
             style={{ background: 'linear-gradient(180deg, hsl(0 0% 8% / 0.9) 0%, hsl(0 0% 5% / 0.9) 100%)' }}
           >
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               <h3
-                className="text-sm sm:text-base tracking-wider"
+                className="text-base sm:text-lg tracking-wider"
                 style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
               >
                 {gameMode === 'tournament' ? 'BUY-IN' : 'ENTRANCE'}
               </h3>
               <span
-                className="text-lg sm:text-xl tracking-wider font-bold"
+                className="text-xl sm:text-2xl tracking-wider font-bold"
                 style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
               >
                 ${formatChips(entranceAmount)}
               </span>
             </div>
-            <div className="w-full flex items-center gap-3">
-              <span className="text-muted-foreground text-[10px]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+            <div className="w-full flex items-center gap-4">
+              <span className="text-muted-foreground text-xs sm:text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                 ${formatChips(minEntrance)}
               </span>
               <input
@@ -717,10 +718,10 @@ const SitAndGoScreen = ({
                 step={stepSize}
                 value={Math.min(Math.max(entranceAmount, minEntrance), maxEntrance)}
                 onChange={(e) => setEntranceAmount(Math.round(Number(e.target.value) * 10) / 10)}
-                className="bet-amount-slider flex-1 h-4 rounded-full appearance-none cursor-pointer touch-manipulation"
+                className="bet-amount-slider flex-1 h-5 sm:h-6 rounded-full appearance-none cursor-pointer touch-manipulation"
                 style={{ transition: 'none' }}
               />
-              <span className="text-muted-foreground text-[10px]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+              <span className="text-muted-foreground text-xs sm:text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                 ${formatChips(maxEntrance)}
               </span>
             </div>
@@ -728,7 +729,7 @@ const SitAndGoScreen = ({
 
           {/* Join button */}
           <motion.button
-            className="group mt-1 mb-4"
+            className="group mt-2 mb-2"
             onClick={handleJoin}
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
@@ -736,9 +737,10 @@ const SitAndGoScreen = ({
             <img
               src={joinTableChip}
               alt="Join Table"
-              className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] group-hover:drop-shadow-[0_8px_32px_hsl(var(--casino-gold)/0.4)] transition-all duration-300"
+              className="w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] group-hover:drop-shadow-[0_8px_32px_hsl(var(--casino-gold)/0.4)] transition-all duration-300"
             />
           </motion.button>
+          </div>
         </div>
       )}
 
