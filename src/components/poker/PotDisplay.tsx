@@ -38,10 +38,10 @@ const PotDisplay = ({ pot, rakeAmount = 0, smallBlind, bigBlind, rakeBreakdown, 
         </div>
       )}
 
-      <span className="text-primary font-display text-sm sm:text-base lg:text-xl font-bold drop-shadow-lg tracking-wider">
+      <span className={`text-primary font-display ${isCompact ? 'text-xs' : 'text-sm sm:text-base lg:text-xl'} font-bold drop-shadow-lg tracking-wider`}>
         ${formatChips(pot)}
       </span>
-      <span className="text-muted-foreground text-[9px] sm:text-[10px] uppercase tracking-widest">Pot</span>
+      <span className={`text-muted-foreground ${isCompact ? 'text-[7px]' : 'text-[9px] sm:text-[10px]'} uppercase tracking-widest`}>Pot</span>
 
       {/* Rake line */}
       {rakeAmount > 0 && !showBreakdown ? (
