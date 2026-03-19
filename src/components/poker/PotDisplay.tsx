@@ -9,6 +9,7 @@ interface PotDisplayProps {
   bigBlind?: number;
   rakeBreakdown?: RakeBreakdown | null;
   showdown?: boolean;
+  isCompact?: boolean;
 }
 
 const PotDisplay = ({ pot, rakeAmount = 0, smallBlind, bigBlind, rakeBreakdown, showdown }: PotDisplayProps) => {
