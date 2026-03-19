@@ -28,12 +28,12 @@ interface PlayerSeatProps {
 
 const NamePlate = ({ player, isTopSeat, hasWinningBar, displayChips }: { player: Player; isTopSeat: boolean; hasWinningBar?: boolean; displayChips?: number }) => {
   const hasLeft = !player.isActive && player.chips <= 0;
-  // Extra space when winning bar is shown (main player) so bar is clearly visible above profile
+  // Push name plates further from avatar to avoid collision with pot/cards
   const topOffset = hasWinningBar ? 32 : 6;
-  const bottomOffset = hasWinningBar ? 38 : 30;
+  const bottomOffset = hasWinningBar ? 42 : 34;
   return (
   <div
-    className="absolute left-1/2 px-2 py-1 sm:px-2.5 sm:py-1 rounded-md flex flex-col items-center whitespace-nowrap transition-all duration-300"
+    className="absolute left-1/2 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md flex flex-col items-center whitespace-nowrap transition-all duration-300"
     style={{
       background: 'hsl(var(--casino-dark) / 0.92)',
       transform: 'translateX(-50%)',
