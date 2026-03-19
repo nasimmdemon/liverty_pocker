@@ -21,6 +21,7 @@ interface TierData {
   key: TierKey;
   label: string;
   emoji: string;
+  commission: string;        // Sit & Go commission %
   tournamentEntrance: string;
   organizerProfit: number;
   affiliateShare: number;
@@ -32,30 +33,30 @@ interface TierData {
 const TIERS: TierData[] = [
   {
     key: 'human', label: 'HUMAN', emoji: '🧑',
-    tournamentEntrance: '11%', organizerProfit: 0, affiliateShare: 30,
-    sitAndGoOptions: ['FREE 0.01-0.02', '0.02-0.04', '0.04-0.08', '0.08-0.16'],
-    tournamentOptions: ['FREE $0.15', '$0.30', '$0.60', '$1.20'],
+    commission: '5.0%', tournamentEntrance: '11%', organizerProfit: 0, affiliateShare: 30,
+    sitAndGoOptions: ['FREE 0.01-0.02', '0.08-0.16', '0.24-0.48', '0.48-0.72'],
+    tournamentOptions: ['FREE $0.15', '$1.20', '$3.60', '$6.50'],
     color: '200 60% 50%',
   },
   {
     key: 'rat', label: 'RAT', emoji: '🐀',
-    tournamentEntrance: '7%', organizerProfit: 7, affiliateShare: 30,
-    sitAndGoOptions: ['0.08-0.16', '0.16-0.32', '0.24-0.48', '0.32-0.64'],
-    tournamentOptions: ['$1.20', '$2.40', '$3.60', '$4.80'],
+    commission: '3.5%', tournamentEntrance: '7%', organizerProfit: 7, affiliateShare: 30,
+    sitAndGoOptions: ['0.02-0.04', '0.16-0.32', '0.32-0.64', '0.50-0.80'],
+    tournamentOptions: ['$0.30', '$2.40', '$4.80', '$6.50'],
     color: '120 50% 45%',
   },
   {
     key: 'cat', label: 'CAT', emoji: '🐱',
-    tournamentEntrance: '6%', organizerProfit: 8, affiliateShare: 30,
-    sitAndGoOptions: ['0.24-0.48', '0.32-0.64', '0.48-0.72', '0.50-0.80'],
-    tournamentOptions: ['$3.60', '$4.80', '$6.00', '$6.50'],
+    commission: '2.5%', tournamentEntrance: '6%', organizerProfit: 8, affiliateShare: 30,
+    sitAndGoOptions: ['0.04-0.08', '0.24-0.48', '0.48-0.72', '0.60-0.90'],
+    tournamentOptions: ['$0.60', '$3.60', '$6.00', '$7.50'],
     color: '280 55% 55%',
   },
   {
     key: 'dog', label: 'DOG', emoji: '🐕',
-    tournamentEntrance: '5%', organizerProfit: 10, affiliateShare: 30,
-    sitAndGoOptions: ['0.48-0.72', '0.50-0.80', '0.60-0.90', '0.70-1.00'],
-    tournamentOptions: ['$6.00', '$6.50', '$7.50', '$8.50'],
+    commission: '2.0%', tournamentEntrance: '5%', organizerProfit: 10, affiliateShare: 30,
+    sitAndGoOptions: ['0.08-0.16', '0.32-0.64', '0.50-0.80', '0.70-1.00'],
+    tournamentOptions: ['$1.20', '$4.80', '$6.50', '$8.50'],
     color: '40 80% 50%',
   },
 ];
@@ -559,9 +560,9 @@ const SitAndGoScreen = ({
                 <div className="px-3 py-2 grid grid-cols-3 gap-2 border-b border-primary/15">
                   <div className="flex flex-col items-center">
                     <span className="text-primary text-sm sm:text-base font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                      {expandedTier.tournamentEntrance}
+                      {gameMode === 'sit-and-go' ? expandedTier.commission : expandedTier.tournamentEntrance}
                     </span>
-                    <span className="text-muted-foreground text-[8px] uppercase tracking-wider">Fee</span>
+                    <span className="text-muted-foreground text-[8px] uppercase tracking-wider">{gameMode === 'sit-and-go' ? 'Commission' : 'Fee'}</span>
                   </div>
                   <div className="flex flex-col items-center">
                     <span className="text-primary text-sm sm:text-base font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
