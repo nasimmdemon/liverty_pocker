@@ -884,6 +884,110 @@ const SitAndGoScreen = ({
           />
         )}
       </AnimatePresence>
+
+      {/* Promotion Screen Modal */}
+      <AnimatePresence>
+        {showPromotion && (() => {
+          const promoTier = TIERS.find(t => t.key === showPromotion);
+          if (!promoTier) return null;
+          return (
+            <motion.div
+              key="promotion-overlay"
+              className="fixed inset-0 z-[200] flex items-center justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              {/* Backdrop */}
+              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowPromotion(null)} />
+              
+              {/* Promotion card */}
+              <motion.div
+                className="relative z-10 flex flex-col items-center gap-4 px-8 py-8 sm:px-12 sm:py-10 rounded-2xl max-w-sm mx-4"
+                style={{
+                  background: `linear-gradient(180deg, hsl(${promoTier.color} / 0.2) 0%, hsl(0 0% 6%) 60%, hsl(0 0% 4%) 100%)`,
+                  border: `2px solid hsl(${promoTier.color} / 0.6)`,
+                  boxShadow: `0 0 60px hsl(${promoTier.color} / 0.3), inset 0 0 40px hsl(${promoTier.color} / 0.1)`,
+                }}
+                initial={{ scale: 0.3, y: 50, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                exit={{ scale: 0.5, y: 50, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 18 }}
+              >
+                {/* Sparkle ring */}
+                <motion.div
+                  className="absolute -top-6 left-1/2 -translate-x-1/2"
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: [0, 1.3, 1], rotate: 0 }}
+                  transition={{ delay: 0.3, duration: 0.6, type: 'spring' }}
+                >
+                  <span className="text-5xl sm:text-6xl drop-shadow-lg">{promoTier.emoji}</span>
+                </motion.div>
+
+                <motion.div
+                  className="mt-8 text-center"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  <h2 className="text-2xl sm:text-3xl tracking-[0.2em] mb-1" style={{ fontFamily: "'Bebas Neue', sans-serif", color: `hsl(${promoTier.color})` }}>
+                    🎉 PROMOTED!
+                  </h2>
+                  <p className="text-primary text-lg sm:text-xl tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                    {promoTier.label} TIER UNLOCKED
+                  </p>
+                </motion.div>
+
+                <motion.div
+                  className="flex flex-col items-center gap-1.5 text-center"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.8 }}
+                >
+                  <span className="text-muted-foreground text-xs">New stakes and lower fees await!</span>
+                  <div className="flex gap-3 mt-1">
+                    <div className="flex flex-col items-center px-3 py-1.5 rounded-lg" style={{ background: 'hsl(0 0% 8%)', border: '1px solid hsl(var(--casino-gold) / 0.3)' }}>
+                      <span className="text-primary text-sm font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                        {promoTier.commission}
+                      </span>
+                      <span className="text-muted-foreground text-[8px] uppercase">Commission</span>
+                    </div>
+                    <div className="flex flex-col items-center px-3 py-1.5 rounded-lg" style={{ background: 'hsl(0 0% 8%)', border: '1px solid hsl(var(--casino-gold) / 0.3)' }}>
+                      <span className="text-primary text-sm font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                        {promoTier.tournamentEntrance}
+                      </span>
+                      <span className="text-muted-foreground text-[8px] uppercase">Entrance</span>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.button
+                  className="mt-3 px-8 py-2.5 rounded-xl font-bold tracking-wider text-sm"
+                  style={{
+                    fontFamily: "'Bebas Neue', sans-serif",
+                    background: `linear-gradient(180deg, hsl(${promoTier.color}) 0%, hsl(${promoTier.color} / 0.7) 100%)`,
+                    color: 'hsl(0 0% 5%)',
+                    boxShadow: `0 0 20px hsl(${promoTier.color} / 0.4)`,
+                  }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.1 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    hapticSuccess();
+                    setShowPromotion(null);
+                    // Auto-expand the newly unlocked tier
+                    setExpandedTier(promoTier);
+                  }}
+                >
+                  LET'S GO! 🚀
+                </motion.button>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
     </motion.div>
   );
 };
