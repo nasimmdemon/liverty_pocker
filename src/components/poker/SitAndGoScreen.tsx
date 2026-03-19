@@ -486,22 +486,29 @@ const SitAndGoScreen = ({
           <div className="grid grid-cols-4 gap-1.5 sm:gap-3 w-full">
             {TIERS.map((tier) => {
               const isSelected = expandedTier?.key === tier.key;
+              const isLocked = tier.key === 'cat' || tier.key === 'dog';
               return (
                 <motion.button
                   key={tier.key}
                   className={`relative flex flex-col items-center gap-1 px-2 py-2 sm:py-3 rounded-xl border-2 transition-all overflow-hidden touch-manipulation ${
-                    isSelected ? 'border-primary shadow-[0_0_20px_hsl(var(--casino-gold)/0.3)]' : 'border-primary/20 hover:border-primary/50'
+                    isLocked
+                      ? 'border-muted/30 cursor-not-allowed'
+                      : isSelected
+                        ? 'border-primary shadow-[0_0_20px_hsl(var(--casino-gold)/0.3)]'
+                        : 'border-primary/20 hover:border-primary/50'
                   }`}
                   style={{
-                    background: isSelected
-                      ? `linear-gradient(180deg, hsl(${tier.color} / 0.25) 0%, hsl(0 0% 6%) 100%)`
-                      : `linear-gradient(180deg, hsl(${tier.color} / 0.1) 0%, hsl(0 0% 6%) 100%)`,
+                    background: isLocked
+                      ? 'linear-gradient(180deg, hsl(0 0% 8% / 0.9) 0%, hsl(0 0% 4%) 100%)'
+                      : isSelected
+                        ? `linear-gradient(180deg, hsl(${tier.color} / 0.25) 0%, hsl(0 0% 6%) 100%)`
+                        : `linear-gradient(180deg, hsl(${tier.color} / 0.1) 0%, hsl(0 0% 6%) 100%)`,
                     fontFamily: "'Bebas Neue', sans-serif",
+                    opacity: isLocked ? 0.5 : 1,
                   }}
-                  onClick={() => setExpandedTier(isSelected ? null : tier)}
-                  whileTap={{ scale: 0.96 }}
+                  onClick={() => !isLocked && setExpandedTier(isSelected ? null : tier)}
+                  whileTap={isLocked ? {} : { scale: 0.96 }}
                 >
-                  {/* Glow effect on selected */}
                   {isSelected && (
                     <motion.div
                       className="absolute inset-0 rounded-xl pointer-events-none"
@@ -509,14 +516,19 @@ const SitAndGoScreen = ({
                       layoutId="tier-glow"
                     />
                   )}
-                  <span className="text-2xl sm:text-3xl">{tier.emoji}</span>
-                  <span className="text-xs sm:text-sm tracking-wider leading-tight" style={{ color: `hsl(${tier.color})` }}>
+                  {/* Lock overlay for Cat & Dog */}
+                  {isLocked && (
+                    <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/40 rounded-xl">
+                      <Lock size={20} className="text-muted-foreground" />
+                    </div>
+                  )}
+                  <span className={`text-2xl sm:text-3xl ${isLocked ? 'grayscale' : ''}`}>{tier.emoji}</span>
+                  <span className="text-xs sm:text-sm tracking-wider leading-tight" style={{ color: isLocked ? 'hsl(var(--muted-foreground))' : `hsl(${tier.color})` }}>
                     {tier.label}
                   </span>
                   <span className="text-muted-foreground text-[8px] sm:text-[9px] leading-tight">
                     {tier.key === 'human' ? 'FREE • ' : ''}{tier.tournamentEntrance} fee
                   </span>
-                  {/* Active indicator */}
                   {isSelected && (
                     <motion.div
                       className="w-6 h-0.5 rounded-full mt-0.5"
