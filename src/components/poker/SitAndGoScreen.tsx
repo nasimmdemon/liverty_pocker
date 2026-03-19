@@ -107,7 +107,7 @@ const TierPopup = ({
     >
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
       <motion.div
-        className="relative z-10 w-full max-w-md rounded-2xl border-2 border-primary/60 overflow-hidden"
+        className="relative z-10 w-full max-w-md max-h-[95vh] rounded-2xl border-2 border-primary/60 overflow-hidden flex flex-col"
         style={{
           background: 'linear-gradient(180deg, hsl(0 0% 10%) 0%, hsl(0 0% 6%) 100%)',
         }}
