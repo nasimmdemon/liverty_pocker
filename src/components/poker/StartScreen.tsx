@@ -71,10 +71,10 @@ const StartScreen = ({ onPlay, onWatchAndEarn }: StartScreenProps) => {
           </span>
           <button
             onClick={() => signOut()}
-            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+            className="p-2 rounded-lg hover:bg-white/10 transition-colors touch-manipulation min-h-[40px] min-w-[40px] flex items-center justify-center"
             title="Sign out"
           >
-            <LogOut className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: '#F2D27A' }} />
+            <LogOut className="h-5 w-5" style={{ color: '#F2D27A' }} />
           </button>
         </div>
       </div>
