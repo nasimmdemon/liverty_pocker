@@ -130,7 +130,7 @@ interface PokerTableProps {
 
 const DEFAULT_CARD_BACK = '/card_bg_1.png';
 
-const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlind = 10, turnTimer: turnTimerProp, isTestingTable = false, gameMode = 'sit-and-go', testCommission, cardBack: cardBackProp, onExit, isLandscapeMobile = false, seatAnchorOverrides, multiplayer }: PokerTableProps) => {
+const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlind = 10, turnTimer: turnTimerProp, isTestingTable = false, gameMode = 'sit-and-go', testCommission, cardBack: cardBackProp, onExit, isLandscapeMobile: isLandscapeMobileProp = false, seatAnchorOverrides, multiplayer }: PokerTableProps) => {
   const cardBack = cardBackProp ?? DEFAULT_CARD_BACK;
   const TURN_DURATION = turnTimerProp ?? DEFAULT_TURN_DURATION;
   const isMultiplayer = !!multiplayer;
@@ -153,6 +153,8 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const botTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  const isLandscapeMobileDetected = useIsLandscapeMobile();
+  const isLandscapeMobile = isLandscapeMobileProp || isLandscapeMobileDetected;
   const isCompact = isMobile || isLandscapeMobile; // landscape mobile = extra compact layout
 
   const seatPositions = (
