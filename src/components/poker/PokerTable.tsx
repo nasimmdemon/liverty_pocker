@@ -645,7 +645,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
             }
           }}
         >
-          <ArrowLeft size={18} className="text-primary" />
+          <ArrowLeft size={isCompact ? 14 : 18} className="text-primary" />
         </button>
         <div className="flex items-center gap-2 sm:gap-3">
           <span
