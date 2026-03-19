@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, UserPlus, Lock } from 'lucide-react';
+import { hapticLight, hapticMedium, hapticHeavy } from '@/lib/haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import CreateGameModal from '@/components/multiplayer/CreateGameModal';
 import JoinGameModal from '@/components/multiplayer/JoinGameModal';
@@ -240,12 +241,14 @@ const SitAndGoScreen = ({
   const [entranceAmount, setEntranceAmount] = useState(Math.round((minEntrance + maxEntrance) / 2 * 10) / 10);
 
   const handleJoin = () => {
+    hapticHeavy();
     const stake = selectedStake ?? FREE_SIT_AND_GO;
     const cardBack = gameMode === 'sit-and-go' ? CARD_BACK_SIT_AND_GO : CARD_BACK_TOURNAMENT;
     onJoinTable(entranceAmount, stake.small, stake.big, gameMode, cardBack);
   };
 
   const handleTierSelect = (small: number, big: number) => {
+    hapticMedium();
     setSelectedStake({ small, big });
     setSelectedTierPopup(null);
   };
@@ -508,7 +511,7 @@ const SitAndGoScreen = ({
                     fontFamily: "'Bebas Neue', sans-serif",
                     opacity: isLocked ? 0.5 : 1,
                   }}
-                  onClick={() => !isLocked && setExpandedTier(isSelected ? null : tier)}
+                  onClick={() => { if (!isLocked) { hapticLight(); setExpandedTier(isSelected ? null : tier); } }}
                   whileTap={isLocked ? {} : { scale: 0.96 }}
                 >
                   {isSelected && (

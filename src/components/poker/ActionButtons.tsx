@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GameChat from './GameChat';
 import { formatChips } from '@/lib/formatChips';
+import { hapticLight, hapticMedium, hapticHeavy } from '@/lib/haptics';
 import { Minus, Plus, X } from 'lucide-react';
 
 interface ActionButtonsProps {
@@ -80,26 +81,26 @@ const ActionButtons = ({
               <span className="text-muted-foreground text-[8px] sm:text-[9px] uppercase tracking-wider">Chips</span>
             </div>
             <div className="flex gap-2 flex-wrap justify-center">
-              <button className={btnClass} onClick={onFold} disabled={disabled}>
+              <button className={btnClass} onClick={() => { hapticMedium(); onFold(); }} disabled={disabled}>
                 Fold
               </button>
               {canCheck ? (
-                <button className={btnClass} onClick={onCheck} disabled={disabled}>
+                <button className={btnClass} onClick={() => { hapticLight(); onCheck(); }} disabled={disabled}>
                   Check
                 </button>
               ) : (
-                <button className={btnClass} onClick={onCall} disabled={disabled}>
+                <button className={btnClass} onClick={() => { hapticLight(); onCall(); }} disabled={disabled}>
                   Call ${formatChips(callAmount)}
                 </button>
               )}
               <button
                 className={goldBtnClass}
-                onClick={handleBetClick}
+                onClick={() => { hapticLight(); handleBetClick(); }}
                 disabled={disabled}
               >
                 {canCheck ? 'Bet' : 'Raise'}
               </button>
-              <button className={btnClass} onClick={onAllIn} disabled={disabled}>
+              <button className={btnClass} onClick={() => { hapticHeavy(); onAllIn(); }} disabled={disabled}>
                 All In
               </button>
             </div>
@@ -157,7 +158,7 @@ const ActionButtons = ({
                     </div>
                     <button
                       className={goldBtnClass}
-                      onClick={handleSet}
+                      onClick={() => { hapticMedium(); handleSet(); }}
                       disabled={disabled}
                     >
                       Set
