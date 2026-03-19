@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import LoadingScreen from './LoadingScreen';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Check, Percent, Play, RotateCcw } from 'lucide-react';
+import { Copy, Check, Percent, Play, RotateCcw, Plus } from 'lucide-react';
+import { formatChips } from '@/lib/formatChips';
 import pokerTableBg from '@/assets/poker-table-bg.png';
 import ChipIcon from './ChipIcon';
 import type { TestCommissionConfig } from '@/lib/gameLogic';
