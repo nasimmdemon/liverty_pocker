@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GameChat from './GameChat';
 import { formatChips } from '@/lib/formatChips';
+import { hapticLight, hapticMedium, hapticHeavy } from '@/lib/haptics';
 import { Minus, Plus, X } from 'lucide-react';
 
 interface ActionButtonsProps {
