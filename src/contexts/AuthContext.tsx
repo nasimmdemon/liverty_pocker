@@ -19,6 +19,7 @@ export interface UserProfile {
   displayName: string | null;
   photoURL: string | null;
   botMatchesPlayed: number;
+  handsPlayed: number;
   createdAt: number;
   referralCode?: string;
   referredBy?: string;
@@ -59,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       displayName,
       photoURL: u.photoURL ?? null,
       botMatchesPlayed: 0,
+      handsPlayed: 0,
       createdAt: Date.now(),
     };
 
