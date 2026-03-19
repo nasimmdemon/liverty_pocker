@@ -70,9 +70,10 @@ type MessagePart = { text: string; highlight?: boolean };
 const LOADING_MESSAGES: MessagePart[][] = [
   [
     { text: 'Host games. Earn ' },
-    { text: '10%', highlight: true },
-    { text: ' — ' },
-    { text: '16% yearly ROI.', highlight: true },
+    { text: '10% ', highlight: true },
+    { text: 'Avg. ' },
+    { text: '16% ROI ', highlight: true },
+    { text: 'Yearly.' },
   ],
   [
     { text: 'Earn ' },
