@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAddToHomeScreen } from '@/hooks/use-add-to-home-screen';
 import { useIsLandscapeMobile } from '@/hooks/use-orientation';
 import AddToHomeScreenOverlay from '@/components/AddToHomeScreenOverlay';
+import MobileContinueInAppBanner from '@/components/MobileContinueInAppBanner';
 import LoginScreen from '@/components/auth/LoginScreen';
 import StartScreen from '@/components/poker/StartScreen';
 import LoadingScreen from '@/components/poker/LoadingScreen';
@@ -41,8 +42,9 @@ interface MultiplayerConfig {
 
 const Index = () => {
   const [searchParams] = useSearchParams();
-  const { showPrompt: showAddToHomeScreen, platform } = useAddToHomeScreen();
+  const { showPrompt: showAddToHomeScreen, platform, isMobileBrowser } = useAddToHomeScreen();
   const [skipInstall, setSkipInstallState] = useState(false);
+  const showContinueBanner = isMobileBrowser && skipInstall;
   const isLandscapeMobile = useIsLandscapeMobile();
   const joinCodeFromUrl = searchParams.get('join');
   const refCodeFromUrl = searchParams.get('ref');
@@ -165,7 +167,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-[100dvh] h-[100dvh] overflow-hidden flex flex-col" data-landscape-mobile={isLandscapeMobile ? 'true' : undefined}>
+    <div className={`min-h-[100dvh] h-[100dvh] overflow-hidden flex flex-col ${showContinueBanner ? 'pb-[52px]' : ''}`} data-landscape-mobile={isLandscapeMobile ? 'true' : undefined}>
     <AnimatePresence mode="wait">
       {screen === 'start' && (
         <StartScreen key="start" onPlay={handlePlay} onWatchAndEarn={handleWatchAndEarn} funds={funds} />
@@ -245,6 +247,7 @@ const Index = () => {
         />
       )}
     </AnimatePresence>
+    {showContinueBanner && <MobileContinueInAppBanner />}
     </div>
   );
 };

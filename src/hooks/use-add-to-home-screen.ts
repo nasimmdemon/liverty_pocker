@@ -42,16 +42,27 @@ export function setSkipInstall(): void {
   }
 }
 
-function getInitialState(): { showPrompt: boolean; platform: MobilePlatform } {
-  if (typeof window === 'undefined') return { showPrompt: false, platform: null };
-  if (getUserSkippedInstall()) return { showPrompt: false, platform: null };
+export function clearSkipInstall(): void {
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.removeItem(SKIP_INSTALL_KEY);
+  }
+}
+
+function getInitialState(): { showPrompt: boolean; platform: MobilePlatform; isMobileBrowser: boolean } {
+  if (typeof window === 'undefined') return { showPrompt: false, platform: null, isMobileBrowser: false };
   const plat = getMobilePlatform();
   const mobile = plat !== null || isMobileViewport();
   const standalone = isStandalone();
-  return { showPrompt: mobile && !standalone, platform: plat };
+  const isMobileBrowser = mobile && !standalone;
+  const skipped = getUserSkippedInstall();
+  return {
+    showPrompt: isMobileBrowser && !skipped,
+    platform: plat,
+    isMobileBrowser,
+  };
 }
 
-export function useAddToHomeScreen(): { showPrompt: boolean; platform: MobilePlatform } {
+export function useAddToHomeScreen(): { showPrompt: boolean; platform: MobilePlatform; isMobileBrowser: boolean } {
   const [state, setState] = useState(() => getInitialState());
 
   useEffect(() => {
