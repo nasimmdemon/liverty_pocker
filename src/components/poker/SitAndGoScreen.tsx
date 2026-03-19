@@ -560,9 +560,9 @@ const SitAndGoScreen = ({
                 <div className="px-3 py-2 grid grid-cols-3 gap-2 border-b border-primary/15">
                   <div className="flex flex-col items-center">
                     <span className="text-primary text-sm sm:text-base font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                      {expandedTier.tournamentEntrance}
+                      {gameMode === 'sit-and-go' ? expandedTier.commission : expandedTier.tournamentEntrance}
                     </span>
-                    <span className="text-muted-foreground text-[8px] uppercase tracking-wider">Fee</span>
+                    <span className="text-muted-foreground text-[8px] uppercase tracking-wider">{gameMode === 'sit-and-go' ? 'Commission' : 'Fee'}</span>
                   </div>
                   <div className="flex flex-col items-center">
                     <span className="text-primary text-sm sm:text-base font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
