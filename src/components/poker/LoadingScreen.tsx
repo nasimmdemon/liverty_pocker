@@ -75,13 +75,15 @@ const LOADING_MESSAGES: MessagePart[][] = [
   ],
   [
     { text: 'Host games. Earn ' },
-    { text: '10%', highlight: true },
-    { text: ' of rake.' },
+    { text: '10% instant', highlight: true },
+    { text: ' — ' },
+    { text: '16% ROI.', highlight: true },
   ],
   [
     { text: 'Invite friends. Earn ' },
     { text: '10%', highlight: true },
-    { text: ' bonuses.' },
+    { text: ' — stacks with ' },
+    { text: 'affiliation.', highlight: true },
   ],
   [
     { text: 'Auto payouts — ' },
