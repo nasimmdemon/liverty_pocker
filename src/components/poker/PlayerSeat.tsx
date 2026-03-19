@@ -264,11 +264,11 @@ const PlayerSeat = ({
             top: '100%',
             left: '50%',
             transform: 'translateX(-50%)',
-            marginTop: isLandscapeMobile ? 4 : isMobile ? 6 : 8,
+            marginTop: isLandscapeMobile ? 2 : isMobile ? 6 : 8,
             perspective: 600,
             zIndex: 5,
-            width: isLandscapeMobile ? 70 : isMobile ? 80 : 160,
-            height: isLandscapeMobile ? 42 : isMobile ? 48 : 96,
+            width: isLandscapeMobile ? 44 : isMobile ? 80 : 160,
+            height: isLandscapeMobile ? 26 : isMobile ? 48 : 96,
           }}
         >
           {player.cards.map((card, i) => (
