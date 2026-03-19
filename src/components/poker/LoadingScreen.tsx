@@ -99,7 +99,7 @@ const LOADING_MESSAGES: MessagePart[][] = [
   ],
 ];
 
-const LoadingScreen = ({ onComplete, isPublic = true }: LoadingScreenProps) => {
+const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: LoadingScreenProps) => {
   const [currentMessage, setCurrentMessage] = useState(0);
   const [currentFrame, setCurrentFrame] = useState(0);
 
