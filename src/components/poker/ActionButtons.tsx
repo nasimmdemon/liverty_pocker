@@ -69,8 +69,8 @@ const ActionButtons = ({
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 0.5 }}
     >
-      <div className="px-2 sm:px-4 lg:px-6 py-1.5 sm:py-3">
-        <div className="flex flex-col gap-2 sm:gap-3 max-w-2xl mx-auto">
+      <div className={`px-2 sm:px-4 lg:px-6 ${isMobile ? 'py-1' : 'py-1.5 sm:py-3'}`}>
+        <div className={`flex flex-col ${isMobile ? 'gap-1' : 'gap-2 sm:gap-3'} max-w-2xl mx-auto`}>
           {/* Row 1: Chat, Chips, Fold, Check/Call, Bet, All In */}
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
             <GameChat onSendMessage={onSendMessage} isMobile={isMobile} />
