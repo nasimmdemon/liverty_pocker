@@ -573,27 +573,40 @@ const SitAndGoScreen = ({
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.25 }}
               >
-                {/* Tier stats row */}
-                <div className="px-3 py-2 grid grid-cols-3 gap-2 border-b border-primary/15">
-                  <div className="flex flex-col items-center">
-                    <span className="text-primary text-sm sm:text-base font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                      {gameMode === 'sit-and-go' ? expandedTier.commission : expandedTier.tournamentEntrance}
+                {/* Promotion progress bar to next tier */}
+                {nextTier ? (
+                  <div className="px-3 py-2.5 border-b border-primary/15">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[9px] uppercase tracking-widest text-muted-foreground" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                        Next: {nextTier.emoji} {nextTier.label}
+                      </span>
+                      <span className="text-[10px] text-primary font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                        {handsInCurrentTier} / {HANDS_PER_TIER}
+                      </span>
+                    </div>
+                    <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'hsl(0 0% 10%)', border: '1px solid hsl(var(--casino-gold) / 0.3)' }}>
+                      <motion.div
+                        className="h-full rounded-full"
+                        style={{
+                          background: `linear-gradient(90deg, hsl(${expandedTier.color}), hsl(var(--casino-gold)))`,
+                          boxShadow: `0 0 8px hsl(${expandedTier.color} / 0.5)`,
+                        }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(handsInCurrentTier / HANDS_PER_TIER) * 100}%` }}
+                        transition={{ duration: 0.6, ease: 'easeOut' }}
+                      />
+                    </div>
+                    <span className="text-[8px] text-muted-foreground/60 mt-1 block text-center">
+                      Play {HANDS_PER_TIER - handsInCurrentTier} more public hands to unlock {nextTier.label}
                     </span>
-                    <span className="text-muted-foreground text-[8px] uppercase tracking-wider">{gameMode === 'sit-and-go' ? 'Commission' : 'Fee'}</span>
                   </div>
-                  <div className="flex flex-col items-center">
-                    <span className="text-primary text-sm sm:text-base font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                      {expandedTier.organizerProfit}%
+                ) : (
+                  <div className="px-3 py-2 border-b border-primary/15 text-center">
+                    <span className="text-[9px] uppercase tracking-widest text-primary" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                      🏆 Max Tier Reached
                     </span>
-                    <span className="text-muted-foreground text-[8px] uppercase tracking-wider">Org.</span>
                   </div>
-                  <div className="flex flex-col items-center">
-                    <span className="text-primary text-sm sm:text-base font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                      {expandedTier.affiliateShare}%
-                    </span>
-                    <span className="text-muted-foreground text-[8px] uppercase tracking-wider">Affiliate</span>
-                  </div>
-                </div>
+                )}
 
                 {/* Stake label */}
                 <div className="px-3 pt-2 pb-1">
