@@ -60,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       displayName,
       photoURL: u.photoURL ?? null,
       botMatchesPlayed: 0,
+      handsPlayed: 0,
       createdAt: Date.now(),
     };
 
