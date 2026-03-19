@@ -38,7 +38,7 @@ function CharacterOverlay({ screen }: { screen: (typeof LOADING_SCREENS)[0] }) {
         key={screen.character}
         src={screen.character}
         alt=""
-        className="h-[95vh] max-h-[800px] w-auto object-contain object-bottom block"
+        className="h-[80vh] max-h-[800px] w-auto object-contain object-bottom block"
         loading="eager"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{
