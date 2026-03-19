@@ -88,8 +88,8 @@ const PlayerSeat = ({
 
   // Avatar sizes: smaller on mobile; extra small in landscape; folded = smaller and darker
   const baseSize = isUser
-    ? (isLandscapeMobile ? 46 : isMobile ? 72 : 144)
-    : (isLandscapeMobile ? 36 : isMobile ? 56 : 120);
+    ? (isLandscapeMobile ? 40 : isMobile ? 72 : 144)
+    : (isLandscapeMobile ? 32 : isMobile ? 56 : 120);
   const avatarSizePx = hasFolded ? Math.round(baseSize * 0.82) : baseSize;
 
   const borderClass = hasLeft
@@ -127,15 +127,15 @@ const PlayerSeat = ({
             ...(isUser
               ? {
                   bottom: '100%',
-                  marginBottom: isLandscapeMobile ? -4 : isMobile ? -12 : -32, // landscape: slight overlap, cards stay above buttons
-                  width: isLandscapeMobile ? 90 : isMobile ? 110 : 240,
-                  height: isLandscapeMobile ? 52 : isMobile ? 64 : 128,
+                  marginBottom: isLandscapeMobile ? 0 : isMobile ? -12 : -32,
+                  width: isLandscapeMobile ? 70 : isMobile ? 110 : 240,
+                  height: isLandscapeMobile ? 40 : isMobile ? 64 : 128,
                 }
               : {
                   bottom: '100%',
                   marginBottom: isMobile ? 4 : 8,
-                  width: isMobile ? 56 : 112,
-                  height: isMobile ? 32 : 60,
+                  width: isLandscapeMobile ? 44 : isMobile ? 56 : 112,
+                  height: isLandscapeMobile ? 26 : isMobile ? 32 : 60,
                 }),
           }}
         >
@@ -147,7 +147,7 @@ const PlayerSeat = ({
                 left: '50%',
                 bottom: 0,
                 transformOrigin: 'bottom center',
-                transform: `translateX(${i === 0 ? '-68%' : '-28%'}) rotate(${i === 0 ? -18 : 18}deg) scale(${isUser ? (isMobile ? 1 : 1.58) : (isMobile ? 0.5 : 0.72)})`,
+                transform: `translateX(${i === 0 ? '-68%' : '-28%'}) rotate(${i === 0 ? -18 : 18}deg) scale(${isUser ? (isLandscapeMobile ? 0.7 : isMobile ? 1 : 1.58) : (isLandscapeMobile ? 0.38 : isMobile ? 0.5 : 0.72)})`,
                 zIndex: i,
               }}
             >
@@ -264,11 +264,11 @@ const PlayerSeat = ({
             top: '100%',
             left: '50%',
             transform: 'translateX(-50%)',
-            marginTop: isLandscapeMobile ? 4 : isMobile ? 6 : 8,
+            marginTop: isLandscapeMobile ? 2 : isMobile ? 6 : 8,
             perspective: 600,
             zIndex: 5,
-            width: isLandscapeMobile ? 70 : isMobile ? 80 : 160,
-            height: isLandscapeMobile ? 42 : isMobile ? 48 : 96,
+            width: isLandscapeMobile ? 44 : isMobile ? 80 : 160,
+            height: isLandscapeMobile ? 26 : isMobile ? 48 : 96,
           }}
         >
           {player.cards.map((card, i) => (
@@ -279,7 +279,7 @@ const PlayerSeat = ({
                 left: '50%',
                 top: 0,
                 transformOrigin: 'top center',
-                transform: `translateX(${i === 0 ? '-68%' : '-28%'}) rotate(${i === 0 ? 18 : -18}deg) scale(${isUser ? (isLandscapeMobile ? 0.75 : isMobile ? 0.9 : 1.5) : (isLandscapeMobile ? 0.5 : isMobile ? 0.4 : 0.6)})`,
+                transform: `translateX(${i === 0 ? '-68%' : '-28%'}) rotate(${i === 0 ? 18 : -18}deg) scale(${isUser ? (isLandscapeMobile ? 0.6 : isMobile ? 0.9 : 1.5) : (isLandscapeMobile ? 0.35 : isMobile ? 0.4 : 0.6)})`,
                 zIndex: i,
               }}
             >

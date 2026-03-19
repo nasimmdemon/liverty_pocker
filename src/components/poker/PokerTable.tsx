@@ -59,6 +59,16 @@ const SEAT_POSITIONS_MOBILE = [
   { top: '82%', left: '92%' },
 ];
 
+// Landscape mobile: tighter positions to fit small viewport height
+const SEAT_POSITIONS_LANDSCAPE = [
+  { top: '90%', left: '50%' },   // 0: User — pulled up from edge
+  { top: '75%', left: '6%' },    // 1: Bottom left
+  { top: '20%', left: '6%' },    // 2: Top left
+  { top: '2%', left: '50%' },    // 3: Top center
+  { top: '20%', left: '94%' },   // 4: Top right
+  { top: '75%', left: '94%' },   // 5: Bottom right
+];
+
 // Multiplayer: 2 players opposite each other (user bottom, opponent top)
 const MP_2_DESKTOP = [
   { top: '95%', left: '50%', isTopSeat: false },
@@ -158,9 +168,11 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const isCompact = isMobile || isLandscapeMobile; // landscape mobile = extra compact layout
 
   const seatPositions = (
-    isCompact
-      ? seatAnchorOverrides?.mobile ?? SEAT_POSITIONS_MOBILE
-      : seatAnchorOverrides?.desktop ?? SEAT_POSITIONS_DESKTOP
+    isLandscapeMobile
+      ? seatAnchorOverrides?.mobile ?? SEAT_POSITIONS_LANDSCAPE
+      : isMobile
+        ? seatAnchorOverrides?.mobile ?? SEAT_POSITIONS_MOBILE
+        : seatAnchorOverrides?.desktop ?? SEAT_POSITIONS_DESKTOP
   );
 
   // Multiplayer: active players only, user always at bottom center, dynamic positions (include user with 0 chips so they stay visible for rebuy)
@@ -704,8 +716,8 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       <div
         className="absolute inset-0 flex items-center justify-center flex-1 min-h-0"
         style={{
-          paddingBottom: isLandscapeMobile ? '72px' : isMobile ? '100px' : '90px',
-          paddingTop: isLandscapeMobile ? '20px' : isMobile ? '48px' : '60px',
+          paddingBottom: isLandscapeMobile ? '64px' : isMobile ? '100px' : '90px',
+          paddingTop: isLandscapeMobile ? '16px' : isMobile ? '48px' : '60px',
         }}
         data-landscape-mobile={isLandscapeMobile ? 'true' : undefined}
       >
@@ -721,7 +733,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           {/* Community cards — floating on felt; highlight winning hand cards at showdown */}
           <div
             className="community-cards-area absolute left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1.5 sm:gap-2"
-            style={{ top: isCompact ? '48%' : '42%' }}
+            style={{ top: isLandscapeMobile ? '52%' : isCompact ? '48%' : '42%' }}
           >
             {gameState.communityCards.map((card, i) => {
               const bestCards = gameState.showdown ? (gameState.winnerBestCards ?? []) : [];
@@ -794,10 +806,10 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           {/* Pot zone — above cards; compact: higher for clear separation */}
           <div
             className="absolute left-1/2 -translate-x-1/2 z-20"
-            style={{ top: isCompact ? '20%' : '26%' }}
+            style={{ top: isLandscapeMobile ? '16%' : isCompact ? '20%' : '26%' }}
             data-pot-display
           >
-            <PotDisplay pot={gameState.pot} rakeAmount={gameState.rakeAmount} smallBlind={gameState.smallBlind} bigBlind={gameState.bigBlind} rakeBreakdown={gameState.rakeBreakdown ?? null} showdown={gameState.showdown} />
+            <PotDisplay pot={gameState.pot} rakeAmount={gameState.rakeAmount} smallBlind={gameState.smallBlind} bigBlind={gameState.bigBlind} rakeBreakdown={gameState.rakeBreakdown ?? null} showdown={gameState.showdown} isCompact={isLandscapeMobile} />
           </div>
 
           {/* Win chip animation - inside table so chips fly BEHIND player avatars (z-5 < z-10) */}

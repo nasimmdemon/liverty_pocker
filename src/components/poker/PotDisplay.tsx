@@ -9,15 +9,16 @@ interface PotDisplayProps {
   bigBlind?: number;
   rakeBreakdown?: RakeBreakdown | null;
   showdown?: boolean;
+  isCompact?: boolean;
 }
 
-const PotDisplay = ({ pot, rakeAmount = 0, smallBlind, bigBlind, rakeBreakdown, showdown }: PotDisplayProps) => {
+const PotDisplay = ({ pot, rakeAmount = 0, smallBlind, bigBlind, rakeBreakdown, showdown, isCompact = false }: PotDisplayProps) => {
   const liveRake = pot > 0 ? calculateRake(pot) : null;
   const showBreakdown = showdown && rakeBreakdown && rakeBreakdown.totalRake > 0;
 
   return (
     <motion.div
-      className="flex flex-col items-center justify-center rounded-xl px-4 py-1.5 sm:py-2 border border-primary/40"
+      className={`flex flex-col items-center justify-center rounded-xl ${isCompact ? 'px-2 py-1' : 'px-4 py-1.5 sm:py-2'} border border-primary/40`}
       style={{
         background: 'linear-gradient(180deg, hsl(120 22% 14% / 0.8) 0%, hsl(120 20% 10% / 0.9) 100%)',
         boxShadow: 'inset 0 0 16px rgba(0,0,0,0.3), 0 0 12px hsl(var(--casino-gold) / 0.15)',
@@ -37,10 +38,10 @@ const PotDisplay = ({ pot, rakeAmount = 0, smallBlind, bigBlind, rakeBreakdown, 
         </div>
       )}
 
-      <span className="text-primary font-display text-sm sm:text-base lg:text-xl font-bold drop-shadow-lg tracking-wider">
+      <span className={`text-primary font-display ${isCompact ? 'text-xs' : 'text-sm sm:text-base lg:text-xl'} font-bold drop-shadow-lg tracking-wider`}>
         ${formatChips(pot)}
       </span>
-      <span className="text-muted-foreground text-[9px] sm:text-[10px] uppercase tracking-widest">Pot</span>
+      <span className={`text-muted-foreground ${isCompact ? 'text-[7px]' : 'text-[9px] sm:text-[10px]'} uppercase tracking-widest`}>Pot</span>
 
       {/* Rake line */}
       {rakeAmount > 0 && !showBreakdown ? (

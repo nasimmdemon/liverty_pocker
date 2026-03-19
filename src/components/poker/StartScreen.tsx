@@ -81,7 +81,7 @@ const StartScreen = ({ onPlay, onWatchAndEarn, funds = 0 }: StartScreenProps) =>
       </div>
 
       {/* Center content */}
-      <div className="relative z-10 flex flex-col items-center gap-6 sm:gap-8 mt-12 sm:mt-16 px-4">
+      <div className="relative z-10 flex flex-col items-center gap-3 sm:gap-6 md:gap-8 mt-8 sm:mt-12 md:mt-16 px-4">
         <motion.h2
           className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl tracking-[0.15em] sm:tracking-[0.2em] text-center"
           style={{ fontFamily: "'Bebas Neue', 'Cinzel', serif", color: '#F2D27A', textShadow: '0 3px 10px rgba(0,0,0,0.7)' }}
@@ -93,7 +93,7 @@ const StartScreen = ({ onPlay, onWatchAndEarn, funds = 0 }: StartScreenProps) =>
         </motion.h2>
 
         <motion.div
-          className="flex flex-col items-center gap-4"
+          className="flex flex-col items-center gap-2 sm:gap-4"
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.6, duration: 0.5, type: 'spring' }}
