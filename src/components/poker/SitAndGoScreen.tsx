@@ -248,10 +248,14 @@ const SitAndGoScreen = ({
   const handsInCurrentTier = handsPlayed % HANDS_PER_TIER;
   const nextTier = currentTierIndex < tierOrder.length - 1 ? TIERS[currentTierIndex + 1] : null;
   const funds = fundsProp;
-  // Buy-in range correlates to player funds
-  const minEntrance = Math.max(1, Math.floor(funds * 0.1 * 10) / 10);
-  const maxEntrance = Math.max(minEntrance + 1, funds);
-  const [entranceAmount, setEntranceAmount] = useState(Math.round((minEntrance + maxEntrance) / 2 * 10) / 10);
+  // Buy-in range correlates to player funds — use dollar-scale steps
+  const minEntrance = Math.max(0.1, Math.round(funds * 0.1 * 10) / 10);  // 10% of funds, min $0.10
+  const maxEntrance = Math.round(Math.max(minEntrance + 0.5, funds) * 10) / 10;
+  const stepSize = maxEntrance <= 5 ? 0.1 : maxEntrance <= 50 ? 0.5 : 1;
+  const [entranceAmount, setEntranceAmount] = useState(() => {
+    const mid = Math.round((minEntrance + maxEntrance) / 2 / stepSize) * stepSize;
+    return Math.round(mid * 10) / 10;
+  });
 
   const handleJoin = () => {
     hapticHeavy();
@@ -821,10 +825,11 @@ const SitAndGoScreen = ({
                 type="range"
                 min={minEntrance}
                 max={maxEntrance}
-                step={500}
-                value={entranceAmount}
-                onChange={(e) => setEntranceAmount(Number(e.target.value))}
+                step={stepSize}
+                value={Math.min(Math.max(entranceAmount, minEntrance), maxEntrance)}
+                onChange={(e) => setEntranceAmount(Math.round(Number(e.target.value) * 10) / 10)}
                 className="bet-amount-slider flex-1 h-4 rounded-full appearance-none cursor-pointer touch-manipulation"
+                style={{ transition: 'none' }}
               />
               <span className="text-muted-foreground text-[10px]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                 ${formatChips(maxEntrance)}
