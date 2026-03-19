@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface LoadingScreenProps {
   onComplete: () => void;
   isPublic?: boolean;
+  embedded?: boolean;
 }
 
 const LOADING_DURATION = 24;
