@@ -148,7 +148,7 @@ const ActionButtons = ({
                         ${formatChips(Math.min(betAmount, chipCount))}
                       </span>
                       <button
-                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 disabled:opacity-50 transition-colors"
+                        className="w-9 h-9 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 disabled:opacity-50 transition-colors touch-manipulation"
                         onClick={() => setBetAmount((a) => Math.min(a + stepSize, maxTotal))}
                         disabled={disabled || betAmount >= maxTotal}
                       >
