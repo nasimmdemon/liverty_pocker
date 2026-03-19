@@ -33,6 +33,7 @@ import ChipAnimation, { type ChipBet } from './ChipAnimation';
 import WinChipAnimation from './WinChipAnimation';
 import { BOT_CHAT_MESSAGES } from './GameChat';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsLandscapeMobile } from '@/hooks/use-orientation';
 import { playFoldSound, playWinSound, playCardRevealSound, playYourTurnSound, playCheckSound, playTickSound, unlockAudio } from '@/lib/sounds';
 import { runAntiCheatOnExit } from '@/lib/antiCheat';
 import { formatChips } from '@/lib/formatChips';
