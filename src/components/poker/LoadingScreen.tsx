@@ -38,12 +38,13 @@ function CharacterOverlay({ screen }: { screen: (typeof LOADING_SCREENS)[0] }) {
         key={screen.character}
         src={screen.character}
         alt=""
-        className="h-[80vh] max-h-[800px] w-auto object-contain object-bottom block"
+        className="w-auto object-contain object-bottom block"
+        style={{ height: 'clamp(50vh, 70vh, 800px)', maxHeight: '75vh' }}
         loading="eager"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{
           opacity: 1,
-          scale: 1.08,
+          scale: 1.05,
         }}
         transition={{
           opacity: { duration: 1, ease: 'easeOut' },
