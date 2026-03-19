@@ -227,6 +227,7 @@ const SitAndGoScreen = ({
   onMultiplayerCreate,
   onMultiplayerJoin,
   joinCodeFromUrl,
+  funds: fundsProp = 9,
 }: SitAndGoScreenProps) => {
   const { user, profile } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
