@@ -241,6 +241,7 @@ const SitAndGoScreen = ({
   const [entranceAmount, setEntranceAmount] = useState(Math.round((minEntrance + maxEntrance) / 2 * 10) / 10);
 
   const handleJoin = () => {
+    hapticHeavy();
     const stake = selectedStake ?? FREE_SIT_AND_GO;
     const cardBack = gameMode === 'sit-and-go' ? CARD_BACK_SIT_AND_GO : CARD_BACK_TOURNAMENT;
     onJoinTable(entranceAmount, stake.small, stake.big, gameMode, cardBack);
