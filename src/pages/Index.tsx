@@ -191,6 +191,7 @@ const Index = () => {
           onMultiplayerCreate={handleMultiplayerCreate}
           onMultiplayerJoin={handleMultiplayerJoin}
           joinCodeFromUrl={joinCodeFromUrl}
+          funds={funds}
         />
       )}
       {screen === 'testing' && (
