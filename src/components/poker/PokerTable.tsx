@@ -158,7 +158,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
   const isCompact = isMobile || isLandscapeMobile; // landscape mobile = extra compact layout
 
   const seatPositions = (
-    isMobile
+    isCompact
       ? seatAnchorOverrides?.mobile ?? SEAT_POSITIONS_MOBILE
       : seatAnchorOverrides?.desktop ?? SEAT_POSITIONS_DESKTOP
   );
