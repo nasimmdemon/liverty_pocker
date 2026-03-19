@@ -12,7 +12,7 @@ interface StartScreenProps {
   funds?: number;
 }
 
-const StartScreen = ({ onPlay, onWatchAndEarn }: StartScreenProps) => {
+const StartScreen = ({ onPlay, onWatchAndEarn, funds = 0 }: StartScreenProps) => {
   const { user, signOut } = useAuth();
   return (
     <motion.div
