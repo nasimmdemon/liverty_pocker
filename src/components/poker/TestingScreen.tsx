@@ -10,6 +10,8 @@ import type { PlayingCard as CardType, Rank } from '@/lib/gameTypes';
 interface TestingScreenProps {
   onStartGame: (config: TestingConfig) => void;
   onBack: () => void;
+  funds?: number;
+  onTopUp?: (amount: number) => void;
 }
 
 export type { TestCommissionConfig };
