@@ -163,7 +163,7 @@ const ActionButtons = ({
                       Set
                     </button>
                     <button
-                      className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 text-muted-foreground hover:text-foreground transition-colors"
+                      className="w-9 h-9 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border-2 border-primary/50 hover:bg-primary/20 text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
                       onClick={() => setShowBetBar(false)}
                       title="Cancel"
                     >
