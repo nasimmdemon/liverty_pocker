@@ -248,6 +248,7 @@ const SitAndGoScreen = ({
   };
 
   const handleTierSelect = (small: number, big: number) => {
+    hapticMedium();
     setSelectedStake({ small, big });
     setSelectedTierPopup(null);
   };
