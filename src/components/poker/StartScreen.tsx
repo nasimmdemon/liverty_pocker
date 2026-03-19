@@ -93,7 +93,7 @@ const StartScreen = ({ onPlay, onWatchAndEarn, funds = 0 }: StartScreenProps) =>
         </motion.h2>
 
         <motion.div
-          className="flex flex-col items-center gap-4"
+          className="flex flex-col items-center gap-2 sm:gap-4"
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.6, duration: 0.5, type: 'spring' }}
