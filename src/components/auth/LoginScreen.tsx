@@ -65,7 +65,7 @@ const LoginScreen = ({ refCodeFromUrl }: LoginScreenProps) => {
 
   return (
     <motion.div
-      className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden"
+      className="login-screen fixed inset-0 flex flex-col items-center justify-center overflow-y-auto overflow-x-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -74,7 +74,7 @@ const LoginScreen = ({ refCodeFromUrl }: LoginScreenProps) => {
       <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${pokerRoomBg})` }} />
       <div className="absolute inset-0 bg-black/70" />
 
-      <div className="relative z-10 w-full max-w-md mx-4 px-6 py-8 rounded-2xl border-2 border-primary/50 bg-background/95 backdrop-blur-sm shadow-2xl">
+      <div className="login-form relative z-10 w-full max-w-md mx-4 px-6 py-8 rounded-2xl border-2 border-primary/50 bg-background/95 backdrop-blur-sm shadow-2xl">
         <h1
           className="text-2xl sm:text-3xl tracking-[0.2em] text-center mb-6"
           style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}

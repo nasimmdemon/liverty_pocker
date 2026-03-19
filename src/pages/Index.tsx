@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { WATCH_EARN_REWARD } from '@/lib/bonusConstants';
 import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -52,21 +53,24 @@ const Index = () => {
       sessionStorage.setItem('referral_code', refCodeFromUrl);
     }
   }, [refCodeFromUrl]);
-  const { user, loading, incrementBotMatches, canInviteFriends, profile } = useAuth();
+  const { user, loading, incrementBotMatches, canInviteFriends, profile, addFunds, deductFunds } = useAuth();
   const [screen, setScreen] = useState<Screen>('start');
-  const [funds, setFunds] = useState(9); // Player funds (will connect to backend later)
+  const funds = profile?.funds ?? 0;
   const [tableConfig, setTableConfig] = useState<TableConfig>({ buyIn: 1500, smallBlind: 5, bigBlind: 10 });
   const [multiplayerConfig, setMultiplayerConfig] = useState<MultiplayerConfig | null>(null);
 
   const handlePlay = useCallback(() => setScreen('sitandgo'), []);
   const handleWatchAndEarn = useCallback(() => setScreen('watch-and-earn'), []);
-  const handleWatchAndEarnClaim = useCallback(() => setScreen('sitandgo'), []);
+  const handleWatchAndEarnClaim = useCallback(async () => {
+    await addFunds(WATCH_EARN_REWARD);
+    setScreen('sitandgo');
+  }, [addFunds]);
   const handleLoadingComplete = useCallback(() => setScreen('table'), []);
 
-  const handleJoinTable = useCallback((buyIn: number, smallBlind: number, bigBlind: number, gameMode?: 'tournament' | 'sit-and-go', cardBack?: string) => {
+  const handleJoinTable = useCallback(async (buyIn: number, smallBlind: number, bigBlind: number, gameMode?: 'tournament' | 'sit-and-go', cardBack?: string) => {
     const mode = gameMode ?? 'sit-and-go';
-    // Deduct funds
-    setFunds(prev => Math.max(0, prev - buyIn));
+    // Deduct funds from profile
+    await deductFunds(buyIn);
     setTableConfig({
       buyIn,
       smallBlind,
@@ -77,7 +81,7 @@ const Index = () => {
       cardBack,
     });
     setScreen('loading');
-  }, []);
+  }, [deductFunds]);
 
   const handleTestingMode = useCallback(() => setScreen('testing'), []);
 
@@ -160,27 +164,8 @@ const Index = () => {
     return <LoginScreen refCodeFromUrl={refCodeFromUrl} />;
   }
 
-  // Mobile: portrait only — block landscape with rotate prompt
-  if (isLandscapeMobile) {
-    return (
-      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-6 text-center">
-        <div className="w-16 h-16 mb-4 rounded-full border-2 border-primary flex items-center justify-center animate-pulse">
-          <svg className="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </div>
-        <h2 className="text-xl font-bold text-primary mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-          Please rotate to portrait
-        </h2>
-        <p className="text-muted-foreground text-sm">
-          Liberty Poker is playable only in portrait mode. Please rotate your device to continue.
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-[100dvh] h-[100dvh] overflow-hidden flex flex-col">
+    <div className="min-h-[100dvh] h-[100dvh] overflow-hidden flex flex-col" data-landscape-mobile={isLandscapeMobile ? 'true' : undefined}>
     <AnimatePresence mode="wait">
       {screen === 'start' && (
         <StartScreen key="start" onPlay={handlePlay} onWatchAndEarn={handleWatchAndEarn} funds={funds} />
@@ -212,7 +197,7 @@ const Index = () => {
           onStartGame={handleStartTestGame}
           onBack={() => setScreen('sitandgo')}
           funds={funds}
-          onTopUp={(amount) => setFunds(prev => prev + amount)}
+          onTopUp={(amount) => addFunds(amount)}
         />
       )}
       {screen === 'loading' && <LoadingScreen key="loading" onComplete={handleLoadingComplete} isPublic={tableConfig.isPublic} />}

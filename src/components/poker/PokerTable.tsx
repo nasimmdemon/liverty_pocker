@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Settings, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,12 +59,12 @@ const SEAT_POSITIONS_MOBILE = [
   { top: '82%', left: '92%' },
 ];
 
-// Landscape mobile: tighter positions to fit small viewport height
+// Landscape mobile: tighter positions to fit small viewport height; top center higher for pot clearance
 const SEAT_POSITIONS_LANDSCAPE = [
   { top: '90%', left: '50%' },   // 0: User — pulled up from edge
   { top: '75%', left: '6%' },    // 1: Bottom left
   { top: '20%', left: '6%' },    // 2: Top left
-  { top: '2%', left: '50%' },    // 3: Top center
+  { top: '5%', left: '50%' },    // 3: Top center — room for name plate above, cards below
   { top: '20%', left: '94%' },   // 4: Top right
   { top: '75%', left: '94%' },   // 5: Bottom right
 ];
@@ -106,6 +106,7 @@ const MP_4_MOBILE = [
 ];
 
 const DEFAULT_TURN_DURATION = 10;
+const TIMER_RING_LAST_SECONDS = 10; // Countdown ring only visible for main player in last N seconds
 const BOT_DELAY = 1500;
 const WINNER_VIEW_DURATION = 2000; // ms to view winner popup before chips fly
 const CHIP_ANIM_DURATION = 2500;   // chip fly duration
@@ -469,8 +470,8 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
     timerRef.current = setInterval(() => {
       setTimer(prev => {
         const next = prev <= 0 ? 0 : prev - 0.1;
-        // Tick only in last 10 seconds, once per second when crossing a second boundary
-        if (next <= 10 && next > 0) {
+        // Tick only in last 10 seconds, for main player only, once per second when crossing a second boundary
+        if (next <= 10 && next > 0 && currentPlayer.isUser) {
           const sec = Math.ceil(next);
           const prevSec = Math.ceil(prev);
           if (prevSec !== sec && sec >= 1 && sec <= 10) playTickSound();
@@ -650,10 +651,10 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       />
       <div className="absolute inset-0 bg-black/40" />
 
-      {/* Top bar */}
-      <div className={`absolute top-0 left-0 right-0 z-30 flex items-center justify-between ${isCompact ? 'px-2 py-1' : 'px-3 py-2 lg:px-4 lg:py-3'}`}>
+      {/* Top bar — Back left, info center, mute right */}
+      <div className={`absolute top-0 left-0 right-0 z-30 flex items-center justify-between ${isLandscapeMobile ? 'px-1.5 py-0.5' : isCompact ? 'px-2 py-1' : 'px-3 py-2 lg:px-4 lg:py-3'}`}>
         <button
-          className={`${isCompact ? 'w-8 h-8' : 'w-10 h-10 sm:w-10 sm:h-10'} rounded-lg border-2 border-primary flex items-center justify-center bg-secondary hover:bg-primary/20 transition-colors touch-manipulation`}
+          className={`shrink-0 ${isLandscapeMobile ? 'w-6 h-6' : isCompact ? 'w-8 h-8' : 'w-10 h-10 sm:w-10 sm:h-10'} rounded-lg border-2 border-primary flex items-center justify-center bg-secondary hover:bg-primary/20 transition-colors touch-manipulation`}
           onClick={() => {
             const canLeaveNoPenalty = userAlone || gameState?.showdown;
             if (canLeaveNoPenalty) {
@@ -663,11 +664,11 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
             }
           }}
         >
-          <ArrowLeft size={isCompact ? 14 : 18} className="text-primary" />
+          <ArrowLeft size={isLandscapeMobile ? 12 : isCompact ? 14 : 18} className="text-primary" />
         </button>
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className={`absolute left-1/2 -translate-x-1/2 flex items-center ${isLandscapeMobile ? 'gap-1' : 'gap-2 sm:gap-3'}`}>
           <span
-            className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider"
+            className={`${isLandscapeMobile ? 'text-[6px] px-1 py-0.5' : 'text-[8px] sm:text-[9px] px-1.5 py-0.5'} rounded font-bold uppercase tracking-wider`}
             style={{
               background: gameMode === 'tournament' ? 'hsl(350 50% 22%)' : 'hsl(140 45% 22%)',
               color: gameMode === 'tournament' ? 'hsl(350 40% 75%)' : 'hsl(140 55% 70%)',
@@ -676,28 +677,25 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           >
             {gameMode === 'tournament' ? '🏆 Tournament' : '🎰 Sit & Go'}
           </span>
-          <span className="text-muted-foreground text-[10px] sm:text-xs">|</span>
-          <span className="text-muted-foreground text-[10px] sm:text-xs uppercase tracking-wider">Table:</span>
-          <span className="text-foreground font-bold text-xs sm:text-sm">{gameState.tableId}</span>
-          <span className="text-muted-foreground text-[10px] sm:text-xs">|</span>
-          <span className="text-muted-foreground text-[10px] sm:text-xs uppercase">R{gameState.roundNumber}</span>
-          <span className="text-muted-foreground text-[10px] sm:text-xs">|</span>
-          <span className="text-primary text-[10px] sm:text-xs font-bold uppercase">{gameState.phase}</span>
+          <span className={`text-muted-foreground ${isLandscapeMobile ? 'text-[7px]' : 'text-[8px] sm:text-[9px]'}`}>|</span>
+          <span className={`text-muted-foreground ${isLandscapeMobile ? 'text-[6px]' : 'text-[8px] sm:text-[9px]'} uppercase tracking-wider`}>Table:</span>
+          <span className={`text-foreground font-bold ${isLandscapeMobile ? 'text-[7px]' : 'text-[9px] sm:text-xs'}`}>{gameState.tableId}</span>
+          <span className={`text-muted-foreground ${isLandscapeMobile ? 'text-[7px]' : 'text-[8px] sm:text-[9px]'}`}>|</span>
+          <span className={`text-muted-foreground ${isLandscapeMobile ? 'text-[6px]' : 'text-[8px] sm:text-[9px]'} uppercase`}>R{gameState.roundNumber}</span>
+          <span className={`text-muted-foreground ${isLandscapeMobile ? 'text-[7px]' : 'text-[8px] sm:text-[9px]'}`}>|</span>
+          <span className={`text-primary font-bold uppercase ${isLandscapeMobile ? 'text-[7px]' : 'text-[8px] sm:text-[9px]'}`}>{gameState.phase}</span>
         </div>
         <button
-          className={`${isCompact ? 'w-8 h-8' : 'w-10 h-10 sm:w-10 sm:h-10'} rounded-lg border-2 border-primary flex items-center justify-center touch-manipulation hover:bg-primary/10 transition-colors`}
+          className={`shrink-0 ${isLandscapeMobile ? 'w-6 h-6' : isCompact ? 'w-8 h-8' : 'w-10 h-10 sm:w-10 sm:h-10'} rounded-lg border-2 border-primary flex items-center justify-center touch-manipulation hover:bg-primary/10 transition-colors`}
           style={{ background: 'hsl(var(--casino-dark))' }}
           onClick={() => setSoundMuted((m) => !m)}
           title={soundMuted ? 'Unmute sounds' : 'Mute sounds'}
         >
           {soundMuted ? (
-            <VolumeX size={isCompact ? 14 : 18} className="text-primary" />
+            <VolumeX size={isLandscapeMobile ? 10 : isCompact ? 14 : 18} className="text-primary" />
           ) : (
-            <Volume2 size={isCompact ? 14 : 18} className="text-primary" />
+            <Volume2 size={isLandscapeMobile ? 10 : isCompact ? 14 : 18} className="text-primary" />
           )}
-        </button>
-        <button className={`${isCompact ? 'w-8 h-8' : 'w-10 h-10 sm:w-10 sm:h-10'} rounded-lg border-2 border-primary flex items-center justify-center touch-manipulation`} style={{ background: 'hsl(var(--casino-dark))' }}>
-          <Settings size={isCompact ? 14 : 18} className="text-primary" />
         </button>
       </div>
 
@@ -734,8 +732,8 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       <div
         className="absolute inset-0 flex items-center justify-center flex-1 min-h-0"
         style={{
-          paddingBottom: isLandscapeMobile ? '64px' : isMobile ? '100px' : '90px',
-          paddingTop: isLandscapeMobile ? '16px' : isMobile ? '48px' : '60px',
+          paddingBottom: isLandscapeMobile ? '56px' : isMobile ? '100px' : '90px',
+          paddingTop: isLandscapeMobile ? '28px' : isMobile ? '48px' : '60px',
         }}
         data-landscape-mobile={isLandscapeMobile ? 'true' : undefined}
       >
@@ -748,10 +746,24 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
           <div className="poker-table-inner" />
 
 
-          {/* Community cards — floating on felt; highlight winning hand cards at showdown */}
+          {/* Pot zone — in landscape: above community cards with clear gap (compact to avoid overlap with cards) */}
+          {isLandscapeMobile && (
+            <div
+              className="absolute left-1/2 -translate-x-1/2 z-20"
+              style={{ top: '22%' }}
+              data-pot-display
+            >
+              <PotDisplay pot={gameState.pot} rakeAmount={gameState.rakeAmount} smallBlind={gameState.smallBlind} bigBlind={gameState.bigBlind} rakeBreakdown={gameState.rakeBreakdown ?? null} showdown={gameState.showdown} isCompact isLandscape winnerHandDescription={gameState.winnerHandDescription} winnerId={gameState.winnerId} winnerIds={gameState.winnerIds} players={gameState.players} />
+            </div>
+          )}
+
+          {/* Community cards — in landscape: below pot with clear gap for winner message; portrait: slightly up for balance */}
           <div
-            className="community-cards-area absolute left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1.5 sm:gap-2"
-            style={{ top: isLandscapeMobile ? '52%' : isCompact ? '48%' : '42%' }}
+            className="community-cards-area absolute left-1/2 z-20 flex items-center justify-center gap-1.5 sm:gap-2"
+            style={{
+              top: isLandscapeMobile ? '56%' : isCompact ? '46%' : '42%',
+              transform: isLandscapeMobile ? 'translate(-50%, -50%)' : 'translateX(-50%)',
+            }}
           >
             {gameState.communityCards.map((card, i) => {
               const bestCards = gameState.showdown ? (gameState.winnerBestCards ?? []) : [];
@@ -770,65 +782,16 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
             })}
           </div>
 
-          {/* Winner hand message — compact banner at top of table, no blur overlay */}
-          <AnimatePresence>
-            {gameState.showdown && gameState.winnerId != null && showWinnerPopup && (
-              <motion.div
-                key="winner-banner"
-                className="absolute left-1/2 -translate-x-1/2 z-30"
-                style={{ top: isCompact ? '6%' : '8%' }}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
-              >
-                <motion.div
-                  className="px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl flex flex-row items-center gap-2 sm:gap-3 max-w-[90vw] sm:max-w-md"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(20,18,12,0.95) 0%, rgba(12,10,8,0.98) 100%)',
-                    border: '2px solid hsl(var(--casino-gold) / 0.7)',
-                    boxShadow: '0 4px 24px rgba(0,0,0,0.5), 0 0 20px hsl(var(--casino-gold) / 0.2)',
-                  }}
-                >
-                  <motion.span
-                    className="text-2xl sm:text-3xl shrink-0"
-                    animate={{ scale: [1, 1.15, 1] }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                  >
-                    🏆
-                  </motion.span>
-                  <div className="flex flex-col items-start min-w-0">
-                    <p
-                      className="text-primary font-bold text-sm sm:text-base leading-tight tracking-wide truncate max-w-full"
-                      style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.08em' }}
-                    >
-                      {gameState.winnerHandDescription}
-                    </p>
-                    <span
-                      className="text-[10px] sm:text-xs font-medium uppercase tracking-wider text-muted-foreground"
-                      style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
-                    >
-                      {(gameState.winnerIds?.length ?? 1) > 1
-                        ? `${gameState.winnerIds?.length ?? 1} winners`
-                        : gameState.players.find(p => p.id === gameState.winnerId)?.name ?? 'Winner'}
-                      {gameState.rakeBreakdown && (
-                        <span className="ml-1.5 text-primary">· ${formatChips(gameState.rakeBreakdown.netPot)}</span>
-                      )}
-                    </span>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Pot zone — above cards; compact: higher for clear separation */}
-          <div
-            className="absolute left-1/2 -translate-x-1/2 z-20"
-            style={{ top: isLandscapeMobile ? '16%' : isCompact ? '20%' : '26%' }}
-            data-pot-display
-          >
-            <PotDisplay pot={gameState.pot} rakeAmount={gameState.rakeAmount} smallBlind={gameState.smallBlind} bigBlind={gameState.bigBlind} rakeBreakdown={gameState.rakeBreakdown ?? null} showdown={gameState.showdown} isCompact={isLandscapeMobile} />
-          </div>
+          {/* Pot zone — horizontal bar; Dynamic Island expands on win; portrait: slightly down for balance */}
+          {!isLandscapeMobile && (
+            <div
+              className="absolute left-1/2 -translate-x-1/2 z-20"
+              style={{ top: isCompact ? '22%' : '26%' }}
+              data-pot-display
+            >
+              <PotDisplay pot={gameState.pot} rakeAmount={gameState.rakeAmount} smallBlind={gameState.smallBlind} bigBlind={gameState.bigBlind} rakeBreakdown={gameState.rakeBreakdown ?? null} showdown={gameState.showdown} isCompact={isCompact} isLandscape winnerHandDescription={gameState.winnerHandDescription} winnerId={gameState.winnerId} winnerIds={gameState.winnerIds} players={gameState.players} />
+            </div>
+          )}
 
           {/* Win chip animation - inside table so chips fly BEHIND player avatars (z-5 < z-10) */}
           <WinChipAnimation
@@ -853,7 +816,8 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
                   player={player}
                   seatIndex={'isTopSeat' in pos && pos.isTopSeat ? 3 : i}
                   onClickAvatar={(p) => { if (!p.isUser) setSelectedPlayer(p); }}
-                  timerProgress={player.isTurn ? timerProgress : 0}
+                  timerProgress={player.isUser && player.isTurn && timer <= TIMER_RING_LAST_SECONDS ? timer / TIMER_RING_LAST_SECONDS : 0}
+                  showTimerRing={player.isUser && player.isTurn && timer <= TIMER_RING_LAST_SECONDS}
                   isDealer={player.id === gameState.dealerIndex}
                   isSmallBlind={player.id === gameState.smallBlindIndex}
                   isBigBlind={player.id === gameState.bigBlindIndex}
@@ -898,6 +862,7 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
         canCheck={canCheck}
         minRaise={getMinRaiseTotal(gameState) - (userPlayer?.currentBet ?? 0)}
         isMobile={isCompact}
+        isLandscapeMobile={isLandscapeMobile}
       />
 
       {/* Player Popup */}

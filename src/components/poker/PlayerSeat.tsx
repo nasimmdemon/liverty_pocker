@@ -10,6 +10,8 @@ interface PlayerSeatProps {
   seatIndex: number;
   onClickAvatar: (player: Player) => void;
   timerProgress?: number;
+  /** Show countdown ring only for main player in last 10 seconds */
+  showTimerRing?: boolean;
   isDealer?: boolean;
   isSmallBlind?: boolean;
   isBigBlind?: boolean;
@@ -26,14 +28,14 @@ interface PlayerSeatProps {
   cardBack?: string;
 }
 
-const NamePlate = ({ player, isTopSeat, hasWinningBar, displayChips }: { player: Player; isTopSeat: boolean; hasWinningBar?: boolean; displayChips?: number }) => {
+const NamePlate = ({ player, isTopSeat, hasWinningBar, displayChips, isLandscapeMobile }: { player: Player; isTopSeat: boolean; hasWinningBar?: boolean; displayChips?: number; isLandscapeMobile?: boolean }) => {
   const hasLeft = !player.isActive && player.chips <= 0;
   // Push name plates further from avatar to avoid collision with pot/cards
-  const topOffset = hasWinningBar ? 32 : 6;
-  const bottomOffset = hasWinningBar ? 42 : 34;
+  const topOffset = isLandscapeMobile ? (hasWinningBar ? 14 : 2) : (hasWinningBar ? 32 : 6);
+  const bottomOffset = isLandscapeMobile ? (hasWinningBar ? 18 : 12) : (hasWinningBar ? 42 : 34);
   return (
   <div
-    className="absolute left-1/2 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md flex flex-col items-center whitespace-nowrap transition-all duration-300"
+    className="player-name-plate absolute left-1/2 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md flex flex-col items-center whitespace-nowrap transition-all duration-300"
     style={{
       background: 'hsl(var(--casino-dark) / 0.92)',
       transform: 'translateX(-50%)',
@@ -72,7 +74,7 @@ const NamePlate = ({ player, isTopSeat, hasWinningBar, displayChips }: { player:
 // PlayerSeat renders INSIDE player-position-zone. The avatar is a direct child of the zone.
 const PlayerSeat = ({
   player, seatIndex, onClickAvatar,
-  timerProgress = 0, isDealer = false, isSmallBlind = false, isBigBlind = false,
+  timerProgress = 0, showTimerRing = false, isDealer = false, isSmallBlind = false, isBigBlind = false,
   isWinner = false, isMobile = false, isLandscapeMobile = false,
   isShowdown = false, chatBubble = null, winChance, winnerBestCards = [], displayChips, cardBack,
 }: PlayerSeatProps) => {
@@ -114,7 +116,7 @@ const PlayerSeat = ({
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.4, delay: seatIndex * 0.08, type: 'spring' }}
     >
-      {/* Hole cards — user: 50% behind avatar on both mobile & desktop. Others: above avatar. */}
+      {/* Hole cards — all players: half visible (50% behind avatar) for compact layout */}
       {showCards && !isTopSeat && (
         <div
           className="absolute"
@@ -122,24 +124,20 @@ const PlayerSeat = ({
             left: '50%',
             transform: 'translateX(-50%)',
             perspective: 600,
-            zIndex: isUser ? 5 : 15, // User: below avatar so 50% goes behind; others: above
-            // User: show more of cards — less overlap behind avatar
-            ...(isUser
-              ? {
-                  bottom: '100%',
-                  marginBottom: isLandscapeMobile ? 0 : isMobile ? -12 : -32,
-                  width: isLandscapeMobile ? 70 : isMobile ? 110 : 240,
-                  height: isLandscapeMobile ? 40 : isMobile ? 64 : 128,
-                }
-              : {
-                  bottom: '100%',
-                  marginBottom: isMobile ? 4 : 8,
-                  width: isLandscapeMobile ? 44 : isMobile ? 56 : 112,
-                  height: isLandscapeMobile ? 26 : isMobile ? 32 : 60,
-                }),
+            zIndex: 5, // Below avatar so cards overlap and appear half-visible
+            bottom: '100%',
+            marginBottom: isUser
+              ? (isLandscapeMobile ? -10 : isMobile ? -12 : -32)
+              : (isLandscapeMobile ? -6 : isMobile ? -2 : -8), // Others: more visible; top seats get extra in isTopSeat branch
+            width: isLandscapeMobile ? (isUser ? 48 : 44) : isMobile ? (isUser ? 110 : 56) : (isUser ? 240 : 112),
+            height: isLandscapeMobile ? (isUser ? 28 : 26) : isMobile ? (isUser ? 64 : 32) : (isUser ? 128 : 60),
           }}
         >
-          {player.cards.map((card, i) => (
+          {player.cards.map((card, i) => {
+            // User: overlapping fan; others: tighter translateX so cards are very close together
+            const tx0 = isUser ? '-68%' : '-58%';
+            const tx1 = isUser ? '-28%' : '-42%';
+            return (
             <div
               key={i}
               className="absolute"
@@ -147,7 +145,7 @@ const PlayerSeat = ({
                 left: '50%',
                 bottom: 0,
                 transformOrigin: 'bottom center',
-                transform: `translateX(${i === 0 ? '-68%' : '-28%'}) rotate(${i === 0 ? -18 : 18}deg) scale(${isUser ? (isLandscapeMobile ? 0.7 : isMobile ? 1 : 1.58) : (isLandscapeMobile ? 0.38 : isMobile ? 0.5 : 0.72)})`,
+                transform: `translateX(${i === 0 ? tx0 : tx1}) rotate(${i === 0 ? -18 : 18}deg) scale(${isUser ? (isLandscapeMobile ? 0.5 : isMobile ? 1 : 1.58) : (isLandscapeMobile ? 0.38 : isMobile ? 0.5 : 0.72)})`,
                 zIndex: i,
               }}
             >
@@ -160,7 +158,8 @@ const PlayerSeat = ({
                 cardBack={cardBack}
               />
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
 
@@ -199,21 +198,23 @@ const PlayerSeat = ({
           </div>
         )}
 
-        {isTurn && (
+        {showTimerRing && (
           <svg
-            className="absolute"
-            style={{ inset: isMobile ? -1 : -7, width: isMobile ? 'calc(100% + 2px)' : 'calc(100% + 14px)', height: isMobile ? 'calc(100% + 2px)' : 'calc(100% + 14px)', zIndex: 5 }}
+            className="absolute drop-shadow-[0_0_8px_hsl(var(--casino-gold)/0.6)]"
+            style={{ inset: isMobile ? -2 : -8, width: isMobile ? 'calc(100% + 4px)' : 'calc(100% + 16px)', height: isMobile ? 'calc(100% + 4px)' : 'calc(100% + 16px)', zIndex: 5 }}
             viewBox="0 0 100 100"
           >
-            <circle cx="50" cy="50" r="46" fill="none" stroke="hsl(var(--casino-gold))" strokeWidth="2.5" opacity="0.2" />
+            <circle cx="50" cy="50" r="45" fill="none" stroke="hsl(var(--casino-gold) / 0.35)" strokeWidth="4" />
             <motion.circle
-              cx="50" cy="50" r="46" fill="none"
+              cx="50" cy="50" r="45"
+              fill="none"
               stroke="hsl(var(--casino-gold))"
-              strokeWidth="2.5"
+              strokeWidth="4"
               strokeLinecap="round"
-              strokeDasharray={`${2 * Math.PI * 46}`}
-              strokeDashoffset={`${2 * Math.PI * 46 * (1 - timerProgress)}`}
+              strokeDasharray={`${2 * Math.PI * 45}`}
+              strokeDashoffset={`${2 * Math.PI * 45 * (1 - timerProgress)}`}
               transform="rotate(-90 50 50)"
+              style={{ filter: 'drop-shadow(0 0 4px hsl(var(--casino-gold) / 0.8))' }}
             />
           </svg>
         )}
@@ -254,9 +255,9 @@ const PlayerSeat = ({
       </div>
 
       {/* Name plate — extra offset when main player has winning bar for clear separation */}
-      <NamePlate player={player} isTopSeat={isTopSeat} hasWinningBar={isUser && winChance != null && !hasFolded && !hasLeft} displayChips={displayChips} />
+      <NamePlate player={player} isTopSeat={isTopSeat} hasWinningBar={isUser && winChance != null && !hasFolded && !hasLeft} displayChips={displayChips} isLandscapeMobile={isLandscapeMobile} />
 
-      {/* Hole cards below avatar for top seats — same rotated fan as bottom seats */}
+      {/* Hole cards below avatar for top seats — half visible (overlap avatar) like main player */}
       {showCards && isTopSeat && (
         <div
           className="absolute"
@@ -264,14 +265,17 @@ const PlayerSeat = ({
             top: '100%',
             left: '50%',
             transform: 'translateX(-50%)',
-            marginTop: isLandscapeMobile ? 2 : isMobile ? 6 : 8,
+            marginTop: isLandscapeMobile ? -6 : isMobile ? -4 : -6, // Top 3: more visible (less overlap)
             perspective: 600,
             zIndex: 5,
             width: isLandscapeMobile ? 44 : isMobile ? 80 : 160,
             height: isLandscapeMobile ? 26 : isMobile ? 48 : 96,
           }}
         >
-          {player.cards.map((card, i) => (
+          {player.cards.map((card, i) => {
+            const tx0 = isUser ? '-68%' : '-58%';
+            const tx1 = isUser ? '-28%' : '-42%';
+            return (
             <div
               key={i}
               className="absolute"
@@ -279,7 +283,7 @@ const PlayerSeat = ({
                 left: '50%',
                 top: 0,
                 transformOrigin: 'top center',
-                transform: `translateX(${i === 0 ? '-68%' : '-28%'}) rotate(${i === 0 ? 18 : -18}deg) scale(${isUser ? (isLandscapeMobile ? 0.6 : isMobile ? 0.9 : 1.5) : (isLandscapeMobile ? 0.35 : isMobile ? 0.4 : 0.6)})`,
+                transform: `translateX(${i === 0 ? tx0 : tx1}) rotate(${i === 0 ? 18 : -18}deg) scale(${isUser ? (isLandscapeMobile ? 0.6 : isMobile ? 0.9 : 1.5) : (isLandscapeMobile ? 0.35 : isMobile ? 0.4 : 0.6)})`,
                 zIndex: i,
               }}
             >
@@ -292,7 +296,8 @@ const PlayerSeat = ({
                 cardBack={cardBack}
               />
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
     </motion.div>

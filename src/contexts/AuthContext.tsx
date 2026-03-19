@@ -12,6 +12,7 @@ import {
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { resolveReferralCode, createReferralRecord, getOrCreateReferralCode } from '@/lib/referrals';
+import { REFERRAL_BONUS } from '@/lib/bonusConstants';
 
 export interface UserProfile {
   uid: string;
@@ -21,6 +22,8 @@ export interface UserProfile {
   botMatchesPlayed: number;
   handsPlayed: number;
   createdAt: number;
+  /** User balance in dollars. Default 0. Increased by referral bonus and watch-and-earn. */
+  funds?: number;
   referralCode?: string;
   referredBy?: string;
 }
@@ -35,6 +38,10 @@ interface AuthContextValue {
   signInAsGuest: () => Promise<void>;
   signOut: () => Promise<void>;
   incrementBotMatches: () => Promise<void>;
+  /** Add funds to user balance (e.g. watch-and-earn reward). Persists to Firestore. */
+  addFunds: (amount: number) => Promise<void>;
+  /** Deduct funds from user balance (e.g. table buy-in). Persists to Firestore. */
+  deductFunds: (amount: number) => Promise<void>;
   canInviteFriends: boolean;
 }
 
@@ -51,7 +58,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const userRef = doc(db, 'users', u.uid);
     const snap = await getDoc(userRef);
     if (snap.exists()) {
-      return snap.data() as UserProfile;
+      const data = snap.data() as UserProfile;
+      return { ...data, funds: data.funds ?? 0 };
     }
     const displayName = u.displayName ?? u.email?.split('@')[0] ?? 'Player';
     const newProfile: UserProfile = {
@@ -62,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       botMatchesPlayed: 0,
       handsPlayed: 0,
       createdAt: Date.now(),
+      funds: 0,
     };
 
     // Check for referral code from sessionStorage (set when user landed with ?ref=CODE)
@@ -70,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const referrerId = await resolveReferralCode(storedRef);
       if (referrerId && referrerId !== u.uid) {
         newProfile.referredBy = referrerId;
+        newProfile.funds = REFERRAL_BONUS; // Bonus for joining via referral
         await createReferralRecord(referrerId, u.uid, displayName, u.photoURL ?? null);
       }
       sessionStorage.removeItem('referral_code');
@@ -144,6 +154,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile((prev) => (prev ? { ...prev, botMatchesPlayed: newCount } : null));
   }, [user, profile]);
 
+  const addFunds = useCallback(async (amount: number) => {
+    if (!user || amount <= 0) return;
+    const ref = doc(db, 'users', user.uid);
+    const current = profile?.funds ?? 0;
+    const newFunds = Math.round((current + amount) * 100) / 100;
+    await setDoc(ref, { funds: newFunds }, { merge: true });
+    setProfile((prev) => (prev ? { ...prev, funds: newFunds } : null));
+  }, [user, profile]);
+
+  const deductFunds = useCallback(async (amount: number) => {
+    if (!user || amount <= 0) return;
+    const ref = doc(db, 'users', user.uid);
+    const current = profile?.funds ?? 0;
+    const newFunds = Math.max(0, Math.round((current - amount) * 100) / 100);
+    await setDoc(ref, { funds: newFunds }, { merge: true });
+    setProfile((prev) => (prev ? { ...prev, funds: newFunds } : null));
+  }, [user, profile]);
+
   const canInviteFriends = (profile?.botMatchesPlayed ?? 0) >= BOT_MATCHES_REQUIRED;
 
   const value: AuthContextValue = {
@@ -156,6 +184,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInAsGuest,
     signOut,
     incrementBotMatches,
+    addFunds,
+    deductFunds,
     canInviteFriends,
   };
 

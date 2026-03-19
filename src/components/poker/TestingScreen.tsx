@@ -406,33 +406,33 @@ const TestingScreen = ({ onStartGame, onBack, funds = 0, onTopUp }: TestingScree
           <motion.div key="config" className="relative z-10 w-[90%] max-w-sm mt-4 flex flex-col gap-4"
             initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}
           >
-            {/* Bot count */}
-            <div className="flex flex-col gap-1" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-              <label className={labelClass}>NUMBER OF BOTS (1-5)</label>
+        {/* Bot count */}
+        <div className="flex flex-col gap-1" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+          <label className={labelClass}>NUMBER OF BOTS (1-5)</label>
               <input type="number" min={1} max={5} value={botCount} onChange={e => setBotCount(Math.max(1, Math.min(5, Number(e.target.value))))} className={inputClass} />
-            </div>
+        </div>
 
-            {/* Blinds */}
-            <div className="grid grid-cols-2 gap-3" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-              <div className="flex flex-col gap-1">
-                <label className={labelClass}>SMALL BLIND</label>
-                <input type="number" min={1} value={smallBlind} onChange={e => setSmallBlind(Number(e.target.value))} className={inputClass} />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className={labelClass}>BIG BLIND</label>
-                <input type="number" min={2} value={bigBlind} onChange={e => setBigBlind(Number(e.target.value))} className={inputClass} />
-              </div>
-            </div>
+        {/* Blinds */}
+        <div className="grid grid-cols-2 gap-3" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+          <div className="flex flex-col gap-1">
+            <label className={labelClass}>SMALL BLIND</label>
+            <input type="number" min={1} value={smallBlind} onChange={e => setSmallBlind(Number(e.target.value))} className={inputClass} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className={labelClass}>BIG BLIND</label>
+            <input type="number" min={2} value={bigBlind} onChange={e => setBigBlind(Number(e.target.value))} className={inputClass} />
+          </div>
+        </div>
 
-            {/* Starting chips */}
-            <div className="flex flex-col gap-1" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-              <label className={labelClass}>STARTING CHIPS</label>
-              <input type="number" min={100} step={100} value={startingChips} onChange={e => setStartingChips(Number(e.target.value))} className={inputClass} />
-            </div>
+        {/* Starting chips */}
+        <div className="flex flex-col gap-1" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+          <label className={labelClass}>STARTING CHIPS</label>
+          <input type="number" min={100} step={100} value={startingChips} onChange={e => setStartingChips(Number(e.target.value))} className={inputClass} />
+        </div>
 
-            {/* Turn timer */}
-            <div className="flex flex-col gap-1" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-              <label className={labelClass}>TURN TIMER (SECONDS)</label>
+        {/* Turn timer */}
+        <div className="flex flex-col gap-1" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+          <label className={labelClass}>TURN TIMER (SECONDS)</label>
               <div className="flex gap-2">
                 {[10, 20, 30].map(t => (
                   <button key={t} type="button" onClick={() => setTurnTimer(t)}
@@ -484,7 +484,7 @@ const TestingScreen = ({ onStartGame, onBack, funds = 0, onTopUp }: TestingScree
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+        </div>
 
             {/* Top Up Funds */}
             <div className="rounded-xl overflow-hidden" style={{ background: 'linear-gradient(145deg, rgba(30,28,24,0.9) 0%, rgba(18,16,14,0.95) 100%)', border: '1px solid rgba(242,210,122,0.25)', boxShadow: '0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)' }}>
@@ -511,18 +511,18 @@ const TestingScreen = ({ onStartGame, onBack, funds = 0, onTopUp }: TestingScree
               </div>
             </div>
 
-            {/* Share link */}
+        {/* Share link */}
             <div className="w-full h-px bg-primary/30 my-1" />
-            <div className="flex flex-col gap-1" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-              <label className={labelClass}>INVITE LINK</label>
-              <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-1" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+          <label className={labelClass}>INVITE LINK</label>
+          <div className="flex items-center gap-2">
                 <input type="text" readOnly value={shareLink} className={`${inputClass} text-xs text-left truncate`} />
                 <button className="shrink-0 w-10 h-10 rounded-lg border-2 border-primary/40 flex items-center justify-center hover:bg-primary/20 transition-colors" onClick={handleCopyLink}>
-                  {copied ? <Check size={16} className="text-primary" /> : <Copy size={16} className="text-primary" />}
-                </button>
-              </div>
-              <span className="text-[10px] text-muted-foreground mt-0.5">Share this link with others to join your test table</span>
-            </div>
+              {copied ? <Check size={16} className="text-primary" /> : <Copy size={16} className="text-primary" />}
+            </button>
+          </div>
+          <span className="text-[10px] text-muted-foreground mt-0.5">Share this link with others to join your test table</span>
+        </div>
           </motion.div>
         ) : (
           <motion.div key="animations" className="relative z-10 w-[90%] max-w-sm mt-4 flex flex-col gap-4 pb-24"
@@ -546,7 +546,7 @@ const TestingScreen = ({ onStartGame, onBack, funds = 0, onTopUp }: TestingScree
                     {cat.title}
                   </span>
                   <div className="flex-1 h-px bg-primary/20" />
-                </div>
+      </div>
 
                 {/* Animation items */}
                 {cat.items.map((anim) => {
@@ -586,13 +586,13 @@ const TestingScreen = ({ onStartGame, onBack, funds = 0, onTopUp }: TestingScree
 
       {/* Start button — only on config tab */}
       {activeTab === 'config' && (
-        <motion.button
-          className="relative z-10 mt-6 mb-8 casino-btn text-sm sm:text-base px-8 py-3 rounded-xl font-bold tracking-wider"
+      <motion.button
+        className="relative z-10 mt-6 mb-8 casino-btn text-sm sm:text-base px-8 py-3 rounded-xl font-bold tracking-wider"
           style={{ background: 'linear-gradient(180deg, hsl(var(--casino-red)) 0%, hsl(0 50% 25%) 100%)', color: 'hsl(var(--casino-gold))', fontFamily: "'Bebas Neue', sans-serif" }}
           onClick={handleStart} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-        >
-          🚀 START TEST GAME
-        </motion.button>
+      >
+        🚀 START TEST GAME
+      </motion.button>
       )}
     </motion.div>
   );

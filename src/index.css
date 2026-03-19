@@ -427,34 +427,60 @@
     }
   }
 
-  /* Mobile landscape — compact layout */
+  /* Mobile landscape — compact layout, scale by viewport */
   @media (max-width: 900px) and (orientation: landscape) {
     .poker-table-felt {
-      width: 82vw !important;
-      height: 56vh !important;
+      width: min(88vw, 95vh) !important;
+      height: min(72vh, 85vw) !important;
     }
   }
 
-  /* Landscape mobile extra compact — smaller avatars, wider table */
+  /* Landscape mobile extra compact — smaller avatars, table scales with viewport */
   [data-landscape-mobile="true"] .player-position-zone {
-    width: 36px !important;
-    height: 36px !important;
+    width: clamp(28px, 8vw, 36px) !important;
+    height: clamp(28px, 8vw, 36px) !important;
     border-width: 1px !important;
   }
   [data-landscape-mobile="true"] .player-position-zone[data-is-user="true"] {
-    width: 44px !important;
-    height: 44px !important;
+    width: clamp(36px, 10vw, 44px) !important;
+    height: clamp(36px, 10vw, 44px) !important;
     border-width: 1.5px !important;
   }
   [data-landscape-mobile="true"] .poker-table-felt {
-    width: 82vw !important;
-    height: 52vh !important;
+    width: min(90vw, 92vh) !important;
+    height: min(68vh, 80vw) !important;
+  }
+
+  /* Community cards — scale down in landscape mobile */
+  [data-landscape-mobile="true"] .community-cards-area {
+    transform: scale(0.72);
+    transform-origin: center;
+    gap: 2px !important;
+  }
+
+  /* Dealer badge smaller in landscape */
+  [data-landscape-mobile="true"] .dealer-position-zone {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 8px;
   }
 
   /* Very short viewports (landscape phones) — shrink table further */
   @media (max-height: 420px) {
     .poker-table-felt {
-      height: 48vh !important;
+      height: min(62vh, 75vw) !important;
+    }
+    [data-landscape-mobile="true"] .poker-table-felt {
+      height: min(60vh, 72vw) !important;
+    }
+  }
+
+  @media (max-height: 360px) {
+    [data-landscape-mobile="true"] .poker-table-felt {
+      height: min(55vh, 68vw) !important;
+    }
+    [data-landscape-mobile="true"] .community-cards-area {
+      transform: scale(0.62);
     }
   }
 
@@ -470,4 +496,186 @@
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 15px hsl(40 70% 45% / 0.6), 0 0 30px hsl(40 70% 45% / 0.3); }
   50% { box-shadow: 0 0 25px hsl(40 70% 45% / 0.8), 0 0 50px hsl(40 70% 45% / 0.4); }
+}
+
+/* ===== MOBILE PORTRAIT — fix header overflow and layout ===== */
+@media (max-width: 640px) and (orientation: portrait) {
+  /* Start screen — clean header: game name left, actions right, no overflow */
+  .start-screen .start-nav {
+    align-items: center !important;
+    padding: 0.5rem 0.75rem !important;
+    gap: 0.5rem !important;
+  }
+  .start-screen .start-nav-title {
+    font-size: 0.95rem !important;
+    line-height: 1.2 !important;
+  }
+  .start-screen .start-nav-actions {
+    gap: 0.4rem !important;
+  }
+  .start-screen .start-nav-profile {
+    padding: 0.4rem !important;
+    min-width: 2.25rem !important;
+    min-height: 2.25rem !important;
+  }
+  .start-screen .start-nav-username {
+    max-width: 4.5rem !important;
+    font-size: 0.75rem !important;
+  }
+  .start-screen .start-nav-funds {
+    font-size: 0.8rem !important;
+  }
+  .start-screen .start-nav-logout {
+    padding: 0.4rem !important;
+    min-width: 2.25rem !important;
+    min-height: 2.25rem !important;
+  }
+
+  .sitandgo-screen .lobby-header { padding-left: 0.5rem !important; padding-right: 0.5rem !important; gap: 0.25rem !important; }
+  .sitandgo-screen .lobby-header .casino-btn { padding-left: 0.35rem !important; padding-right: 0.35rem !important; font-size: 0.6rem !important; }
+  .sitandgo-screen .lobby-header .flex.items-center.gap-2 { gap: 0.25rem !important; }
+  .sitandgo-screen .lobby-header .flex.items-center.gap-2 span:last-child { font-size: 0.7rem !important; }
+}
+
+/* ===== MOBILE LANDSCAPE ONLY (max-height 500px) — no desktop/tablet changes ===== */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Login screen */
+  .login-screen .login-form {
+    max-height: 95vh;
+    overflow-y: auto;
+    padding: 0.4rem 0.6rem !important;
+    margin: 0.2rem !important;
+  }
+  .login-screen .login-form h1 { font-size: 1rem !important; margin-bottom: 0.2rem !important; }
+  .login-screen .login-form > p { font-size: 0.65rem !important; margin-bottom: 0.2rem !important; }
+  .login-screen .login-form form.space-y-4 > * + * { margin-top: 0.3rem !important; }
+  .login-screen .login-form form .space-y-2 > * + * { margin-top: 0.15rem !important; }
+  .login-screen .login-form input { height: 1.6rem !important; min-height: 1.6rem !important; font-size: 0.7rem !important; padding: 0.2rem 0.4rem !important; }
+  .login-screen .login-form label { font-size: 0.65rem !important; }
+  .login-screen .login-form button,
+  .login-screen .login-form [role="button"] { height: 1.6rem !important; min-height: 1.6rem !important; font-size: 0.65rem !important; padding: 0.2rem 0.5rem !important; }
+  .login-screen .login-form .my-6 { margin-top: 0.25rem !important; margin-bottom: 0.25rem !important; }
+  .login-screen .login-form .my-4 { margin-top: 0.2rem !important; margin-bottom: 0.2rem !important; }
+  .login-screen .login-form .mt-6 { margin-top: 0.25rem !important; }
+  .login-screen .login-form .mb-4 { margin-bottom: 0.2rem !important; }
+  .login-screen .login-form .mb-6 { margin-bottom: 0.25rem !important; }
+  .login-screen .login-form svg { height: 0.75rem !important; width: 0.75rem !important; }
+  .login-screen .login-form .h-5 { height: 0.75rem !important; width: 0.75rem !important; }
+  .login-screen .login-form .h-8 { height: 1rem !important; width: 1rem !important; }
+  .login-screen .login-form .pl-10 { padding-left: 1.5rem !important; }
+  .login-screen .login-form .left-3 { left: 0.4rem !important; }
+  .login-screen .login-form .text-sm { font-size: 0.6rem !important; }
+  .login-screen .login-form .text-xs { font-size: 0.55rem !important; }
+  .login-screen .login-form .p-3 { padding: 0.25rem !important; }
+  .login-screen .login-form .gap-2 { gap: 0.2rem !important; }
+  .login-screen .login-form .mb-4 .flex { padding: 0.25rem !important; }
+
+  /* Start screen — landscape: larger buttons, horizontal layout to use width */
+  .start-screen .start-nav { padding: 0.35rem 0.6rem !important; }
+  .start-screen .start-nav h1 { font-size: 0.85rem !important; }
+  .start-screen .start-nav .gap-2 { gap: 0.35rem !important; }
+  .start-screen .start-nav .min-h-\[40px\] { min-height: 1.75rem !important; }
+  .start-screen .start-nav .min-w-\[40px\] { min-width: 1.75rem !important; }
+  .start-screen .start-nav .h-5 { height: 1rem !important; width: 1rem !important; }
+  .start-screen .start-nav .text-sm { font-size: 0.7rem !important; }
+  .start-screen .start-nav .text-base { font-size: 0.75rem !important; }
+  .start-screen .start-nav .text-xl { font-size: 0.8rem !important; }
+  .start-screen .start-nav .px-3 { padding-left: 0.4rem !important; padding-right: 0.4rem !important; }
+  .start-screen .start-nav .py-2 { padding-top: 0.3rem !important; padding-bottom: 0.3rem !important; }
+  .start-screen .start-content { margin-top: 0.35rem !important; gap: 0.5rem !important; padding: 0.35rem 0.5rem !important; }
+  .start-screen .start-content h2 { font-size: 1.1rem !important; letter-spacing: 0.1em !important; }
+  .start-screen .start-buttons { flex-direction: row !important; flex-wrap: wrap !important; gap: 0.5rem !important; justify-content: center !important; }
+  .start-screen .play-btn { padding: 0.6rem 1.5rem !important; font-size: 1.15rem !important; border-width: 2px !important; min-width: 8.5rem !important; min-height: 2.5rem !important; }
+  .start-screen .watch-earn-btn { padding: 0.55rem 1.2rem !important; font-size: 1rem !important; min-width: 7.5rem !important; min-height: 2.25rem !important; }
+  .start-screen .watch-earn-btn svg { height: 1.15rem !important; width: 1.15rem !important; }
+  .start-screen .secondary-btn { padding: 0.55rem 1.2rem !important; font-size: 1rem !important; min-width: 7.5rem !important; min-height: 2.25rem !important; }
+  .start-screen .secondary-btn [class*="h-5"], .start-screen .secondary-btn [class*="h-6"] { height: 1.1rem !important; width: 1.1rem !important; }
+
+  /* SitAndGo - choose table screen — landscape: larger cards, better proportions */
+  .sitandgo-screen .choose-header { padding: 0.35rem 0.5rem !important; top: 0.5rem !important; }
+  .sitandgo-screen .choose-header .casino-btn,
+  .sitandgo-screen .choose-header .back-btn { padding: 0.4rem 0.75rem !important; font-size: 0.8rem !important; min-height: 2rem !important; }
+  .sitandgo-screen .choose-header.right-3 { right: 0.5rem !important; }
+  .sitandgo-screen .choose-header.left-3 { left: 0.5rem !important; }
+  .sitandgo-screen h1.choose-title { font-size: 1.4rem !important; margin-bottom: 0.25rem !important; letter-spacing: 0.1em !important; }
+  .sitandgo-screen .subtitle { font-size: 0.75rem !important; margin-bottom: 0.5rem !important; }
+  .sitandgo-screen .choose-cards { flex-direction: row !important; gap: 0.75rem !important; padding: 0.35rem 0.75rem !important; margin-top: 0.25rem !important; max-width: 95vw !important; }
+  .sitandgo-screen .choose-card { padding: 0.75rem 1.25rem !important; min-height: 4.5rem !important; flex: 1 !important; min-width: 8rem !important; gap: 0.35rem !important; }
+  .sitandgo-screen .choose-card .choose-icon { font-size: 2rem !important; width: auto !important; height: auto !important; }
+  .sitandgo-screen .choose-card .choose-title { font-size: 1.15rem !important; }
+  .sitandgo-screen .choose-card .choose-desc { font-size: 0.7rem !important; line-height: 1.2 !important; max-width: 10rem !important; }
+
+  /* SitAndGo - lobby (tier selection + buy-in) — landscape: scrollable, less cramped, readable buy-in */
+  .sitandgo-screen .lobby-header { padding: 0.35rem 0.5rem !important; min-height: auto !important; }
+  .sitandgo-screen .lobby-header .lobby-back { padding: 0.2rem 0.4rem !important; font-size: 0.6rem !important; }
+  .sitandgo-screen .lobby-header .casino-btn { padding: 0.2rem 0.4rem !important; font-size: 0.6rem !important; min-height: 1.5rem !important; }
+  .sitandgo-screen .lobby-header .text-xl { font-size: 0.75rem !important; }
+  .sitandgo-screen .lobby-header .text-xs { font-size: 0.55rem !important; }
+  .sitandgo-screen .lobby-content { padding: 0.4rem 0.5rem !important; gap: 0.35rem !important; padding-bottom: 1rem !important; }
+  .sitandgo-screen .lobby-content > div { gap: 0.4rem !important; }
+  .sitandgo-screen .lobby-content .gap-4 { gap: 0.35rem !important; }
+  .sitandgo-screen .lobby-content .gap-3 { gap: 0.25rem !important; }
+  /* Tier cards: compact but readable — no aggressive max-height */
+  .sitandgo-screen .tier-cards { display: flex !important; flex-wrap: wrap !important; gap: 0.4rem !important; justify-content: center !important; padding: 0 !important; }
+  .sitandgo-screen .tier-card { padding: 0.5rem 0.65rem !important; min-height: auto !important; gap: 0.25rem !important; flex: 0 0 auto !important; min-width: 4.5rem !important; max-width: 6rem !important; }
+  .sitandgo-screen .tier-card .tier-emoji { font-size: 1.5rem !important; }
+  .sitandgo-screen .tier-card .tier-label { font-size: 0.8rem !important; }
+  .sitandgo-screen .tier-card .tier-fee { font-size: 0.7rem !important; }
+  .sitandgo-screen .tier-card .absolute.inset-0 svg { width: 1.1rem !important; height: 1.1rem !important; }
+  .sitandgo-screen .lobby-select-tier { font-size: 0.9rem !important; margin: 0 !important; padding: 0.1rem 0 !important; }
+  .sitandgo-screen .flex.gap-3 button, .sitandgo-screen .flex.gap-4 button { padding: 0.3rem 0.5rem !important; font-size: 0.65rem !important; }
+  /* Buy-in bar: portrait-like proportions, readable slider */
+  .sitandgo-screen .buyin-panel { padding: 0.5rem 0.6rem !important; min-height: auto !important; }
+  .sitandgo-screen .buyin-panel .buyin-label { font-size: 0.75rem !important; }
+  .sitandgo-screen .buyin-panel .buyin-value { font-size: 0.9rem !important; }
+  .sitandgo-screen .buyin-panel .mb-3 { margin-bottom: 0.35rem !important; }
+  .sitandgo-screen .buyin-panel .bet-amount-slider { height: 0.5rem !important; min-height: 0.5rem !important; }
+  .sitandgo-screen .buyin-panel .bet-amount-slider::-webkit-slider-runnable-track { height: 0.5rem !important; }
+  .sitandgo-screen .buyin-panel .bet-amount-slider::-webkit-slider-thumb { width: 1rem !important; height: 1rem !important; margin-top: -0.25rem !important; }
+  .sitandgo-screen .buyin-panel .bet-amount-slider::-moz-range-track { height: 0.5rem !important; }
+  .sitandgo-screen .buyin-panel .bet-amount-slider::-moz-range-thumb { width: 1rem !important; height: 1rem !important; }
+  .sitandgo-screen .buyin-panel .text-xs { font-size: 0.6rem !important; }
+  .sitandgo-screen .join-btn img { width: 3.75rem !important; height: 3.75rem !important; }
+  .sitandgo-screen .join-btn { margin-top: 0.35rem !important; margin-bottom: 0.35rem !important; }
+  .sitandgo-screen .lobby-content [class*="px-5"] { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+  .sitandgo-screen .lobby-content [class*="py-3"] { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+  /* Expanded tier: scrollable, adequate height */
+  .sitandgo-screen .lobby-expanded-tier { max-height: 10rem !important; overflow-y: auto !important; }
+  .sitandgo-screen .lobby-progress { padding: 0.35rem 0.5rem !important; }
+  .sitandgo-screen .lobby-progress .mb-2 { margin-bottom: 0.2rem !important; }
+  .sitandgo-screen .lobby-progress .h-3 { height: 0.5rem !important; }
+  .sitandgo-screen .lobby-progress .text-xs { font-size: 0.65rem !important; }
+  .sitandgo-screen .lobby-progress .text-sm { font-size: 0.7rem !important; }
+  .sitandgo-screen .lobby-progress .mt-1\.5 { margin-top: 0.15rem !important; }
+  .sitandgo-screen .lobby-stake-options { padding: 0.3rem 0.5rem 0.35rem !important; gap: 0.25rem !important; }
+  .sitandgo-screen .lobby-stake-options .grid-cols-2 { grid-template-columns: repeat(4, 1fr) !important; }
+  .sitandgo-screen .lobby-content .grid button { padding: 0.3rem 0.4rem !important; font-size: 0.65rem !important; min-height: 1.75rem !important; }
+  .sitandgo-screen .lobby-content .pt-3 { padding-top: 0.2rem !important; }
+  .sitandgo-screen .lobby-content .pb-2 { padding-bottom: 0.15rem !important; }
+  .sitandgo-screen .lobby-content .pb-4 { padding-bottom: 0.25rem !important; }
+  .sitandgo-screen .lobby-expanded-tier .border-b { padding: 0.2rem 0.4rem !important; }
+
+  /* Poker table - further landscape mobile reductions (when data-landscape-mobile is set) */
+  [data-landscape-mobile="true"] .community-cards-area { transform: translate(-50%, -50%) scale(0.6) !important; transform-origin: center center !important; }
+  [data-landscape-mobile="true"] .poker-table-felt { height: min(58vh, 72vw) !important; }
+  [data-landscape-mobile="true"] .poker-action-bar { padding-top: 0.15rem !important; padding-bottom: 0.15rem !important; }
+  [data-landscape-mobile="true"] .poker-action-bar .px-2 { padding-left: 0.25rem !important; padding-right: 0.25rem !important; }
+  [data-landscape-mobile="true"] .poker-action-bar .py-1 { padding-top: 0.1rem !important; padding-bottom: 0.1rem !important; }
+  [data-landscape-mobile="true"] .poker-action-bar .gap-1 { gap: 0.15rem !important; }
+  [data-landscape-mobile="true"] .poker-action-bar .gap-1\.5 { gap: 0.2rem !important; }
+  [data-landscape-mobile="true"] .poker-action-bar .min-h-\[26px\] { min-height: 1.5rem !important; }
+  [data-landscape-mobile="true"] .poker-action-bar .min-w-\[36px\] { min-width: 2rem !important; }
+  [data-landscape-mobile="true"] .poker-action-bar .text-\[9px\] { font-size: 0.5rem !important; }
+  [data-landscape-mobile="true"] .poker-action-bar .rounded-md { border-radius: 0.25rem !important; }
+  /* Pot: horizontal bar in landscape — minimal height, uses width */
+  [data-landscape-mobile="true"] [data-pot-display] { padding: 0.15rem 0.5rem !important; }
+  [data-landscape-mobile="true"] [data-pot-display].flex-row { gap: 0.5rem !important; }
+  [data-landscape-mobile="true"] [data-pot-display] .text-sm { font-size: 0.7rem !important; }
+  [data-landscape-mobile="true"] [data-pot-display] .text-\[9px\] { font-size: 0.55rem !important; }
+  [data-landscape-mobile="true"] [data-pot-display] .text-\[8px\] { font-size: 0.5rem !important; }
+  [data-landscape-mobile="true"] .player-name-plate { padding: 0.1rem 0.25rem !important; }
+  [data-landscape-mobile="true"] .player-name-plate span { font-size: 0.5rem !important; }
+  [data-landscape-mobile="true"] .player-name-plate .text-\[10px\] { font-size: 0.5rem !important; }
+  [data-landscape-mobile="true"] .player-name-plate .text-\[9px\] { font-size: 0.45rem !important; }
+  [data-landscape-mobile="true"] .player-name-plate .max-w-\[72px\] { max-width: 2.5rem !important; }
 }

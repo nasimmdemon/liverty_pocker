@@ -11,7 +11,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { formatChips } from '@/lib/formatChips';
+import { formatChips, formatFunds } from '@/lib/formatChips';
 import pokerTableBg from '@/assets/poker-table-bg.png';
 import joinTableChip from '@/assets/join-table-chip.png';
 
@@ -301,7 +301,7 @@ const SitAndGoScreen = ({
   if (tableType === null) {
     return (
       <motion.div
-        className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden"
+        className="sitandgo-screen fixed inset-0 flex flex-col items-center justify-center overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -310,9 +310,9 @@ const SitAndGoScreen = ({
         <div className="absolute inset-0 bg-black/70" />
 
         {/* Back button */}
-        <div className="absolute top-3 left-3 z-10">
+        <div className="choose-header absolute top-3 left-3 z-10">
           <motion.button
-            className="casino-btn text-[10px] sm:text-xs px-3 sm:px-4 py-2 sm:py-2 min-h-[40px] touch-manipulation"
+            className="back-btn casino-btn text-[10px] sm:text-xs px-3 sm:px-4 py-2 sm:py-2 min-h-[40px] touch-manipulation"
             onClick={onBack}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -322,7 +322,7 @@ const SitAndGoScreen = ({
         </div>
 
         {onTestingMode && (
-          <div className="absolute top-3 right-3 z-10">
+          <div className="choose-header absolute top-3 right-3 z-10">
             <motion.button
               className="casino-btn text-[10px] sm:text-xs px-3 sm:px-4 py-2 sm:py-2 min-h-[40px] touch-manipulation"
               onClick={onTestingMode}
@@ -335,7 +335,7 @@ const SitAndGoScreen = ({
         )}
 
         <motion.h1
-          className="relative z-10 text-3xl sm:text-5xl md:text-6xl tracking-[0.15em] text-center mb-2"
+          className="relative z-10 text-3xl sm:text-5xl md:text-6xl tracking-[0.15em] text-center mb-2 choose-title"
           style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
           initial={{ y: -30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -344,7 +344,7 @@ const SitAndGoScreen = ({
         </motion.h1>
 
         <motion.p
-          className="relative z-10 text-muted-foreground text-xs sm:text-sm mb-8 text-center"
+          className="subtitle relative z-10 text-muted-foreground text-xs sm:text-sm mb-8 text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -352,10 +352,10 @@ const SitAndGoScreen = ({
           Select how you want to play
         </motion.p>
 
-        <div className="relative z-10 flex flex-col sm:flex-row gap-4 sm:gap-6">
+        <div className="choose-cards relative z-10 flex flex-col sm:flex-row gap-4 sm:gap-6">
           {/* Public */}
           <motion.button
-            className="group flex flex-col items-center gap-2 sm:gap-3 px-8 sm:px-14 py-6 sm:py-10 rounded-2xl border-2 border-primary/40 hover:border-primary transition-all touch-manipulation"
+            className="choose-card group flex flex-col items-center gap-2 sm:gap-3 px-8 sm:px-14 py-6 sm:py-10 rounded-2xl border-2 border-primary/40 hover:border-primary transition-all touch-manipulation"
             style={{
               background: 'linear-gradient(180deg, hsl(120 20% 12%) 0%, hsl(120 15% 7%) 100%)',
             }}
@@ -366,21 +366,21 @@ const SitAndGoScreen = ({
             whileHover={{ scale: 1.04, boxShadow: '0 0 30px hsl(var(--casino-gold) / 0.3)' }}
             whileTap={{ scale: 0.97 }}
           >
-            <span className="text-4xl sm:text-5xl">🌐</span>
+            <span className="choose-icon text-4xl sm:text-5xl">🌐</span>
             <span
-              className="text-2xl sm:text-3xl tracking-wider"
+              className="choose-title text-2xl sm:text-3xl tracking-wider"
               style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
             >
               PUBLIC
             </span>
-            <span className="text-muted-foreground text-[10px] sm:text-xs max-w-[160px] text-center">
+            <span className="choose-desc text-muted-foreground text-[10px] sm:text-xs max-w-[160px] text-center">
               Join open tables. Hands count toward tier promotion.
             </span>
           </motion.button>
 
           {/* Private */}
           <motion.button
-            className="group flex flex-col items-center gap-2 sm:gap-3 px-8 sm:px-14 py-6 sm:py-10 rounded-2xl border-2 border-primary/40 hover:border-primary transition-all touch-manipulation"
+            className="choose-card group flex flex-col items-center gap-2 sm:gap-3 px-8 sm:px-14 py-6 sm:py-10 rounded-2xl border-2 border-primary/40 hover:border-primary transition-all touch-manipulation"
             style={{
               background: 'linear-gradient(180deg, hsl(0 20% 12%) 0%, hsl(0 15% 7%) 100%)',
             }}
@@ -391,14 +391,14 @@ const SitAndGoScreen = ({
             whileHover={{ scale: 1.04, boxShadow: '0 0 30px hsl(var(--casino-gold) / 0.3)' }}
             whileTap={{ scale: 0.97 }}
           >
-            <span className="text-4xl sm:text-5xl">🔒</span>
+            <span className="choose-icon text-4xl sm:text-5xl">🔒</span>
             <span
-              className="text-2xl sm:text-3xl tracking-wider"
+              className="choose-title text-2xl sm:text-3xl tracking-wider"
               style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
             >
               PRIVATE
             </span>
-            <span className="text-muted-foreground text-[10px] sm:text-xs max-w-[160px] text-center">
+            <span className="choose-desc text-muted-foreground text-[10px] sm:text-xs max-w-[160px] text-center">
               Create your own table. Invite friends with a link.
             </span>
           </motion.button>
@@ -410,7 +410,7 @@ const SitAndGoScreen = ({
   // ── Main lobby (after choosing Public/Private) ──
   return (
     <motion.div
-      className="fixed inset-0 flex flex-col items-center overflow-y-auto overflow-x-hidden"
+      className="sitandgo-screen fixed inset-0 flex flex-col items-center overflow-y-auto overflow-x-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -420,9 +420,9 @@ const SitAndGoScreen = ({
       <div className="absolute inset-0 bg-black/60" />
 
       {/* Top bar */}
-      <div className="relative z-10 w-full flex-shrink-0 flex justify-between items-center px-3 sm:px-6 py-3 sm:py-4">
+      <div className="lobby-header relative z-10 w-full flex-shrink-0 flex justify-between items-center gap-2 px-2 sm:px-6 py-2 sm:py-4 min-w-0">
         <motion.button
-          className="casino-btn text-[10px] sm:text-xs px-3 sm:px-4 py-2 sm:py-2 min-h-[40px] shrink-0 touch-manipulation"
+          className="lobby-back casino-btn text-[10px] sm:text-xs px-2 sm:px-4 py-1.5 sm:py-2 min-h-[36px] sm:min-h-[40px] shrink-0 touch-manipulation"
           onClick={() => setTableType(null)}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -430,21 +430,22 @@ const SitAndGoScreen = ({
           ← BACK
         </motion.button>
 
-        <div className="flex items-center gap-3">
-          <span className="text-xs sm:text-sm px-3 py-1.5 rounded-full border border-primary/40 text-primary uppercase tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+        <div className="flex items-center gap-2 min-w-0 flex-1 justify-center overflow-hidden">
+          <span className="text-[10px] sm:text-sm px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-primary/40 text-primary uppercase tracking-wider shrink-0" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
             {tableType === 'public' ? '🌐 Public' : '🔒 Private'}
           </span>
           <span
-            className="text-xl sm:text-2xl tracking-wider"
+            className="text-sm sm:text-2xl tracking-wider truncate"
             style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
+            title={`FUNDS: $${formatFunds(funds)}`}
           >
-            FUNDS: {funds} $
+            FUNDS: ${formatFunds(funds)}
           </span>
         </div>
 
         {onTestingMode && (
           <motion.button
-            className="casino-btn text-[10px] sm:text-xs px-3 sm:px-4 py-2 sm:py-2 min-h-[40px] shrink-0 touch-manipulation"
+            className="casino-btn text-[10px] sm:text-xs px-2 sm:px-4 py-1.5 sm:py-2 min-h-[36px] sm:min-h-[40px] shrink-0 touch-manipulation"
             onClick={onTestingMode}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -454,10 +455,10 @@ const SitAndGoScreen = ({
         )}
       </div>
 
-      {/* Unified content column — centered, larger elements */}
+      {/* Unified content column — scrollable; justify-start so scroll works in landscape */}
       {tableType === 'public' && (
-        <div className="relative z-10 flex-1 flex flex-col justify-center items-center w-full max-w-[680px] px-4 py-4 overflow-y-auto">
-          <div className="flex flex-col items-center w-full gap-4 sm:gap-5">
+        <div className="lobby-content relative z-10 flex-1 flex flex-col items-center w-full max-w-[680px] px-4 py-4 overflow-y-auto overflow-x-hidden min-h-0 overscroll-contain">
+          <div className="flex flex-col items-center w-full gap-4 sm:gap-5 py-2">
           {/* Game Mode Tabs */}
           <motion.div
             className="flex items-center gap-3 sm:gap-4"
@@ -493,7 +494,7 @@ const SitAndGoScreen = ({
 
           {/* SELECT TIER heading */}
           <motion.h2
-            className="text-xl sm:text-3xl tracking-wider"
+            className="lobby-select-tier text-xl sm:text-3xl tracking-wider"
             style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -504,7 +505,7 @@ const SitAndGoScreen = ({
 
           {/* Tier cards — full width row, larger */}
           <motion.div
-            className="grid grid-cols-4 gap-2 sm:gap-4 w-full"
+            className="tier-cards grid grid-cols-4 gap-2 sm:gap-4 w-full"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -515,7 +516,7 @@ const SitAndGoScreen = ({
               return (
                 <motion.button
                   key={tier.key}
-                  className={`relative flex flex-col items-center gap-1.5 px-3 py-3 sm:py-5 rounded-xl border-2 transition-all overflow-hidden touch-manipulation ${
+                  className={`tier-card relative flex flex-col items-center gap-1.5 px-3 py-3 sm:py-5 rounded-xl border-2 transition-all overflow-hidden touch-manipulation ${
                     isLocked
                       ? 'border-muted/30 cursor-not-allowed'
                       : isSelected
@@ -546,11 +547,11 @@ const SitAndGoScreen = ({
                       <Lock size={24} className="text-muted-foreground" />
                     </div>
                   )}
-                  <span className={`text-3xl sm:text-4xl ${isLocked ? 'grayscale' : ''}`}>{tier.emoji}</span>
-                  <span className="text-sm sm:text-base tracking-wider leading-tight" style={{ color: isLocked ? 'hsl(var(--muted-foreground))' : `hsl(${tier.color})` }}>
+                  <span className={`tier-emoji text-3xl sm:text-4xl ${isLocked ? 'grayscale' : ''}`}>{tier.emoji}</span>
+                  <span className="tier-label text-sm sm:text-base tracking-wider leading-tight" style={{ color: isLocked ? 'hsl(var(--muted-foreground))' : `hsl(${tier.color})` }}>
                     {tier.label}
                   </span>
-                  <span className="text-muted-foreground text-[10px] sm:text-xs leading-tight">
+                  <span className="tier-fee text-muted-foreground text-[10px] sm:text-xs leading-tight">
                     {tier.key === 'human' ? 'FREE • ' : ''}{tier.tournamentEntrance} fee
                   </span>
                   {isSelected && (
@@ -570,7 +571,7 @@ const SitAndGoScreen = ({
             {expandedTier && (
               <motion.div
                 key={expandedTier.key}
-                className="w-full rounded-xl border border-primary/30 overflow-hidden"
+                className="lobby-expanded-tier w-full rounded-xl border border-primary/30 overflow-hidden"
                 style={{
                   background: `linear-gradient(180deg, hsl(${expandedTier.color} / 0.08) 0%, hsl(0 0% 6%) 100%)`,
                 }}
@@ -581,7 +582,7 @@ const SitAndGoScreen = ({
               >
                 {/* Promotion progress bar */}
                 {nextTier ? (
-                  <div className="px-5 py-3.5 border-b border-primary/15">
+                  <div className="lobby-progress px-5 py-3.5 border-b border-primary/15">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs sm:text-sm uppercase tracking-widest text-muted-foreground" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                         Next: {nextTier.emoji} {nextTier.label}
@@ -622,7 +623,7 @@ const SitAndGoScreen = ({
                 </div>
 
                 {/* Stake options — grid for consistent sizing */}
-                <div className="px-5 pb-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                <div className="lobby-stake-options px-5 pb-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                   {(gameMode === 'sit-and-go' ? expandedTier.sitAndGoOptions : expandedTier.tournamentOptions).map((opt, i) => {
                     const isFree = opt.startsWith('FREE ');
                     const cleanOpt = isFree ? opt.replace('FREE ', '') : opt;
@@ -690,26 +691,26 @@ const SitAndGoScreen = ({
 
           {/* Buy-in slider — full width, same container */}
           <div
-            className="w-full rounded-xl border border-primary/25 px-5 py-4"
+            className="buyin-panel w-full rounded-xl border border-primary/25 px-5 py-4"
             style={{ background: 'linear-gradient(180deg, hsl(0 0% 8% / 0.9) 0%, hsl(0 0% 5% / 0.9) 100%)' }}
           >
             <div className="flex items-center justify-between mb-3">
               <h3
-                className="text-base sm:text-lg tracking-wider"
+                className="buyin-label text-base sm:text-lg tracking-wider"
                 style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
               >
                 {gameMode === 'tournament' ? 'BUY-IN' : 'ENTRANCE'}
               </h3>
               <span
-                className="text-xl sm:text-2xl tracking-wider font-bold"
+                className="buyin-value text-xl sm:text-2xl tracking-wider font-bold"
                 style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
               >
-                ${formatChips(entranceAmount)}
+                ${formatFunds(entranceAmount)}
               </span>
             </div>
             <div className="w-full flex items-center gap-4">
               <span className="text-muted-foreground text-xs sm:text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                ${formatChips(minEntrance)}
+                ${formatFunds(minEntrance)}
               </span>
               <input
                 type="range"
@@ -722,14 +723,14 @@ const SitAndGoScreen = ({
                 style={{ transition: 'none' }}
               />
               <span className="text-muted-foreground text-xs sm:text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                ${formatChips(maxEntrance)}
+                ${formatFunds(maxEntrance)}
               </span>
             </div>
           </div>
 
           {/* Join button */}
           <motion.button
-            className="group mt-2 mb-2"
+            className="join-btn group mt-2 mb-2"
             onClick={handleJoin}
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
@@ -737,7 +738,7 @@ const SitAndGoScreen = ({
             <img
               src={joinTableChip}
               alt="Join Table"
-              className="w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] group-hover:drop-shadow-[0_8px_32px_hsl(var(--casino-gold)/0.4)] transition-all duration-300"
+              className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] group-hover:drop-shadow-[0_8px_32px_hsl(var(--casino-gold)/0.4)] transition-all duration-300"
             />
           </motion.button>
           </div>
