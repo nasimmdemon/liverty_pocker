@@ -301,31 +301,10 @@ function WinnerBannerPreview() {
 }
 
 function LoadingToGamePreview() {
+  const [key, setKey] = useState(0);
   return (
-    <div className="relative w-full h-full rounded-xl overflow-hidden">
-      <motion.div className="absolute inset-0 flex flex-col items-center justify-center"
-        style={{ background: 'linear-gradient(180deg, rgba(15,15,15,1) 0%, rgba(5,20,5,0.9) 100%)' }}
-        initial={{ opacity: 1 }} animate={{ opacity: [1, 1, 0] }} transition={{ duration: 3.5, times: [0, 0.7, 1] }}
-      >
-        <span className="text-xs tracking-[0.2em] mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif", color: '#F2D27A' }}>FINDING TABLE FOR YOU</span>
-        <div className="w-32 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(242,210,122,0.3)' }}>
-          <motion.div className="h-full rounded-full" style={{ background: 'linear-gradient(90deg, #C9A227, #F2D27A)' }}
-            initial={{ width: '0%' }} animate={{ width: '100%' }} transition={{ duration: 2.5, ease: 'linear' }}
-          />
-        </div>
-        <motion.span className="text-[9px] text-muted-foreground mt-2 italic" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
-          Earn 30% from invited players — for life.
-        </motion.span>
-      </motion.div>
-      <motion.div className="absolute inset-0 flex items-center justify-center"
-        style={{ background: 'radial-gradient(ellipse at center, rgba(30,80,30,0.9) 0%, rgba(10,30,10,1) 100%)' }}
-        initial={{ opacity: 0 }} animate={{ opacity: [0, 0, 1] }} transition={{ duration: 3.5, times: [0, 0.7, 1] }}
-      >
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-20 h-12 rounded-full" style={{ background: 'radial-gradient(ellipse, rgba(30,100,30,0.8), rgba(20,60,20,0.6))', border: '2px solid rgba(242,210,122,0.4)' }} />
-          <span className="text-[10px] text-primary tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>TABLE READY</span>
-        </div>
-      </motion.div>
+    <div className="relative w-full rounded-xl overflow-hidden" style={{ height: '300px' }}>
+      <LoadingScreen onComplete={() => setKey(k => k + 1)} isPublic={true} embedded={true} key={key} />
     </div>
   );
 }
