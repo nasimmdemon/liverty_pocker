@@ -59,6 +59,16 @@ const SEAT_POSITIONS_MOBILE = [
   { top: '82%', left: '92%' },
 ];
 
+// Landscape mobile: tighter positions to fit small viewport height
+const SEAT_POSITIONS_LANDSCAPE = [
+  { top: '90%', left: '50%' },   // 0: User — pulled up from edge
+  { top: '75%', left: '6%' },    // 1: Bottom left
+  { top: '20%', left: '6%' },    // 2: Top left
+  { top: '2%', left: '50%' },    // 3: Top center
+  { top: '20%', left: '94%' },   // 4: Top right
+  { top: '75%', left: '94%' },   // 5: Bottom right
+];
+
 // Multiplayer: 2 players opposite each other (user bottom, opponent top)
 const MP_2_DESKTOP = [
   { top: '95%', left: '50%', isTopSeat: false },
