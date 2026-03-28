@@ -17,6 +17,14 @@ import { runMatchmakingUntilSeated, type MatchmakingTierKey } from '@/lib/matchm
 import type { GameRoom } from '@/lib/multiplayer';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import pokerTableBg from '@/assets/poker-table-bg.png';
 import joinTableChip from '@/assets/join-table-chip.png';
 
@@ -254,6 +262,7 @@ const SitAndGoScreen = ({
   const [matchmakingBusy, setMatchmakingBusy] = useState(false);
   const [mmPhase, setMmPhase] = useState<'open' | 'queue' | 'paired' | 'bot' | null>(null);
   const mmAbortRef = useRef<AbortController | null>(null);
+  const [playModeDialogOpen, setPlayModeDialogOpen] = useState(false);
 
   useEffect(() => {
     setSelectedSubTierIndex(0);
@@ -287,6 +296,19 @@ const SitAndGoScreen = ({
     const stake = selectedStake ?? FREE_SIT_AND_GO;
     const cardBack = gameMode === 'sit-and-go' ? CARD_BACK_SIT_AND_GO : CARD_BACK_TOURNAMENT;
     onJoinTable(entranceAmount, stake.small, stake.big, gameMode, cardBack);
+  };
+
+  const openPlayModeDialog = () => {
+    hapticLight();
+    if (!expandedTier || !selectedStake) {
+      toast.error('Select a tier and a stake (blind / buy-in) first.');
+      return;
+    }
+    if (entranceAmount > funds + 1e-6) {
+      toast.error('Not enough funds for this entrance.');
+      return;
+    }
+    setPlayModeDialogOpen(true);
   };
 
   const handleTierSelect = (small: number, big: number, subTierIndex?: number) => {
@@ -807,44 +829,23 @@ const SitAndGoScreen = ({
             </div>
           </div>
 
-          {/* Join button */}
+          {/* Join chip → choose real players vs practice (solo bots) */}
+          <p className="text-[10px] sm:text-xs text-muted-foreground text-center max-w-xs -mb-1">
+            Tap the chip: <span className="text-primary">real people</span> matchmaking, or{' '}
+            <span className="text-muted-foreground">practice vs bots</span> (single-device table).
+          </p>
           <motion.button
             className="join-btn group mt-2 mb-2"
-            onClick={handleJoin}
+            onClick={openPlayModeDialog}
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
           >
             <img
               src={joinTableChip}
-              alt="Join Table"
+              alt="Choose play mode"
               className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] group-hover:drop-shadow-[0_8px_32px_hsl(var(--casino-gold)/0.4)] transition-all duration-300"
             />
           </motion.button>
-
-          {deductFunds && addFunds && onMatchmakingComplete && expandedTier && selectedStake && (
-            <div className="w-full flex flex-col items-center gap-2 mb-4">
-              <p className="text-[10px] sm:text-xs text-muted-foreground text-center max-w-xs">
-                Quick match: same tier & stake as above. Joins an open table, queues for humans (~30s), then starts with a bot. Table stays open for others.
-              </p>
-              <motion.button
-                type="button"
-                className="w-full max-w-sm py-3 rounded-xl border-2 border-primary/60 bg-primary/15 text-primary font-bold tracking-wider text-sm sm:text-base touch-manipulation disabled:opacity-50"
-                style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-                onClick={handleQuickMatch}
-                disabled={matchmakingBusy || entranceAmount > funds + 1e-6}
-                whileTap={{ scale: 0.98 }}
-              >
-                {matchmakingBusy ? (
-                  <span className="inline-flex items-center gap-2 justify-center">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {mmPhaseLabel}
-                  </span>
-                ) : (
-                  '⚡ QUICK MATCH (PLAYERS)'
-                )}
-              </motion.button>
-            </div>
-          )}
           </div>
         </div>
       )}
@@ -992,6 +993,60 @@ const SitAndGoScreen = ({
           </div>
         </div>
       )}
+
+      <Dialog open={playModeDialogOpen} onOpenChange={setPlayModeDialogOpen}>
+        <DialogContent className="z-[125] sm:max-w-md border-primary/30">
+          <DialogHeader>
+            <DialogTitle
+              className="text-primary tracking-wide text-xl"
+              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+            >
+              How do you want to play?
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="text-left text-sm text-muted-foreground space-y-3 pt-1">
+                <p>
+                  <span className="text-foreground font-semibold">Play with real people</span> — Uses matchmaking.
+                  Pick the <span className="text-primary">same tier</span>, the <span className="text-primary">same stake cell</span>{' '}
+                  (same row in the grid), and <span className="text-primary">Sit &amp; Go or Tournament</span> on every device.
+                  You should land in one multiplayer lobby together (or one human + bot after ~30s).
+                </p>
+                <p>
+                  <span className="text-foreground font-semibold">Practice vs bots</span> — Only this device; computer
+                  opponents (e.g. SHADOW, LADY_LUCK). <span className="text-amber-200/90">Does not use matchmaking.</span>
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 pt-2">
+            {deductFunds && addFunds && onMatchmakingComplete ? (
+              <Button
+                className="w-full casino-btn h-12 text-sm"
+                onClick={() => {
+                  setPlayModeDialogOpen(false);
+                  void handleQuickMatch();
+                }}
+                disabled={matchmakingBusy}
+              >
+                Play with real people (matchmaking)
+              </Button>
+            ) : (
+              <p className="text-xs text-center text-muted-foreground">Matchmaking is not available in this build.</p>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-12 border-primary/40"
+              onClick={() => {
+                setPlayModeDialogOpen(false);
+                handleJoin();
+              }}
+            >
+              Practice vs bots only
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Promotion Screen Modal */}
       <AnimatePresence>

@@ -24,3 +24,6 @@ Firebase
 
 Index / Sit & Go wiring
 - deductFunds/addFunds + navigate to multiplayer lobby when matchmaking returns a room.
+
+Play mode dialog (fix vs-all-bots confusion)
+- Chip opens dialog: real people (matchmaking) vs practice vs bots; open-table query try/catch; clearer queue errors.

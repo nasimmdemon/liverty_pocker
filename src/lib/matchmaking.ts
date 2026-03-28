@@ -82,7 +82,13 @@ export async function tryJoinOpenMatchmakingGame(
     where('status', '==', 'waiting'),
     limit(12)
   );
-  const snap = await getDocs(q);
+  let snap;
+  try {
+    snap = await getDocs(q);
+  } catch (e) {
+    console.warn('[matchmaking] open-table query failed (deploy Firestore index if needed):', e);
+    return null;
+  }
   const docs = snap.docs
     .map((d) => ({ id: d.id, ...d.data(), _updated: (d.data().updatedAt as { seconds?: number })?.seconds ?? 0 }))
     .sort((a, b) => a._updated - b._updated);
@@ -330,7 +336,16 @@ export async function runMatchmakingUntilSeated(
   }
 
   options?.onPhase?.('queue');
-  const enq = await enqueueAndMaybePair(base);
+  let enq: { kind: 'paired'; gameId: string } | { kind: 'queued' };
+  try {
+    enq = await enqueueAndMaybePair(base);
+  } catch (e) {
+    const msg =
+      e instanceof Error ? e.message : 'Queue failed';
+    throw new Error(
+      `${msg}. If this persists, run: firebase deploy --only firestore (rules + indexes).`
+    );
+  }
   if (enq.kind === 'paired') {
     options?.onPhase?.('paired');
     const room = await getGameRoomById(enq.gameId);
