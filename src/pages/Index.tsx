@@ -136,7 +136,11 @@ const Index = () => {
       isHost: room.hostId === user.uid,
       room,
     });
-    setScreen('multiplayer-lobby');
+    if (room.status === 'playing') {
+      setScreen('multiplayer-table');
+    } else {
+      setScreen('multiplayer-lobby');
+    }
   }, [user]);
 
   const handleMultiplayerJoin = useCallback((gameId: string, room: Awaited<ReturnType<typeof getGameByCode>>) => {

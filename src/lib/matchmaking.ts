@@ -27,8 +27,10 @@ import {
 export type MatchmakingTierKey = 'human' | 'rat' | 'cat' | 'dog';
 
 export const MATCHMAKING_WAIT_MS = 30_000;
+/** After a full human table is found, UI countdown before auto startGame */
+export const MATCHMAKING_POST_MATCH_COUNTDOWN_SEC = 5;
 const QUEUE_STALE_MS = 120_000;
-const MAX_RECENT_PAIRS = 25;
+const MAX_RECENT_PAIRS = 48;
 /** Pair `ts` is client time; allow skew vs `sinceTs` without matching hours-old `recentPairs` */
 const PAIR_TS_LOOKBACK_MS = 120_000;
 
@@ -51,6 +53,34 @@ export function buildMatchmakingPoolId(
   const bb = roundMoney(bigBlind);
   const bi = roundMoney(buyIn);
   return `${tierKey}_${gameMode}_sb${sb}_bb${bb}_buy${bi}`;
+}
+
+const MAX_SEATS_PER_TABLE = 6;
+
+/**
+ * Split N queued humans into table sizes in [2, 6], each table ≥2 players.
+ * Maximizes table count (prefer tables of 2) so e.g. 4→2+2, 5→2+3, 6→2+2+2.
+ */
+export function planMatchmakingTableSizes(n: number): number[] {
+  if (n < 2) return [];
+  let remaining = n;
+  const groups: number[] = [];
+  while (remaining > MAX_SEATS_PER_TABLE) {
+    groups.push(2);
+    remaining -= 2;
+  }
+  if (remaining === 6) {
+    groups.push(2, 2, 2);
+  } else if (remaining === 5) {
+    groups.push(2, 3);
+  } else if (remaining === 4) {
+    groups.push(2, 2);
+  } else if (remaining === 3) {
+    groups.push(3);
+  } else if (remaining === 2) {
+    groups.push(2);
+  }
+  return groups;
 }
 
 interface QueuedPlayer {
@@ -95,7 +125,7 @@ export async function tryJoinOpenMatchmakingGame(
     where('matchmakingPoolId', '==', poolId),
     where('matchmakingOpen', '==', true),
     where('status', '==', 'waiting'),
-    limit(12)
+    limit(24)
   );
   let snap;
   try {
@@ -160,7 +190,7 @@ function normalizeQueue(queued: QueuedPlayer[], now: number): QueuedPlayer[] {
 }
 
 /**
- * Add self to queue; if another player is waiting, create a 2-human table (transaction).
+ * Add self to queue; form as many full tables as possible (2–6 per table, ≥2 humans each).
  */
 export async function enqueueAndMaybePair(params: {
   userId: string;
@@ -200,42 +230,31 @@ export async function enqueueAndMaybePair(params: {
     let newQueued = [...queued];
     const newPairs: RecentPair[] = [...recentPairs];
 
-    while (newQueued.length >= 2) {
-      const a = newQueued[0];
-      const b = newQueued[1];
-      if (a.userId === b.userId) {
-        newQueued = newQueued.slice(1);
-        continue;
-      }
-      newQueued = newQueued.slice(2);
-      const [first, second] = a.ts <= b.ts ? [a, b] : [b, a];
-      const buyIn = first.buyIn;
-      const smallBlind = first.sb;
-      const bigBlind = first.bb;
+    const plan = planMatchmakingTableSizes(newQueued.length);
+    let cursor = 0;
+    for (const tableSize of plan) {
+      const slice = newQueued.slice(cursor, cursor + tableSize);
+      if (slice.length < tableSize) break;
+      cursor += tableSize;
+      const sorted = [...slice].sort((a, b) => a.ts - b.ts);
+      const host = sorted[0];
+      const buyIn = sorted[0].buyIn;
+      const smallBlind = sorted[0].sb;
+      const bigBlind = sorted[0].bb;
       const gameRef = doc(collection(db, 'games'));
       const gameId = gameRef.id;
-      const players: GameRoomPlayer[] = [
-        {
-          userId: first.userId,
-          displayName: first.displayName,
-          photoURL: first.photoURL,
-          seatIndex: 0,
-          chips: buyIn,
-          isReady: true,
-        },
-        {
-          userId: second.userId,
-          displayName: second.displayName,
-          photoURL: second.photoURL,
-          seatIndex: 1,
-          chips: buyIn,
-          isReady: true,
-        },
-      ];
+      const players: GameRoomPlayer[] = sorted.map((q, seatIndex) => ({
+        userId: q.userId,
+        displayName: q.displayName,
+        photoURL: q.photoURL,
+        seatIndex,
+        chips: buyIn,
+        isReady: true,
+      }));
       tx.set(gameRef, {
         inviteCode: generateInviteCode(),
-        hostId: first.userId,
-        hostName: first.displayName,
+        hostId: host.userId,
+        hostName: host.displayName,
         status: 'waiting',
         players,
         buyIn,
@@ -246,11 +265,14 @@ export async function enqueueAndMaybePair(params: {
         updatedAt: serverTimestamp(),
         matchmakingOpen: true,
         matchmakingPoolId: params.poolId,
+        matchmakingHumanPair: true,
       });
-      newPairs.push({ gameId, members: [first.userId, second.userId], ts: now });
-      pairedGameId = gameId;
-      break;
+      newPairs.push({ gameId, members: sorted.map((q) => q.userId), ts: now });
+      if (sorted.some((q) => q.userId === params.userId)) {
+        pairedGameId = gameId;
+      }
     }
+    newQueued = newQueued.slice(cursor);
 
     const trimmedPairs = newPairs.slice(-MAX_RECENT_PAIRS);
     tx.set(
@@ -428,7 +450,7 @@ export async function runMatchmakingUntilSeated(
       } catch {
         // ignore transient errors
       }
-    }, 4000);
+    }, 2000);
     cleanupFns.push(() => clearInterval(poll));
 
     const timer = window.setTimeout(async () => {

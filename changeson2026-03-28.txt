@@ -5,3 +5,6 @@ Date: 2026-03-28
 2. Matchmaking pool id by stake - Pool keys use tier, game mode, blinds, and buy-in (not grid sub-tier index) so two devices on the same FREE 0.01/0.02 and entrance land in one queue
 3. Pair snapshot reliability - Wider pair timestamp lookback for clock skew, iterate recentPairs newest-first, and only resolve when the game is still waiting
 4. Sit & Go matchmaking copy - Overlay and dialog text focus on finding real players in the same stake pool instead of coordinating across devices
+5. Multi-table matchmaking queue - One transaction can seat 4 players as 2+2, 5 as 2+3, 6 as 2+2+2, up to 6 per table, favoring as many tables as possible each with at least two humans
+6. Auto-start human matchmaking tables - startGame uses a Firestore transaction so multiple clients can call safely; Sit & Go shows a 5s match-found countdown with opponent names and avatars then starts the hand and opens the multiplayer table directly
+7. Matchmaking UI polish - Pulsing ring animation while searching for players; lobby shows “Starting table” for human-paired matchmaking instead of forcing only the host to press start

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsLandscapeMobile } from '@/hooks/use-orientation';
-import { X, Users, UserPlus, Lock } from 'lucide-react';
+import { X, Users, UserPlus, Lock, Loader2, Sparkles } from 'lucide-react';
 import { hapticLight, hapticMedium, hapticHeavy, hapticSuccess } from '@/lib/haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import CreateGameModal from '@/components/multiplayer/CreateGameModal';
@@ -13,10 +13,19 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { formatChips, formatFunds } from '@/lib/formatChips';
-import { runMatchmakingUntilSeated, type MatchmakingTierKey } from '@/lib/matchmaking';
-import type { GameRoom } from '@/lib/multiplayer';
+import {
+  runMatchmakingUntilSeated,
+  MATCHMAKING_POST_MATCH_COUNTDOWN_SEC,
+  type MatchmakingTierKey,
+} from '@/lib/matchmaking';
+import {
+  startGame,
+  getGameRoomById,
+  isMatchmakingBotUserId,
+  type GameRoom,
+  type GameRoomPlayer,
+} from '@/lib/multiplayer';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -261,6 +270,8 @@ const SitAndGoScreen = ({
   const [selectedSubTierIndex, setSelectedSubTierIndex] = useState(0);
   const [matchmakingBusy, setMatchmakingBusy] = useState(false);
   const [mmPhase, setMmPhase] = useState<'open' | 'queue' | 'paired' | 'bot' | null>(null);
+  const [matchPostCountdown, setMatchPostCountdown] = useState<number | null>(null);
+  const [matchedOpponents, setMatchedOpponents] = useState<GameRoomPlayer[]>([]);
   const mmAbortRef = useRef<AbortController | null>(null);
   const [playModeDialogOpen, setPlayModeDialogOpen] = useState(false);
 
@@ -329,6 +340,7 @@ const SitAndGoScreen = ({
     setMatchmakingBusy(true);
     setMmPhase('queue');
     await deductFunds(entranceAmount);
+    const abortSignal = mmAbortRef.current.signal;
     try {
       const room = await runMatchmakingUntilSeated(
         {
@@ -343,11 +355,49 @@ const SitAndGoScreen = ({
           bigBlind: selectedStake.big,
         },
         {
-          signal: mmAbortRef.current.signal,
+          signal: abortSignal,
           onPhase: (p) => setMmPhase(p),
         }
       );
-      onMatchmakingComplete(room);
+
+      const allHuman =
+        room.status === 'waiting' &&
+        room.players.length >= 2 &&
+        room.players.every((p) => !isMatchmakingBotUserId(p.userId));
+
+      let roomToOpen: GameRoom = room;
+
+      if (allHuman) {
+        hapticSuccess();
+        setMmPhase('paired');
+        const opponents = room.players.filter(
+          (p) => p.userId !== user.uid && !isMatchmakingBotUserId(p.userId)
+        );
+        setMatchedOpponents(opponents);
+        try {
+          for (let s = MATCHMAKING_POST_MATCH_COUNTDOWN_SEC; s >= 1; s--) {
+            if (abortSignal.aborted) throw new DOMException('Aborted', 'AbortError');
+            setMatchPostCountdown(s);
+            await new Promise<void>((resolve, reject) => {
+              const id = window.setTimeout(resolve, 1000);
+              const onAbort = () => {
+                window.clearTimeout(id);
+                reject(new DOMException('Aborted', 'AbortError'));
+              };
+              abortSignal.addEventListener('abort', onAbort, { once: true });
+            });
+          }
+        } finally {
+          setMatchPostCountdown(null);
+          setMatchedOpponents([]);
+        }
+        if (abortSignal.aborted) throw new DOMException('Aborted', 'AbortError');
+
+        await startGame(room.id);
+        roomToOpen = (await getGameRoomById(room.id)) ?? room;
+      }
+
+      onMatchmakingComplete(roomToOpen);
     } catch (e) {
       await addFunds(entranceAmount);
       if ((e as Error).name !== 'AbortError') {
@@ -356,6 +406,8 @@ const SitAndGoScreen = ({
     } finally {
       setMatchmakingBusy(false);
       setMmPhase(null);
+      setMatchPostCountdown(null);
+      setMatchedOpponents([]);
       mmAbortRef.current = null;
     }
   };
@@ -984,14 +1036,88 @@ const SitAndGoScreen = ({
 
       {matchmakingBusy && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/75 px-4">
-          <div className="rounded-2xl border border-primary/40 bg-background/95 px-8 py-6 text-center max-w-sm">
-            <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-primary font-bold tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-              {mmPhaseLabel}
-            </p>
-            <p className="text-muted-foreground text-xs mt-2">
-              Matching uses your tier, Sit &amp; Go / Tournament mode, blinds, and entrance — anyone in that pool can be seated with you.
-            </p>
+          <div className="rounded-2xl border border-primary/40 bg-background/95 px-8 py-6 text-center max-w-md w-full">
+            {matchPostCountdown != null ? (
+              <>
+                <motion.div
+                  className="flex justify-center mb-4"
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+                >
+                  <Sparkles className="h-12 w-12 text-primary drop-shadow-[0_0_12px_hsl(var(--casino-gold)/0.6)]" />
+                </motion.div>
+                <p
+                  className="text-primary font-bold tracking-wider text-lg mb-1"
+                  style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                >
+                  Match found
+                </p>
+                <p className="text-muted-foreground text-xs mb-4">Your table is filling with real players</p>
+                <div className="flex flex-wrap justify-center gap-3 mb-5">
+                  {matchedOpponents.map((p, i) => (
+                    <motion.div
+                      key={p.userId}
+                      className="flex flex-col items-center gap-1"
+                      initial={{ y: 16, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.08 * i, type: 'spring', stiffness: 200, damping: 16 }}
+                    >
+                      <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/60 shadow-[0_0_12px_hsl(var(--casino-gold)/0.25)]">
+                        {p.photoURL ? (
+                          <img src={p.photoURL} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div
+                            className="w-full h-full bg-primary/35 flex items-center justify-center text-primary text-lg font-bold"
+                            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                          >
+                            {p.displayName[0]?.toUpperCase() ?? '?'}
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-foreground max-w-[72px] truncate font-medium">{p.displayName}</span>
+                    </motion.div>
+                  ))}
+                </div>
+                <motion.div
+                  key={matchPostCountdown}
+                  className="text-5xl font-bold text-primary tabular-nums mb-2"
+                  style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                  initial={{ scale: 1.35, opacity: 0.6 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  {matchPostCountdown}
+                </motion.div>
+                <p className="text-muted-foreground text-xs tracking-wide">Starting the hand…</p>
+              </>
+            ) : (
+              <>
+                <div className="relative mx-auto w-24 h-24 mb-4 flex items-center justify-center">
+                  {[0, 1, 2].map((ring) => (
+                    <motion.div
+                      key={ring}
+                      className="absolute rounded-full border-2 border-primary/50"
+                      style={{ width: 56 + ring * 22, height: 56 + ring * 22 }}
+                      animate={{ scale: [1, 1.12, 1], opacity: [0.35, 0.85, 0.35] }}
+                      transition={{
+                        duration: 2.2,
+                        repeat: Infinity,
+                        delay: ring * 0.35,
+                        ease: 'easeInOut',
+                      }}
+                    />
+                  ))}
+                  <Loader2 className="h-10 w-10 animate-spin text-primary relative z-10" />
+                </div>
+                <p className="text-primary font-bold tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                  {mmPhaseLabel}
+                </p>
+                <p className="text-muted-foreground text-xs mt-2">
+                  Matching uses your tier, Sit &amp; Go / Tournament mode, blinds, and entrance — anyone in that pool can be seated with you.
+                </p>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -41,6 +41,7 @@ const MultiplayerLobby = ({
   const [timeLeft, setTimeLeft] = useState(RESERVATION_DURATION);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoStartBotTableRef = useRef(false);
+  const autoStartHumanPairRef = useRef(false);
 
   // Countdown timer
   useEffect(() => {
@@ -93,6 +94,22 @@ const MultiplayerLobby = ({
       return () => clearTimeout(t);
     }
   }, [room, isHost, gameId]);
+
+  // Human-only matchmaking tables: any client may call startGame; transaction ensures single start
+  useEffect(() => {
+    if (!room || room.status !== 'waiting' || autoStartHumanPairRef.current) return;
+    if (!room.matchmakingHumanPair) return;
+    const humansOnly =
+      room.players.length >= 2 && room.players.every((p) => !isMatchmakingBotUserId(p.userId));
+    if (!humansOnly) return;
+    autoStartHumanPairRef.current = true;
+    const t = window.setTimeout(() => {
+      startGame(gameId).catch(() => {
+        autoStartHumanPairRef.current = false;
+      });
+    }, 400);
+    return () => clearTimeout(t);
+  }, [room, gameId]);
 
   const handleStart = async () => {
     if (!isHost || !room || room.players.length < 2) return;
@@ -357,7 +374,24 @@ const MultiplayerLobby = ({
           </motion.p>
 
           {/* Ready / Waiting button */}
-          {isHost ? (
+          {room?.matchmakingHumanPair &&
+          room.players.length >= 2 &&
+          room.players.every((p) => !isMatchmakingBotUserId(p.userId)) ? (
+            <motion.div
+              className="w-full max-w-xs py-4 rounded-xl text-center font-bold tracking-[0.15em]"
+              style={{
+                fontFamily: "'Bebas Neue', sans-serif",
+                background: 'linear-gradient(180deg, hsl(120 30% 18%) 0%, hsl(120 20% 10%) 100%)',
+                color: 'hsl(var(--casino-gold))',
+                border: '2px solid hsl(var(--casino-gold) / 0.35)',
+              }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1 }}
+            >
+              Starting table — hang tight…
+            </motion.div>
+          ) : isHost ? (
             <motion.button
               className="w-full max-w-xs py-4 rounded-xl font-bold tracking-[0.2em] text-lg touch-manipulation"
               style={{

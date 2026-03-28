@@ -10,6 +10,7 @@ import {
   updateDoc,
   serverTimestamp,
   Timestamp,
+  runTransaction,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { GameState, Player } from './gameTypes';
@@ -50,6 +51,8 @@ export interface GameRoom {
   /** Public matchmaking: table accepts joins; same pool = tier + stake lane */
   matchmakingOpen?: boolean;
   matchmakingPoolId?: string;
+  /** Seated from human-only queue pairing — lobby / client may auto-start */
+  matchmakingHumanPair?: boolean;
 }
 
 /** Prefix for system bots in matchmaking tables (host client runs AI). */
@@ -178,6 +181,7 @@ export async function createMatchmakingGameRoom(
     updatedAt: serverTimestamp() as Timestamp,
     matchmakingOpen: true,
     matchmakingPoolId: poolId,
+    matchmakingHumanPair: false,
   };
   await setDoc(roomRef, room);
   return { id: gameId, ...room } as GameRoom;
@@ -236,89 +240,92 @@ export async function getGameByCode(inviteCode: string): Promise<GameRoom | null
 }
 
 export async function startGame(gameId: string): Promise<boolean> {
-  const roomRef = doc(db, 'games', gameId);
-  const snap = await getDoc(roomRef);
-  if (!snap.exists() || snap.data()?.status !== 'waiting') return false;
-  const data = snap.data();
-  const roomData = { id: snap.id, ...data } as GameRoom;
-  const players = (data?.players as GameRoomPlayer[]) || [];
-  if (players.length < 2) return false;
+  return runTransaction(db, async (transaction) => {
+    const roomRef = doc(db, 'games', gameId);
+    const snap = await transaction.get(roomRef);
+    if (!snap.exists() || snap.data()?.status !== 'waiting') return false;
+    const data = snap.data()!;
+    const roomData = { id: snap.id, ...data } as GameRoom;
+    const players = (data.players as GameRoomPlayer[]) || [];
+    if (players.length < 2) return false;
 
-  const referredByMap = new Map<string, string>();
-  for (const mp of players) {
-    try {
-      const userSnap = await getDoc(doc(db, 'users', mp.userId));
-      const referredBy = userSnap.data()?.referredBy as string | undefined;
-      if (referredBy) referredByMap.set(mp.userId, referredBy);
-    } catch {
-      // ignore
+    const referredByMap = new Map<string, string>();
+    for (const mp of players) {
+      try {
+        const userRef = doc(db, 'users', mp.userId);
+        const userSnap = await transaction.get(userRef);
+        const referredBy = userSnap.data()?.referredBy as string | undefined;
+        if (referredBy) referredByMap.set(mp.userId, referredBy);
+      } catch {
+        // ignore
+      }
     }
-  }
 
-  const PLAYER_NAMES = ['THE_HUSTLER', 'LADY_LUCK', 'IRON_RAT', 'SHADOW', 'SLICK', 'SMOKE'];
-  const initialPlayers: Player[] = Array.from({ length: 6 }, (_, i) => {
-    const mp = players.find(p => p.seatIndex === i);
-    if (!mp) {
+    const PLAYER_NAMES = ['THE_HUSTLER', 'LADY_LUCK', 'IRON_RAT', 'SHADOW', 'SLICK', 'SMOKE'];
+    const initialPlayers: Player[] = Array.from({ length: 6 }, (_, i) => {
+      const mp = players.find(p => p.seatIndex === i);
+      if (!mp) {
+        return {
+          id: i,
+          name: PLAYER_NAMES[i],
+          chips: 0,
+          avatar: AVATARS[i],
+          cards: [],
+          isActive: false,
+          isTurn: false,
+          isUser: false,
+          hasFolded: true,
+          isAllIn: false,
+          currentBet: 0,
+          totalRoundBet: 0,
+          totalHandBet: 0,
+          status: 'sitting-out' as const,
+          userId: undefined,
+        };
+      }
       return {
         id: i,
-        name: PLAYER_NAMES[i],
-        chips: 0,
-        avatar: AVATARS[i],
+        name: mp.displayName,
+        chips: mp.chips,
+        avatar: mp.photoURL || AVATARS[i],
         cards: [],
-        isActive: false,
+        isActive: true,
         isTurn: false,
         isUser: false,
-        hasFolded: true,
+        hasFolded: false,
         isAllIn: false,
         currentBet: 0,
         totalRoundBet: 0,
         totalHandBet: 0,
-        status: 'sitting-out' as const,
-        userId: undefined,
+        status: 'active' as const,
+        userId: mp.userId,
+        referredBy: referredByMap.get(mp.userId),
       };
-    }
-    return {
-      id: i,
-      name: mp.displayName,
-      chips: mp.chips,
-      avatar: mp.photoURL || AVATARS[i],
-      cards: [],
-      isActive: true,
-      isTurn: false,
-      isUser: false,
-      hasFolded: false,
-      isAllIn: false,
-      currentBet: 0,
-      totalRoundBet: 0,
-      totalHandBet: 0,
-      status: 'active' as const,
-      userId: mp.userId,
-      referredBy: referredByMap.get(mp.userId),
+    });
+
+    const buyIn = data.buyIn ?? 1500;
+    const smallBlind = data.smallBlind ?? 5;
+    const bigBlind = data.bigBlind ?? 10;
+    const initial = createInitialGameState(buyIn);
+    const stateWithPlayers: GameState = {
+      ...initial,
+      players: initialPlayers,
+      smallBlind,
+      bigBlind,
+      tableId: gameId.slice(0, 5).toUpperCase(),
+      hostId: roomData.hostId,
+      inviterId: roomData.inviterId,
+      isPrivateTable: roomData.isPrivateTable ?? false,
     };
-  });
+    const gameState = startNewRound(stateWithPlayers);
 
-  const buyIn = data?.buyIn ?? 1500;
-  const smallBlind = data?.smallBlind ?? 5;
-  const bigBlind = data?.bigBlind ?? 10;
-  const initial = createInitialGameState(buyIn);
-  const stateWithPlayers: GameState = {
-    ...initial,
-    players: initialPlayers,
-    smallBlind,
-    bigBlind,
-    tableId: gameId.slice(0, 5).toUpperCase(),
-    hostId: roomData.hostId,
-    inviterId: roomData.inviterId,
-    isPrivateTable: roomData.isPrivateTable ?? false,
-  };
-  const gameState = startNewRound(stateWithPlayers);
-
-  await updateDoc(roomRef, {
-    status: 'playing',
-    gameState: gameStateToFirestore(gameState),
-    updatedAt: serverTimestamp(),
+    transaction.update(roomRef, {
+      status: 'playing',
+      gameState: gameStateToFirestore(gameState),
+      updatedAt: serverTimestamp(),
+    });
+    return true;
   });
-  return true;
 }
 
 export async function updateGameState(gameId: string, gameState: GameState): Promise<void> {
