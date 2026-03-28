@@ -1,0 +1,26 @@
+Liberty Poker — work log (headings + short notes)
+==================================================
+
+Matchmaking engine (Firestore)
+- Pool queue + pair transactions, open-table join query, 30s bot fallback, flow logging collection.
+
+Multiplayer game schema
+- matchmakingOpen / matchmakingPoolId on games; bot seat IDs; createMatchmakingGameRoom + getGameRoomById.
+
+Join rules
+- Second real player removes system bot; joinGameRoom strips bots when ≥2 humans.
+
+PokerTable (multiplayer)
+- Host runs bot AI when current seat userId is matchmaking bot prefix.
+
+Public lobby UI
+- “Quick match (players)” on Public path; overlay phases; tier + sub-tier index drives pool id.
+
+Multiplayer lobby
+- “Open for joining” banner; auto-start ~1.8s when table is human + matchmaking bot.
+
+Firebase
+- Rules for matchmaking_pools + matchmaking_flow; composite index on games for matchmaking queries.
+
+Index / Sit & Go wiring
+- deductFunds/addFunds + navigate to multiplayer lobby when matchmaking returns a room.

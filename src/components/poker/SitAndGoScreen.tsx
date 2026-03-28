@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsLandscapeMobile } from '@/hooks/use-orientation';
 import { X, Users, UserPlus, Lock } from 'lucide-react';
@@ -13,6 +13,10 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { formatChips, formatFunds } from '@/lib/formatChips';
+import { runMatchmakingUntilSeated, type MatchmakingTierKey } from '@/lib/matchmaking';
+import type { GameRoom } from '@/lib/multiplayer';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 import pokerTableBg from '@/assets/poker-table-bg.png';
 import joinTableChip from '@/assets/join-table-chip.png';
 
@@ -86,6 +90,10 @@ interface SitAndGoScreenProps {
   onMultiplayerJoin?: (gameId: string, room?: any) => void;
   joinCodeFromUrl?: string | null;
   funds?: number;
+  /** Public matchmaking: deduct before search, refund on failure */
+  deductFunds?: (amount: number) => Promise<void>;
+  addFunds?: (amount: number) => Promise<void>;
+  onMatchmakingComplete?: (room: GameRoom) => void;
 }
 
 // ── Tier Detail Popup ──────────────────────────────────────
@@ -98,7 +106,7 @@ const TierPopup = ({
   tier: TierData;
   gameMode: GameMode;
   onClose: () => void;
-  onSelect: (small: number, big: number) => void;
+  onSelect: (small: number, big: number, subTierIndex: number) => void;
 }) => {
   const options = gameMode === 'sit-and-go' ? tier.sitAndGoOptions : tier.tournamentOptions;
 
@@ -191,7 +199,7 @@ const TierPopup = ({
                   }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => onSelect(small, big)}
+                  onClick={() => onSelect(small, big, i)}
                 >
                   <span className="text-foreground text-sm tracking-wider flex items-center gap-2">
                     {isFree && <span className="text-lg">🆓</span>}
@@ -228,6 +236,9 @@ const SitAndGoScreen = ({
   onMultiplayerJoin,
   joinCodeFromUrl,
   funds: fundsProp = 9,
+  deductFunds,
+  addFunds,
+  onMatchmakingComplete,
 }: SitAndGoScreenProps) => {
   const { user, profile } = useAuth();
   const isLandscapeMobile = useIsLandscapeMobile();
@@ -239,6 +250,18 @@ const SitAndGoScreen = ({
   const [expandedTier, setExpandedTier] = useState<TierData | null>(null);
   const [selectedStake, setSelectedStake] = useState<{ small: number; big: number } | null>(null);
   const [showPromotion, setShowPromotion] = useState<TierKey | null>(null);
+  const [selectedSubTierIndex, setSelectedSubTierIndex] = useState(0);
+  const [matchmakingBusy, setMatchmakingBusy] = useState(false);
+  const [mmPhase, setMmPhase] = useState<'open' | 'queue' | 'paired' | 'bot' | null>(null);
+  const mmAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    setSelectedSubTierIndex(0);
+  }, [expandedTier?.key]);
+
+  useEffect(() => () => {
+    mmAbortRef.current?.abort();
+  }, []);
 
   // Tier progression: 100 hands per tier to unlock next
   const HANDS_PER_TIER = 100;
@@ -266,11 +289,65 @@ const SitAndGoScreen = ({
     onJoinTable(entranceAmount, stake.small, stake.big, gameMode, cardBack);
   };
 
-  const handleTierSelect = (small: number, big: number) => {
+  const handleTierSelect = (small: number, big: number, subTierIndex?: number) => {
     hapticMedium();
     setSelectedStake({ small, big });
+    if (typeof subTierIndex === 'number') setSelectedSubTierIndex(subTierIndex);
     setSelectedTierPopup(null);
   };
+
+  const handleQuickMatch = async () => {
+    if (!expandedTier || !selectedStake || !user || !deductFunds || !addFunds || !onMatchmakingComplete) return;
+    if (entranceAmount > funds + 1e-6) {
+      toast.error('Not enough funds for this entrance.');
+      return;
+    }
+    hapticHeavy();
+    mmAbortRef.current = new AbortController();
+    setMatchmakingBusy(true);
+    setMmPhase('queue');
+    await deductFunds(entranceAmount);
+    try {
+      const room = await runMatchmakingUntilSeated(
+        {
+          userId: user.uid,
+          displayName: user.displayName || user.email?.split('@')[0] || 'Player',
+          photoURL: user.photoURL ?? null,
+          tierKey: expandedTier.key as MatchmakingTierKey,
+          subTierIndex: selectedSubTierIndex,
+          gameMode,
+          buyIn: entranceAmount,
+          smallBlind: selectedStake.small,
+          bigBlind: selectedStake.big,
+        },
+        {
+          signal: mmAbortRef.current.signal,
+          onPhase: (p) => setMmPhase(p),
+        }
+      );
+      onMatchmakingComplete(room);
+    } catch (e) {
+      await addFunds(entranceAmount);
+      if ((e as Error).name !== 'AbortError') {
+        toast.error('Matchmaking failed. Funds were restored.');
+      }
+    } finally {
+      setMatchmakingBusy(false);
+      setMmPhase(null);
+      mmAbortRef.current = null;
+    }
+  };
+
+  const mmPhaseLabel =
+    mmPhase === 'open'
+      ? 'Joining an open table…'
+      : mmPhase === 'queue'
+        ? 'Finding players (up to 30s)…'
+        : mmPhase === 'paired'
+          ? 'Match found!'
+          : mmPhase === 'bot'
+            ? 'Starting table with bot…'
+            : 'Searching…';
 
   const tabBtnClass = (active: boolean) =>
     `px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-sm font-bold tracking-wider transition-all border-2 ${
@@ -658,7 +735,7 @@ const SitAndGoScreen = ({
                           fontFamily: "'Bebas Neue', sans-serif",
                         }}
                         whileTap={{ scale: 0.97 }}
-                        onClick={() => handleTierSelect(small, big)}
+                        onClick={() => handleTierSelect(small, big, i)}
                       >
                         <span className="text-foreground text-sm sm:text-base tracking-wider flex items-center gap-2">
                           {isFree && <span className="text-green-400 text-xs font-bold px-2 py-1 rounded bg-green-500/20">FREE</span>}
@@ -743,6 +820,31 @@ const SitAndGoScreen = ({
               className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] group-hover:drop-shadow-[0_8px_32px_hsl(var(--casino-gold)/0.4)] transition-all duration-300"
             />
           </motion.button>
+
+          {deductFunds && addFunds && onMatchmakingComplete && expandedTier && selectedStake && (
+            <div className="w-full flex flex-col items-center gap-2 mb-4">
+              <p className="text-[10px] sm:text-xs text-muted-foreground text-center max-w-xs">
+                Quick match: same tier & stake as above. Joins an open table, queues for humans (~30s), then starts with a bot. Table stays open for others.
+              </p>
+              <motion.button
+                type="button"
+                className="w-full max-w-sm py-3 rounded-xl border-2 border-primary/60 bg-primary/15 text-primary font-bold tracking-wider text-sm sm:text-base touch-manipulation disabled:opacity-50"
+                style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                onClick={handleQuickMatch}
+                disabled={matchmakingBusy || entranceAmount > funds + 1e-6}
+                whileTap={{ scale: 0.98 }}
+              >
+                {matchmakingBusy ? (
+                  <span className="inline-flex items-center gap-2 justify-center">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {mmPhaseLabel}
+                  </span>
+                ) : (
+                  '⚡ QUICK MATCH (PLAYERS)'
+                )}
+              </motion.button>
+            </div>
+          )}
           </div>
         </div>
       )}
@@ -874,10 +976,22 @@ const SitAndGoScreen = ({
             tier={selectedTierPopup}
             gameMode={gameMode}
             onClose={() => setSelectedTierPopup(null)}
-            onSelect={handleTierSelect}
+            onSelect={(s, b, idx) => handleTierSelect(s, b, idx)}
           />
         )}
       </AnimatePresence>
+
+      {matchmakingBusy && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/75 px-4">
+          <div className="rounded-2xl border border-primary/40 bg-background/95 px-8 py-6 text-center max-w-sm">
+            <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-primary font-bold tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+              {mmPhaseLabel}
+            </p>
+            <p className="text-muted-foreground text-xs mt-2">Use the same tier & stake on each device to match together.</p>
+          </div>
+        </div>
+      )}
 
       {/* Promotion Screen Modal */}
       <AnimatePresence>

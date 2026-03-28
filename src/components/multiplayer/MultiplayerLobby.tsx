@@ -4,7 +4,7 @@ import { Users, ArrowLeft, Copy, Check, Search, Share2, Crown, Mail, UserPlus } 
 import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { GameRoom } from '@/lib/multiplayer';
-import { startGame, joinGameRoom } from '@/lib/multiplayer';
+import { startGame, joinGameRoom, isMatchmakingBotUserId } from '@/lib/multiplayer';
 import { toast } from '@/hooks/use-toast';
 import { hapticLight, hapticMedium, hapticHeavy } from '@/lib/haptics';
 import { QRCodeSVG } from 'qrcode.react';
@@ -40,6 +40,7 @@ const MultiplayerLobby = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [timeLeft, setTimeLeft] = useState(RESERVATION_DURATION);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoStartBotTableRef = useRef(false);
 
   // Countdown timer
   useEffect(() => {
@@ -78,6 +79,21 @@ const MultiplayerLobby = ({
     joinGameRoom(gameId, currentUserId, currentUserName, currentUserPhoto).catch(() => {});
   }, [gameId, currentUserId, currentUserName, currentUserPhoto, room]);
 
+  // Matchmaking bot fallback: host auto-starts when human + system bot are seated
+  useEffect(() => {
+    if (!room || !isHost || room.status !== 'waiting' || autoStartBotTableRef.current) return;
+    const hasBot = room.players.some((p) => isMatchmakingBotUserId(p.userId));
+    if (hasBot && room.players.length >= 2) {
+      autoStartBotTableRef.current = true;
+      const t = window.setTimeout(() => {
+        startGame(gameId).catch(() => {
+          autoStartBotTableRef.current = false;
+        });
+      }, 1800);
+      return () => clearTimeout(t);
+    }
+  }, [room, isHost, gameId]);
+
   const handleStart = async () => {
     if (!isHost || !room || room.players.length < 2) return;
     hapticHeavy();
@@ -115,6 +131,7 @@ const MultiplayerLobby = ({
   const players = room?.players ?? [];
   const maxPlayers = 6;
   const canStart = isHost && players.length >= 2;
+  const openForJoining = !!room?.matchmakingOpen;
 
   return (
     <motion.div
@@ -271,6 +288,16 @@ const MultiplayerLobby = ({
               {copied ? 'Copied!' : 'Copy invite link'}
             </span>
           </motion.button>
+
+          {openForJoining && (
+            <motion.div
+              className="w-full max-w-sm text-center px-3 py-2 rounded-lg border border-green-500/40 bg-green-500/10 text-green-200 text-[10px] sm:text-xs"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              Open for joining — share the code so more players can join this matchmaking table.
+            </motion.div>
+          )}
 
           {/* Search for friend */}
           <motion.div

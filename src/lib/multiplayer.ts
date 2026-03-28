@@ -47,9 +47,23 @@ export interface GameRoom {
   updatedAt: Timestamp;
   inviterId?: string;      // UID of who invited table creator (private tables only)
   isPrivateTable?: boolean;
+  /** Public matchmaking: table accepts joins; same pool = tier + stake lane */
+  matchmakingOpen?: boolean;
+  matchmakingPoolId?: string;
 }
 
-function generateInviteCode(): string {
+/** Prefix for system bots in matchmaking tables (host client runs AI). */
+export const MATCHMAKING_BOT_PREFIX = '__matchmaking_bot__';
+
+export function isMatchmakingBotUserId(userId: string): boolean {
+  return userId.startsWith(MATCHMAKING_BOT_PREFIX);
+}
+
+export function matchmakingBotId(gameDocId: string, seatIndex: number): string {
+  return `${MATCHMAKING_BOT_PREFIX}${gameDocId.slice(0, 12)}_${seatIndex}`;
+}
+
+export function generateInviteCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
@@ -107,6 +121,74 @@ export async function createGameRoom(
   return { id: roomRef.id, ...room } as GameRoom;
 }
 
+export async function createMatchmakingGameRoom(
+  hostId: string,
+  hostName: string,
+  hostPhotoURL: string | null,
+  secondHuman: { userId: string; displayName: string; photoURL: string | null } | null,
+  withBotSeat: boolean,
+  buyIn: number,
+  smallBlind: number,
+  bigBlind: number,
+  poolId: string
+): Promise<GameRoom> {
+  const inviteCode = generateInviteCode();
+  const roomRef = doc(collection(db, 'games'));
+  const gameId = roomRef.id;
+  const players: GameRoomPlayer[] = [
+    {
+      userId: hostId,
+      displayName: hostName,
+      photoURL: hostPhotoURL,
+      seatIndex: 0,
+      chips: buyIn,
+      isReady: true,
+    },
+  ];
+  if (secondHuman) {
+    players.push({
+      userId: secondHuman.userId,
+      displayName: secondHuman.displayName,
+      photoURL: secondHuman.photoURL,
+      seatIndex: 1,
+      chips: buyIn,
+      isReady: true,
+    });
+  } else if (withBotSeat) {
+    players.push({
+      userId: matchmakingBotId(gameId, 1),
+      displayName: 'Table Bot',
+      photoURL: null,
+      seatIndex: 1,
+      chips: buyIn,
+      isReady: true,
+    });
+  }
+  const room: Omit<GameRoom, 'id'> = {
+    inviteCode,
+    hostId,
+    hostName,
+    status: 'waiting',
+    players,
+    buyIn,
+    smallBlind,
+    bigBlind,
+    gameState: null,
+    createdAt: serverTimestamp() as Timestamp,
+    updatedAt: serverTimestamp() as Timestamp,
+    matchmakingOpen: true,
+    matchmakingPoolId: poolId,
+  };
+  await setDoc(roomRef, room);
+  return { id: gameId, ...room } as GameRoom;
+}
+
+export async function getGameRoomById(gameId: string): Promise<GameRoom | null> {
+  const snap = await getDoc(doc(db, 'games', gameId));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() } as GameRoom;
+}
+
 export async function joinGameRoom(
   gameId: string,
   userId: string,
@@ -131,8 +213,11 @@ export async function joinGameRoom(
     chips: data?.buyIn ?? 1500,
     isReady: true,
   });
+  const humans = players.filter((p) => !isMatchmakingBotUserId(p.userId));
+  const finalPlayers =
+    humans.length >= 2 ? players.filter((p) => !isMatchmakingBotUserId(p.userId)) : players;
   await updateDoc(roomRef, {
-    players,
+    players: finalPlayers,
     updatedAt: serverTimestamp(),
   });
   return true;

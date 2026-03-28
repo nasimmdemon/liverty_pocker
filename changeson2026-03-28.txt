@@ -1,0 +1,4 @@
+Liberty Poker - Completed Tasks
+Date: 2026-03-28
+
+1. Matchmaking flow documentation - Added docs/MATCHMAKING_FLOW.md consolidating tier/sub-tier flow, bot fallback, scaling, cooldown rules, reserve, and testing notes

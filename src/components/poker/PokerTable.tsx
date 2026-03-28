@@ -480,8 +480,26 @@ const PokerTable = ({ initialBuyIn = 1500, botCount = 5, smallBlind = 5, bigBlin
       });
     }, 100);
 
+    const matchmakingBotTurn =
+      isMultiplayer &&
+      multiplayer?.isHost &&
+      !!currentPlayer.userId &&
+      currentPlayer.userId.startsWith('__matchmaking_bot__');
+
     if (!currentPlayer.isUser) {
-      if (isMultiplayer) {
+      if (matchmakingBotTurn) {
+        botTimeoutRef.current = setTimeout(() => {
+          setGameState(prev => {
+            if (!prev) return prev;
+            const { state: afterBot, action: botAction } = simulateBotAction(prev);
+            if (botAction === 'fold') playFoldSound();
+            if (botAction === 'check') playCheckSound();
+            const betAmount = afterBot.players[prev.currentPlayerIndex].currentBet - prev.players[prev.currentPlayerIndex].currentBet;
+            if (betAmount > 0) triggerChipAnimation(prev.currentPlayerIndex, betAmount);
+            return advanceTurn(afterBot);
+          });
+        }, BOT_DELAY + Math.random() * 1000);
+      } else if (isMultiplayer) {
         // Opponent's turn: no auto-action, game state updates when they act
       } else {
         botTimeoutRef.current = setTimeout(() => {

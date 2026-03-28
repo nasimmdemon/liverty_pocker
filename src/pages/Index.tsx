@@ -17,7 +17,7 @@ import PokerTable from '@/components/poker/PokerTable';
 import WatchAndEarnScreen from '@/components/poker/WatchAndEarnScreen';
 import MultiplayerLobby from '@/components/multiplayer/MultiplayerLobby';
 import MultiplayerPokerTable from '@/components/multiplayer/MultiplayerPokerTable';
-import { getGameByCode, joinGameRoom } from '@/lib/multiplayer';
+import { getGameByCode, joinGameRoom, type GameRoom } from '@/lib/multiplayer';
 
 type Screen = 'start' | 'loading' | 'sitandgo' | 'testing' | 'table' | 'watch-and-earn' | 'multiplayer-lobby' | 'multiplayer-table';
 
@@ -128,6 +128,17 @@ const Index = () => {
     setScreen('multiplayer-lobby');
   }, []);
 
+  const handleMatchmakingComplete = useCallback((room: GameRoom) => {
+    if (!user) return;
+    setMultiplayerConfig({
+      gameId: room.id,
+      inviteCode: room.inviteCode,
+      isHost: room.hostId === user.uid,
+      room,
+    });
+    setScreen('multiplayer-lobby');
+  }, [user]);
+
   const handleMultiplayerJoin = useCallback((gameId: string, room: Awaited<ReturnType<typeof getGameByCode>>) => {
     if (!room) return;
     setMultiplayerConfig({
@@ -207,6 +218,9 @@ const Index = () => {
           onMultiplayerJoin={handleMultiplayerJoin}
           joinCodeFromUrl={joinCodeFromUrl}
           funds={funds}
+          deductFunds={deductFunds}
+          addFunds={addFunds}
+          onMatchmakingComplete={handleMatchmakingComplete}
         />
       )}
       {screen === 'testing' && (
