@@ -10,7 +10,8 @@ interface MultiplayerPokerTableProps {
   currentUserId: string;
   isHost: boolean;
   initialRoom: GameRoom;
-  onExit: () => void;
+  /** Called when user leaves/table ends. finalChips = user's chip count at exit (for crediting winnings). */
+  onExit: (finalChips?: number) => void;
   isLandscapeMobile?: boolean;
 }
 
@@ -33,9 +34,14 @@ export default function MultiplayerPokerTable({
     updateGameState(gameId, state);
   }, [gameId]);
 
-  const handleExit = useCallback(() => {
-    leaveGameRoom(gameId, currentUserId).finally(() => onExit());
-  }, [gameId, currentUserId, onExit]);
+  const handleExit = useCallback((userChips?: number) => {
+    // Read the player's final chip count from gameState (live, updated every action)
+    // If userChips was passed from PokerTable, prefer that; otherwise read from room state
+    const liveGs = room?.gameState;
+    const gsPlayer = liveGs?.players?.find((p) => p.userId === currentUserId);
+    const finalChips = userChips ?? gsPlayer?.chips;
+    leaveGameRoom(gameId, currentUserId).finally(() => onExit(finalChips));
+  }, [gameId, currentUserId, onExit, room]);
 
   const tableClosed = room?.status === 'ended';
   const hostLeft = tableClosed && room?.players && !room.players.some(p => p.userId === room.hostId);

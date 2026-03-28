@@ -6,11 +6,13 @@ import {
   getDocs,
   query,
   where,
+  orderBy,
   onSnapshot,
   updateDoc,
   serverTimestamp,
   Timestamp,
   runTransaction,
+  limit,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { GameState, Player } from './gameTypes';
@@ -396,3 +398,80 @@ export function subscribeToGame(
     onUpdate(room);
   });
 }
+
+/**
+ * Subscribe to all active game rooms (status = 'waiting' | 'playing').
+ * Raw Firestore Timestamps are passed through so the caller can apply
+ * staleness filtering (zombie games that never got marked 'ended').
+ * Used by the monitor dashboard for real-time table & player tracking.
+ */
+export function subscribeToAllActiveGames(
+  onUpdate: (rooms: GameRoom[]) => void
+): () => void {
+  const q = query(
+    collection(db, 'games'),
+    where('status', 'in', ['waiting', 'playing']),
+    limit(200)
+  );
+  return onSnapshot(q, (snap) => {
+    const rooms: GameRoom[] = snap.docs.map((d) => {
+      const data = d.data();
+      const gs = data?.gameState;
+      return {
+        id: d.id,
+        ...data,
+        // Keep raw Timestamp so monitor can read .seconds for staleness check
+        createdAt: data?.createdAt,
+        updatedAt: data?.updatedAt,
+        gameState: gs ? firestoreToGameState(gs as Record<string, unknown>) : null,
+      } as GameRoom;
+    });
+    onUpdate(rooms);
+  });
+}
+
+/**
+ * One page of ended games for the history panel.
+ * Sorts client-side so no composite Firestore index is required.
+ * We fetch up to pageSize*3 docs then trim after sort to handle Firestore's
+ * default ordering being by document ID — real cost is low given the limit.
+ */
+export async function getEndedGames(pageSize = 60): Promise<GameRoom[]> {
+  // Simple single-field query — no composite index needed
+  const q = query(
+    collection(db, 'games'),
+    where('status', '==', 'ended'),
+    orderBy('updatedAt', 'desc'),
+    limit(pageSize)
+  );
+  let snap;
+  try {
+    snap = await getDocs(q);
+  } catch {
+    // Index may not exist yet — fall back to unordered fetch + client-side sort
+    const qFallback = query(
+      collection(db, 'games'),
+      where('status', '==', 'ended'),
+      limit(pageSize * 2)
+    );
+    snap = await getDocs(qFallback);
+  }
+  const docs = snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      ...data,
+      createdAt: data?.createdAt,
+      updatedAt: data?.updatedAt,
+      gameState: null, // omit heavy payload for history list
+    } as GameRoom;
+  });
+  // Client-side sort by updatedAt descending, most-recent first
+  docs.sort((a, b) => {
+    const aTs = (a.updatedAt as { seconds?: number } | null)?.seconds ?? 0;
+    const bTs = (b.updatedAt as { seconds?: number } | null)?.seconds ?? 0;
+    return bTs - aTs;
+  });
+  return docs.slice(0, pageSize);
+}
+

@@ -277,7 +277,19 @@ const Index = () => {
           currentUserId={user.uid}
           isHost={multiplayerConfig.isHost}
           initialRoom={multiplayerConfig.room!}
-          onExit={() => { setScreen('start'); setMultiplayerConfig(null); }}
+          onExit={(finalChips?: number) => {
+            // Credit winnings: if the player ended with more chips than they bought in with,
+            // add the profit to their account balance (same logic as solo handleExitTable)
+            const buyIn = multiplayerConfig.room?.buyIn ?? 0;
+            if (finalChips != null && finalChips > 0 && buyIn > 0) {
+              const profit = Math.round((finalChips - buyIn) * 100) / 100;
+              if (profit > 0) {
+                addFunds(profit);
+              }
+            }
+            setScreen('start');
+            setMultiplayerConfig(null);
+          }}
           isLandscapeMobile={isLandscapeMobile}
         />
       )}

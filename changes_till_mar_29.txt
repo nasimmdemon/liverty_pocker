@@ -1,5 +1,10 @@
-Liberty Poker — work log (headings + short notes)
-==================================================
+Liberty Poker — Work Log: changes_till_mar_29.txt
+===================================================
+Session: 2026-03-29 (continued from prior sessions)
+
+──────────────────────────────────────────────────
+PRIOR SESSIONS (already logged)
+──────────────────────────────────────────────────
 
 Matchmaking engine (Firestore)
 - Pool queue + pair transactions, open-table join query, 30s bot fallback, flow logging collection.
@@ -14,10 +19,10 @@ PokerTable (multiplayer)
 - Host runs bot AI when current seat userId is matchmaking bot prefix.
 
 Public lobby UI
-- “Quick match (players)” on Public path; overlay phases; tier + sub-tier index drives pool id.
+- "Quick match (players)" on Public path; overlay phases; tier + sub-tier index drives pool id.
 
 Multiplayer lobby
-- “Open for joining” banner; auto-start ~1.8s when table is human + matchmaking bot.
+- "Open for joining" banner; auto-start ~1.8s when table is human + matchmaking bot.
 
 Firebase
 - Rules for matchmaking_pools + matchmaking_flow; composite index on games for matchmaking queries.
@@ -27,3 +32,86 @@ Index / Sit & Go wiring
 
 Play mode dialog (fix vs-all-bots confusion)
 - Chip opens dialog: real people (matchmaking) vs practice vs bots; open-table query try/catch; clearer queue errors.
+
+──────────────────────────────────────────────────
+TODAY'S SESSION — 2026-03-29
+──────────────────────────────────────────────────
+
+1. MONITOR PAGE — Live Games section (NEW)
+   File: src/pages/MonitorDashboard.tsx
+   File: src/lib/multiplayer.ts
+   - Added subscribeToAllActiveGames() to multiplayer.ts using Firestore onSnapshot
+     with where('status', 'in', ['waiting','playing']) — real-time, no polling.
+   - Added a "Live Games" section to MonitorDashboard above analytics with:
+       • 4 stat cards: Open Tables, Playing Now, In Lobby/Waiting, Tables with Bots
+       • Per-table expandable detail rows showing player name + email + bot flag + chips
+
+2. MONITOR — Fixed stale/zombie table filtering
+   File: src/pages/MonitorDashboard.tsx
+   - Tables not updated in >2 hours (playing) or >20 min (waiting) are NOW filtered out
+     so the monitor shows only tables that are genuinely active right now.
+   - A "(N stale/zombie games hidden)" notice is shown when old stuck games are filtered.
+
+3. MONITOR — Fixed duplicate player counting
+   File: src/pages/MonitorDashboard.tsx
+   - OLD: summed realPlayers.length across all tables → same person counted in multiple
+     zombie tables (e.g. showed 43 players when there were far fewer real users online).
+   - NEW: deduplicates by userId using two Set<string> objects so each unique user is
+     counted exactly once for "Playing Now" and once for "In Lobby / Waiting".
+
+4. MONITOR — Three-tab layout (Live / History / Analytics)
+   File: src/pages/MonitorDashboard.tsx
+   - Reorganised the monitor into 3 tabs so live data and history are not buried.
+   - Live tab: real-time snapshot (as above).
+   - Analytics tab: all original visit charts, device breakdown, locations, recent visits.
+   - History tab: NEW — shows last 60 ended games (see item 5).
+
+5. MONITOR — Game History panel (NEW)
+   File: src/pages/MonitorDashboard.tsx
+   File: src/lib/multiplayer.ts
+   - Added getEndedGames() to multiplayer.ts: queries games where status=='ended',
+     falls back to unordered fetch + client-side sort if Firestore index not deployed.
+   - History panel shows each ended game with:
+       • Game type badge: Real vs Real / Real + Bot / Matchmaking / Matchmaking + Bot / Private
+       • Buy-in, blinds, player count, bot count, time elapsed since it ended
+       • Expandable row: shows each player's name, email, Real/Bot badge
+
+6. MONITOR — Live chips from gameState (bug fix)
+   File: src/pages/MonitorDashboard.tsx
+   - OLD: showed room.players[].chips which is the static buy-in snapshot set at lobby join,
+     never updated during play.
+   - NEW: buildLiveTable() now builds a Map<userId → gameState player> and reads
+     gameState.players[].chips (updated after every action/pot win) as the source of truth.
+   - Old value used only as fallback when game hasn't started yet (waiting status).
+
+7. MONITOR — Enhanced player table columns
+   File: src/pages/MonitorDashboard.tsx
+   - Added "Chips (live)" column with colour coding:
+       🔴 Red   = below 40% of buy-in (losing badly)
+       🟢 Green = above buy-in (in profit)
+       🟣 Purple = bot chip stack (neutral baseline)
+   - Added "Bet" column: shows current round bet in amber (0 shown as —).
+   - Added "Status" column: active (green) / folded (red) / all-in (amber) / sitting-out (grey).
+   - Table row header now shows: 🏆 Pot, current bet, and game phase (preflop/flop/turn/river).
+
+8. MONITOR — Bot chips shown (bug fix)
+   File: src/pages/MonitorDashboard.tsx
+   - OLD: bot rows always showed "—" for Chips and Bet, even though bots play with real
+     chip stacks that update every hand.
+   - NEW: removed the isBot blanking guard from the Chips and Bet cells.
+     Bot chips are now displayed in purple. Bot current bet shows in amber when non-zero.
+
+9. MULTIPLAYER WINNINGS — Credit on exit (critical bug fix)
+   Files: src/components/multiplayer/MultiplayerPokerTable.tsx
+          src/pages/Index.tsx
+   - BUG: when a player exited a multiplayer game, their winnings were NEVER credited back
+     to their account. The buy-in was deducted on join but profits were silently discarded.
+   - FIX in MultiplayerPokerTable.tsx:
+       • Changed onExit prop type from () => void to (finalChips?: number) => void
+       • handleExit now reads the user's chip count from room.gameState.players before
+         calling leaveGameRoom, then passes finalChips to the parent callback.
+       • Dual-source: prefers userChips passed by PokerTable; falls back to gameState read.
+   - FIX in Index.tsx (multiplayer-table onExit handler):
+       • If finalChips > buyIn → calculates profit = finalChips - buyIn (rounded to ¢)
+       • Calls addFunds(profit) which writes to Firestore users/{uid}.funds
+       • Same rounding and guard logic as the solo table handleExitTable.
