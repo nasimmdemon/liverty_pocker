@@ -2,3 +2,6 @@ Liberty Poker - Completed Tasks
 Date: 2026-03-28
 
 1. Matchmaking flow documentation - Added docs/MATCHMAKING_FLOW.md consolidating tier/sub-tier flow, bot fallback, scaling, cooldown rules, reserve, and testing notes
+2. Matchmaking pool id by stake - Pool keys use tier, game mode, blinds, and buy-in (not grid sub-tier index) so two devices on the same FREE 0.01/0.02 and entrance land in one queue
+3. Pair snapshot reliability - Wider pair timestamp lookback for clock skew, iterate recentPairs newest-first, and only resolve when the game is still waiting
+4. Sit & Go matchmaking copy - Overlay and dialog text focus on finding real players in the same stake pool instead of coordinating across devices

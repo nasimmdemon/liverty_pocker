@@ -364,11 +364,11 @@ const SitAndGoScreen = ({
     mmPhase === 'open'
       ? 'Joining an open table…'
       : mmPhase === 'queue'
-        ? 'Finding players (up to 30s)…'
+        ? 'Looking for real players in this stake pool…'
         : mmPhase === 'paired'
           ? 'Match found!'
           : mmPhase === 'bot'
-            ? 'Starting table with bot…'
+            ? 'Starting a table — filling with a bot until more players join…'
             : 'Searching…';
 
   const tabBtnClass = (active: boolean) =>
@@ -989,7 +989,9 @@ const SitAndGoScreen = ({
             <p className="text-primary font-bold tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
               {mmPhaseLabel}
             </p>
-            <p className="text-muted-foreground text-xs mt-2">Use the same tier & stake on each device to match together.</p>
+            <p className="text-muted-foreground text-xs mt-2">
+              Matching uses your tier, Sit &amp; Go / Tournament mode, blinds, and entrance — anyone in that pool can be seated with you.
+            </p>
           </div>
         </div>
       )}
@@ -1006,10 +1008,10 @@ const SitAndGoScreen = ({
             <DialogDescription asChild>
               <div className="text-left text-sm text-muted-foreground space-y-3 pt-1">
                 <p>
-                  <span className="text-foreground font-semibold">Play with real people</span> — Uses matchmaking.
-                  Pick the <span className="text-primary">same tier</span>, the <span className="text-primary">same stake cell</span>{' '}
-                  (same row in the grid), and <span className="text-primary">Sit &amp; Go or Tournament</span> on every device.
-                  You should land in one multiplayer lobby together (or one human + bot after ~30s).
+                  <span className="text-foreground font-semibold">Play with real people</span> — Matchmaking groups everyone
+                  with the <span className="text-primary">same tier</span>, <span className="text-primary">same blinds / buy-in row</span>,{' '}
+                  <span className="text-primary">same mode</span> (Sit &amp; Go vs Tournament), and <span className="text-primary">same entrance amount</span>.
+                  You&apos;ll join a shared lobby when another real player is in that pool (or a bot fills the seat after a short wait).
                 </p>
                 <p>
                   <span className="text-foreground font-semibold">Practice vs bots</span> — Only this device; computer

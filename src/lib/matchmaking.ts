@@ -29,13 +29,28 @@ export type MatchmakingTierKey = 'human' | 'rat' | 'cat' | 'dog';
 export const MATCHMAKING_WAIT_MS = 30_000;
 const QUEUE_STALE_MS = 120_000;
 const MAX_RECENT_PAIRS = 25;
+/** Pair `ts` is client time; allow skew vs `sinceTs` without matching hours-old `recentPairs` */
+const PAIR_TS_LOOKBACK_MS = 120_000;
 
+function roundMoney(n: number): number {
+  return Math.round(n * 1e6) / 1e6;
+}
+
+/**
+ * Pool = same tier + game mode + blinds + buy-in (not grid index).
+ * Fixes two phones picking FREE 0.01/0.02 with different subTierIndex / row.
+ */
 export function buildMatchmakingPoolId(
   tierKey: MatchmakingTierKey,
-  subTierIndex: number,
-  gameMode: 'tournament' | 'sit-and-go'
+  gameMode: 'tournament' | 'sit-and-go',
+  smallBlind: number,
+  bigBlind: number,
+  buyIn: number
 ): string {
-  return `${tierKey}_${subTierIndex}_${gameMode}`;
+  const sb = roundMoney(smallBlind);
+  const bb = roundMoney(bigBlind);
+  const bi = roundMoney(buyIn);
+  return `${tierKey}_${gameMode}_sb${sb}_bb${bb}_buy${bi}`;
 }
 
 interface QueuedPlayer {
@@ -171,9 +186,9 @@ export async function enqueueAndMaybePair(params: {
         userId: params.userId,
         displayName: params.displayName,
         photoURL: params.photoURL,
-        buyIn: params.buyIn,
-        sb: params.smallBlind,
-        bb: params.bigBlind,
+        buyIn: roundMoney(params.buyIn),
+        sb: roundMoney(params.smallBlind),
+        bb: roundMoney(params.bigBlind),
         ts: now,
         nonce: `${now}_${Math.random().toString(36).slice(2, 9)}`,
       });
@@ -275,7 +290,8 @@ export type MatchmakingSearchParams = {
   displayName: string;
   photoURL: string | null;
   tierKey: MatchmakingTierKey;
-  subTierIndex: number;
+  /** @deprecated Pool uses blinds + buy-in; kept for logging/UI only */
+  subTierIndex?: number;
   gameMode: 'tournament' | 'sit-and-go';
   buyIn: number;
   smallBlind: number;
@@ -293,8 +309,8 @@ function subscribePoolForPairedGame(
   return onSnapshot(poolRef, (snap) => {
     if (fired || !snap.exists()) return;
     const pairs = (snap.data().recentPairs || []) as RecentPair[];
-    for (const p of pairs) {
-      if (p.ts >= sinceTs - 8000 && p.members.includes(myUserId)) {
+    for (const p of [...pairs].reverse()) {
+      if (p.members.includes(myUserId) && p.ts >= sinceTs - PAIR_TS_LOOKBACK_MS) {
         fired = true;
         onMatch(p.gameId);
         return;
@@ -311,7 +327,13 @@ export async function runMatchmakingUntilSeated(
   params: MatchmakingSearchParams,
   options?: { signal?: AbortSignal; onPhase?: (p: 'open' | 'queue' | 'paired' | 'bot') => void }
 ): Promise<GameRoom> {
-  const poolId = buildMatchmakingPoolId(params.tierKey, params.subTierIndex, params.gameMode);
+  const poolId = buildMatchmakingPoolId(
+    params.tierKey,
+    params.gameMode,
+    params.smallBlind,
+    params.bigBlind,
+    params.buyIn
+  );
   const sinceTs = Date.now();
   const base = {
     userId: params.userId,
@@ -372,7 +394,7 @@ export async function runMatchmakingUntilSeated(
 
     const unsubPair = subscribePoolForPairedGame(poolId, params.userId, sinceTs, async (gameId) => {
       const room = await getGameRoomById(gameId);
-      if (room) {
+      if (room && room.status === 'waiting') {
         options?.onPhase?.('paired');
         await leaveMatchmakingQueue(poolId, params.userId).catch(() => {});
         finish(room);
