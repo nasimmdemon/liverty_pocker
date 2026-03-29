@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsLandscapeMobile } from '@/hooks/use-orientation';
-import { X, Users, UserPlus, Lock, Sparkles, Loader2 } from 'lucide-react';
+import { X, Users, UserPlus, Lock, Sparkles } from 'lucide-react';
 import { hapticLight, hapticMedium, hapticHeavy, hapticSuccess } from '@/lib/haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import CreateGameModal from '@/components/multiplayer/CreateGameModal';
@@ -13,9 +14,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { formatChips, formatFunds } from '@/lib/formatChips';
+import LoadingScreen from '@/components/poker/LoadingScreen';
 import {
   runMatchmakingUntilSeated,
   MATCHMAKING_POST_MATCH_COUNTDOWN_SEC,
+  MATCHMAKING_WAIT_MS,
   type MatchmakingTierKey,
 } from '@/lib/matchmaking';
 import {
@@ -27,6 +30,8 @@ import {
 } from '@/lib/multiplayer';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import pokerTableBg from '@/assets/poker-table-bg.png';
 import joinTableChip from '@/assets/join-table-chip.png';
 
@@ -262,7 +267,6 @@ const SitAndGoScreen = ({
   const [showPromotion, setShowPromotion] = useState<TierKey | null>(null);
   const [selectedSubTierIndex, setSelectedSubTierIndex] = useState(0);
   const [matchmakingBusy, setMatchmakingBusy] = useState(false);
-  const [mmPhase, setMmPhase] = useState<'open' | 'queue' | 'paired' | 'bot' | null>(null);
   const [matchPostCountdown, setMatchPostCountdown] = useState<number | null>(null);
   const [matchedOpponents, setMatchedOpponents] = useState<GameRoomPlayer[]>([]);
   const mmAbortRef = useRef<AbortController | null>(null);
@@ -282,13 +286,39 @@ const SitAndGoScreen = ({
   const nextTier = currentTierIndex < tierOrder.length - 1 ? TIERS[currentTierIndex + 1] : null;
   const funds = fundsProp;
   // Buy-in range correlates to player funds — use dollar-scale steps
-  const minEntrance = Math.max(0.1, Math.round(funds * 0.1 * 10) / 10);  // 10% of funds, min $0.10
-  const maxEntrance = Math.round(Math.max(minEntrance + 0.5, funds) * 10) / 10;
-  const stepSize = maxEntrance <= 5 ? 0.1 : maxEntrance <= 50 ? 0.5 : 1;
-  const [entranceAmount, setEntranceAmount] = useState(() => {
-    const mid = Math.round((minEntrance + maxEntrance) / 2 / stepSize) * stepSize;
-    return Math.round(mid * 10) / 10;
-  });
+  const minEntrance = useMemo(
+    () => Math.max(0.1, Math.round(funds * 0.1 * 10) / 10),
+    [funds]
+  );
+  const maxEntrance = useMemo(
+    () => Math.round(Math.max(minEntrance + 0.5, funds) * 10) / 10,
+    [minEntrance, funds]
+  );
+  const stepSize = useMemo(
+    () => (maxEntrance <= 5 ? 0.1 : maxEntrance <= 50 ? 0.5 : 1),
+    [maxEntrance]
+  );
+
+  const clampEntrance = useCallback(
+    (v: number) => {
+      const clamped = Math.min(Math.max(v, minEntrance), maxEntrance);
+      const snapped = Math.round(clamped / stepSize) * stepSize;
+      return Math.round(snapped * 100) / 100;
+    },
+    [minEntrance, maxEntrance, stepSize]
+  );
+
+  const [entranceAmount, setEntranceAmount] = useState(0.5);
+  const [amountInputFocused, setAmountInputFocused] = useState(false);
+  const [entranceDraft, setEntranceDraft] = useState('');
+
+  useEffect(() => {
+    setEntranceAmount((prev) => clampEntrance(prev));
+  }, [clampEntrance]);
+
+  useEffect(() => {
+    if (!amountInputFocused) setEntranceDraft(entranceAmount.toFixed(2));
+  }, [entranceAmount, amountInputFocused]);
 
   const handleJoin = () => {
     hapticHeavy();
@@ -316,7 +346,6 @@ const SitAndGoScreen = ({
     hapticHeavy();
     mmAbortRef.current = new AbortController();
     setMatchmakingBusy(true);
-    setMmPhase('queue');
     await deductFunds(entranceAmount);
     const abortSignal = mmAbortRef.current.signal;
     try {
@@ -332,10 +361,7 @@ const SitAndGoScreen = ({
           smallBlind: selectedStake.small,
           bigBlind: selectedStake.big,
         },
-        {
-          signal: abortSignal,
-          onPhase: (p) => setMmPhase(p),
-        }
+        { signal: abortSignal }
       );
 
       const opponentsForUi = room.players.filter((p) => p.userId !== user.uid);
@@ -346,7 +372,6 @@ const SitAndGoScreen = ({
 
       if (showSeatFoundUi) {
         hapticSuccess();
-        setMmPhase('paired');
         setMatchedOpponents(opponentsForUi);
         try {
           for (let s = MATCHMAKING_POST_MATCH_COUNTDOWN_SEC; s >= 1; s--) {
@@ -390,23 +415,11 @@ const SitAndGoScreen = ({
       }
     } finally {
       setMatchmakingBusy(false);
-      setMmPhase(null);
       setMatchPostCountdown(null);
       setMatchedOpponents([]);
       mmAbortRef.current = null;
     }
   };
-
-  const mmPhaseLabel =
-    mmPhase === 'open'
-      ? 'Joining an open table…'
-      : mmPhase === 'queue'
-        ? 'Looking for real players in this stake pool…'
-        : mmPhase === 'paired'
-          ? 'Match found!'
-          : mmPhase === 'bot'
-            ? 'Starting a table — filling with a bot until more players join…'
-            : 'Searching…';
 
   const handleBackFromTierChoice = () => {
     if (matchmakingBusy) mmAbortRef.current?.abort();
@@ -416,33 +429,6 @@ const SitAndGoScreen = ({
   const handleBackFromLobby = () => {
     if (matchmakingBusy) mmAbortRef.current?.abort();
     setTableType(null);
-  };
-
-  const tabBtnClass = (active: boolean) =>
-    `px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-sm font-bold tracking-wider transition-all border-2 ${
-      active
-        ? 'border-primary shadow-[0_0_15px_hsl(var(--casino-gold)/0.4)]'
-        : 'border-primary/30 hover:border-primary/60'
-    }`;
-
-  const tabBtnStyle = (isTournament: boolean, active: boolean) => {
-    if (active) {
-      return {
-        fontFamily: "'Bebas Neue', sans-serif" as const,
-        background: isTournament
-          ? 'linear-gradient(180deg, hsl(350 55% 32%) 0%, hsl(350 50% 20%) 100%)'
-          : 'linear-gradient(180deg, hsl(140 45% 32%) 0%, hsl(140 40% 22%) 100%)',
-        color: 'hsl(var(--casino-gold))',
-        boxShadow: isTournament
-          ? '0 0 20px hsl(350 50% 45% / 0.4)'
-          : '0 0 20px hsl(140 50% 45% / 0.4)',
-      };
-    }
-    return {
-      fontFamily: "'Bebas Neue', sans-serif" as const,
-      background: 'linear-gradient(180deg, hsl(0 20% 18%) 0%, hsl(0 15% 12%) 100%)',
-      color: 'hsl(var(--casino-gold))',
-    };
   };
 
   // ── Public/Private selection screen ──
@@ -558,8 +544,11 @@ const SitAndGoScreen = ({
   // ── Main lobby (after choosing Public/Private) ──
   return (
     <motion.div
-      className="sitandgo-screen fixed inset-0 flex flex-col items-center overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden"
-      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
+      className={cn(
+        'sitandgo-screen fixed inset-0 flex flex-col items-center overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden',
+        matchmakingBusy && 'overflow-hidden'
+      )}
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' } as CSSProperties}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -606,55 +595,108 @@ const SitAndGoScreen = ({
 
       {/* Unified content column — scrollable; justify-start so scroll works in landscape */}
       {tableType === 'public' && (
-        <div className="lobby-content relative z-10 flex-1 flex flex-col items-center w-full max-w-[680px] px-4 py-4 overflow-y-auto overflow-x-hidden min-h-0 overscroll-contain [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}>
+        <div
+          className={cn(
+            'lobby-content relative z-10 flex-1 flex flex-col items-center w-full max-w-[680px] px-4 py-4 overflow-y-auto overflow-x-hidden min-h-0 overscroll-contain [&::-webkit-scrollbar]:hidden',
+            matchmakingBusy && 'pointer-events-none select-none'
+          )}
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' } as CSSProperties}
+        >
           <div className="flex flex-col items-center w-full gap-4 sm:gap-5 py-2">
-          {/* Game Mode Tabs */}
+          {/* Game mode — segmented control */}
           <motion.div
-            className="flex items-center gap-3 sm:gap-4"
+            className="inline-flex p-1 rounded-full border border-white/10 bg-black/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
+            role="tablist"
+            aria-label="Game mode"
           >
             <button
-              className={`${tabBtnClass(gameMode === 'tournament')} text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3`}
-              style={tabBtnStyle(true, gameMode === 'tournament')}
+              type="button"
+              role="tab"
+              aria-selected={gameMode === 'tournament'}
+              className={cn(
+                'rounded-full px-4 sm:px-7 py-2 sm:py-2.5 text-[10px] sm:text-sm font-bold tracking-wider transition-all duration-200 touch-manipulation min-h-[40px] sm:min-h-[44px]',
+                gameMode === 'tournament'
+                  ? 'text-zinc-950 shadow-md'
+                  : 'text-zinc-400 hover:text-zinc-100'
+              )}
+              style={
+                gameMode === 'tournament'
+                  ? {
+                      fontFamily: "'Bebas Neue', sans-serif",
+                      background: 'linear-gradient(180deg, hsl(350 62% 58%) 0%, hsl(350 52% 42%) 100%)',
+                      boxShadow: '0 4px 24px hsl(350 50% 40% / 0.35)',
+                    }
+                  : { fontFamily: "'Bebas Neue', sans-serif" }
+              }
               onClick={() => setGameMode('tournament')}
             >
-              🏆 TOURNAMENT
+              🏆 Tournament
             </button>
             <button
-              className={`${tabBtnClass(gameMode === 'sit-and-go')} text-xs sm:text-sm px-4 sm:px-6 py-2.5 sm:py-3`}
-              style={tabBtnStyle(false, gameMode === 'sit-and-go')}
+              type="button"
+              role="tab"
+              aria-selected={gameMode === 'sit-and-go'}
+              className={cn(
+                'rounded-full px-4 sm:px-7 py-2 sm:py-2.5 text-[10px] sm:text-sm font-bold tracking-wider transition-all duration-200 touch-manipulation min-h-[40px] sm:min-h-[44px]',
+                gameMode === 'sit-and-go'
+                  ? 'text-zinc-950 shadow-md'
+                  : 'text-zinc-400 hover:text-zinc-100'
+              )}
+              style={
+                gameMode === 'sit-and-go'
+                  ? {
+                      fontFamily: "'Bebas Neue', sans-serif",
+                      background: 'linear-gradient(180deg, hsl(152 48% 46%) 0%, hsl(152 42% 32%) 100%)',
+                      boxShadow: '0 4px 24px hsl(140 45% 35% / 0.35)',
+                    }
+                  : { fontFamily: "'Bebas Neue', sans-serif" }
+              }
               onClick={() => setGameMode('sit-and-go')}
             >
-              🎰 SIT & GO
+              🎰 Sit & Go
             </button>
           </motion.div>
 
-          {/* Divider */}
           <div
-            className="w-full h-px"
+            className="w-full max-w-md h-px opacity-60"
             style={{
               background: gameMode === 'tournament'
-                ? 'linear-gradient(90deg, transparent, hsl(350 50% 45% / 0.5), transparent)'
-                : 'linear-gradient(90deg, transparent, hsl(140 50% 45% / 0.5), transparent)',
+                ? 'linear-gradient(90deg, transparent, hsl(350 50% 50% / 0.45), transparent)'
+                : 'linear-gradient(90deg, transparent, hsl(152 45% 42% / 0.45), transparent)',
             }}
           />
 
-          {/* SELECT TIER heading */}
-          <motion.h2
-            className="lobby-select-tier text-xl sm:text-3xl tracking-wider"
-            style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
-            initial={{ opacity: 0, y: 20 }}
+          <motion.div
+            className="flex flex-col items-center gap-1.5 w-full"
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.15 }}
           >
-            SELECT TIER
-          </motion.h2>
+            <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.32em] text-muted-foreground/75 font-medium">
+              Public matchmaking
+            </span>
+            <h2
+              className="lobby-select-tier text-2xl sm:text-4xl tracking-[0.18em] text-center bg-gradient-to-b from-amber-100 via-amber-300 to-amber-500/85 bg-clip-text text-transparent drop-shadow-sm"
+              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+            >
+              SELECT TIER
+            </h2>
+            <div
+              className="h-0.5 w-20 rounded-full opacity-90"
+              style={{
+                background: gameMode === 'tournament'
+                  ? 'linear-gradient(90deg, transparent, hsl(350 55% 55%), transparent)'
+                  : 'linear-gradient(90deg, transparent, hsl(152 45% 45%), transparent)',
+              }}
+            />
+          </motion.div>
 
           {/* Tier cards — full width row, larger */}
           <motion.div
-            className="tier-cards grid grid-cols-4 gap-2 sm:gap-4 w-full"
+            className="tier-cards grid grid-cols-4 gap-2 sm:gap-3 w-full"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -665,34 +707,37 @@ const SitAndGoScreen = ({
               return (
                 <motion.button
                   key={tier.key}
-                  className={`tier-card relative flex flex-col items-center gap-1.5 px-3 py-3 sm:py-5 rounded-xl border-2 transition-all overflow-hidden touch-manipulation ${
-                    isLocked
-                      ? 'border-muted/30 cursor-not-allowed'
-                      : isSelected
-                        ? 'border-primary shadow-[0_0_20px_hsl(var(--casino-gold)/0.3)]'
-                        : 'border-primary/20 hover:border-primary/50'
-                  }`}
+                  className={cn(
+                    'tier-card relative flex flex-col items-center gap-1.5 px-2.5 py-3 sm:py-4 rounded-2xl border transition-all overflow-hidden touch-manipulation backdrop-blur-sm',
+                    isLocked && 'border-white/10 cursor-not-allowed',
+                    !isLocked &&
+                      !isSelected &&
+                      'border-white/10 hover:border-white/25 hover:bg-white/[0.03]',
+                    !isLocked &&
+                      isSelected &&
+                      'border-primary ring-2 ring-primary/50 ring-offset-2 ring-offset-black/40 shadow-[0_0_28px_hsl(var(--casino-gold)/0.22)]'
+                  )}
                   style={{
                     background: isLocked
-                      ? 'linear-gradient(180deg, hsl(0 0% 8% / 0.9) 0%, hsl(0 0% 4%) 100%)'
+                      ? 'linear-gradient(160deg, hsl(0 0% 10% / 0.95) 0%, hsl(0 0% 4%) 100%)'
                       : isSelected
-                        ? `linear-gradient(180deg, hsl(${tier.color} / 0.25) 0%, hsl(0 0% 6%) 100%)`
-                        : `linear-gradient(180deg, hsl(${tier.color} / 0.1) 0%, hsl(0 0% 6%) 100%)`,
+                        ? `linear-gradient(160deg, hsl(${tier.color} / 0.28) 0%, hsl(0 0% 5%) 100%)`
+                        : `linear-gradient(160deg, hsl(${tier.color} / 0.12) 0%, hsl(0 0% 6%) 100%)`,
                     fontFamily: "'Bebas Neue', sans-serif",
                     opacity: isLocked ? 0.5 : 1,
                   }}
                   onClick={() => { if (!isLocked) { hapticLight(); setExpandedTier(isSelected ? null : tier); } }}
-                  whileTap={isLocked ? {} : { scale: 0.96 }}
+                  whileTap={isLocked ? {} : { scale: 0.97 }}
                 >
                   {isSelected && (
                     <motion.div
-                      className="absolute inset-0 rounded-xl pointer-events-none"
-                      style={{ boxShadow: `inset 0 0 30px hsl(${tier.color} / 0.15)` }}
+                      className="absolute inset-0 rounded-2xl pointer-events-none"
+                      style={{ boxShadow: `inset 0 0 36px hsl(${tier.color} / 0.2)` }}
                       layoutId="tier-glow"
                     />
                   )}
                   {isLocked && (
-                    <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/40 rounded-xl">
+                    <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/45 rounded-2xl backdrop-blur-[2px]">
                       <Lock size={24} className="text-muted-foreground" />
                     </div>
                   )}
@@ -720,9 +765,9 @@ const SitAndGoScreen = ({
             {expandedTier && (
               <motion.div
                 key={expandedTier.key}
-                className="lobby-expanded-tier w-full rounded-xl border border-primary/30 overflow-hidden"
+                className="lobby-expanded-tier w-full rounded-2xl border border-white/10 overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl"
                 style={{
-                  background: `linear-gradient(180deg, hsl(${expandedTier.color} / 0.08) 0%, hsl(0 0% 6%) 100%)`,
+                  background: `linear-gradient(165deg, hsl(${expandedTier.color} / 0.14) 0%, hsl(0 0% 5% / 0.92) 55%, hsl(0 0% 4%) 100%)`,
                 }}
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -764,15 +809,16 @@ const SitAndGoScreen = ({
                   </div>
                 )}
 
-                {/* Stake label */}
-                <div className="px-5 pt-3 pb-2">
-                  <span className="text-muted-foreground text-xs sm:text-sm uppercase tracking-widest" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                    {gameMode === 'sit-and-go' ? 'Small / Big Blind' : 'Buy-in Options'}
+                <div className="px-5 pt-4 pb-2 flex flex-col gap-0.5">
+                  <span className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70 font-medium">
+                    {gameMode === 'sit-and-go' ? 'Stakes' : 'Entry'}
+                  </span>
+                  <span className="text-foreground/95 text-sm sm:text-base tracking-wide" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                    {gameMode === 'sit-and-go' ? 'Small blind / Big blind' : 'Tournament buy-in'}
                   </span>
                 </div>
 
-                {/* Stake options — grid for consistent sizing */}
-                <div className="lobby-stake-options px-5 pb-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                <div className="lobby-stake-options px-5 pb-5 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                   {(gameMode === 'sit-and-go' ? expandedTier.sitAndGoOptions : expandedTier.tournamentOptions).map((opt, i) => {
                     const isFree = opt.startsWith('FREE ');
                     const cleanOpt = isFree ? opt.replace('FREE ', '') : opt;
@@ -789,31 +835,38 @@ const SitAndGoScreen = ({
                     return (
                       <motion.button
                         key={i}
-                        className={`flex items-center justify-between px-4 py-3 sm:py-3.5 rounded-lg border transition-all touch-manipulation ${
-                          isActive
-                            ? 'border-primary bg-primary/15 shadow-[0_0_12px_hsl(var(--casino-gold)/0.2)]'
-                            : isFree
-                              ? 'border-green-500/40 hover:border-green-500/70'
-                              : 'border-primary/20 hover:border-primary/50'
-                        }`}
+                        type="button"
+                        className={cn(
+                          'flex min-h-[52px] items-center justify-between gap-2 px-3.5 py-3 rounded-xl border text-left transition-all touch-manipulation',
+                          isActive &&
+                            'border-primary bg-primary/12 shadow-[0_0_0_1px_hsl(var(--casino-gold)/0.25),0_8px_24px_rgba(0,0,0,0.25)]',
+                          !isActive &&
+                            isFree &&
+                            'border-emerald-500/35 hover:border-emerald-400/55 hover:bg-emerald-500/5',
+                          !isActive &&
+                            !isFree &&
+                            'border-white/10 hover:border-white/25 hover:bg-white/[0.04]'
+                        )}
                         style={{
                           background: isActive
                             ? undefined
                             : isFree
-                              ? 'linear-gradient(180deg, hsl(120 25% 14%) 0%, hsl(120 20% 8%) 100%)'
-                              : 'linear-gradient(180deg, hsl(0 0% 12%) 0%, hsl(0 0% 8%) 100%)',
+                              ? 'linear-gradient(165deg, hsl(145 28% 14%) 0%, hsl(145 22% 8%) 100%)'
+                              : 'linear-gradient(165deg, hsl(0 0% 14%) 0%, hsl(0 0% 8%) 100%)',
                           fontFamily: "'Bebas Neue', sans-serif",
                         }}
-                        whileTap={{ scale: 0.97 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => handleTierSelect(small, big, i)}
                       >
-                        <span className="text-foreground text-sm sm:text-base tracking-wider flex items-center gap-2">
-                          {isFree && <span className="text-green-400 text-xs font-bold px-2 py-1 rounded bg-green-500/20">FREE</span>}
+                        <span className="text-foreground text-sm sm:text-[15px] tracking-wide flex items-center gap-2">
+                          {isFree && (
+                            <span className="text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/30">
+                              FREE
+                            </span>
+                          )}
                           {displayLabel}
                         </span>
-                        {isActive && (
-                          <span className="text-primary text-sm">✓</span>
-                        )}
+                        {isActive && <span className="text-primary text-base shrink-0" aria-hidden>✓</span>}
                       </motion.button>
                     );
                   })}
@@ -838,27 +891,95 @@ const SitAndGoScreen = ({
             </motion.div>
           )}
 
-          {/* Buy-in slider — full width, same container */}
           <div
-            className="buyin-panel w-full rounded-xl border border-primary/25 px-5 py-4"
-            style={{ background: 'linear-gradient(180deg, hsl(0 0% 8% / 0.9) 0%, hsl(0 0% 5% / 0.9) 100%)' }}
+            className="buyin-panel w-full rounded-2xl border border-white/10 px-4 sm:px-5 py-4 sm:py-5 shadow-[0_12px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl"
+            style={{
+              background: 'linear-gradient(165deg, hsl(0 0% 12% / 0.88) 0%, hsl(0 0% 5% / 0.94) 100%)',
+            }}
           >
-            <div className="flex items-center justify-between mb-3">
-              <h3
-                className="buyin-label text-base sm:text-lg tracking-wider"
-                style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
-              >
-                {gameMode === 'tournament' ? 'BUY-IN' : 'ENTRANCE'}
-              </h3>
-              <span
-                className="buyin-value text-xl sm:text-2xl tracking-wider font-bold"
-                style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
-              >
-                ${formatFunds(entranceAmount)}
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70 mb-1 font-medium">
+                  {gameMode === 'tournament' ? 'Tournament' : 'Sit & Go'}
+                </p>
+                <h3
+                  className="buyin-label text-lg sm:text-xl tracking-wider"
+                  style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
+                >
+                  {gameMode === 'tournament' ? 'Buy-in amount' : 'Entrance amount'}
+                </h3>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                <button
+                  type="button"
+                  className="rounded-lg border border-white/15 bg-black/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors touch-manipulation"
+                  style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                  onClick={() => setEntranceAmount(clampEntrance(minEntrance))}
+                >
+                  Min
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border border-white/15 bg-black/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors touch-manipulation"
+                  style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                  onClick={() =>
+                    setEntranceAmount(clampEntrance((minEntrance + maxEntrance) / 2))
+                  }
+                >
+                  Mid
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border border-white/15 bg-black/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors touch-manipulation"
+                  style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                  onClick={() => setEntranceAmount(clampEntrance(maxEntrance))}
+                >
+                  Max
+                </button>
+              </div>
             </div>
-            <div className="w-full flex items-center gap-4">
-              <span className="text-muted-foreground text-xs sm:text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+
+            <div className="relative mb-4 flex items-center gap-2">
+              <span
+                className="pointer-events-none absolute left-3 z-[1] text-muted-foreground text-sm font-semibold"
+                style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                aria-hidden
+              >
+                $
+              </span>
+              <Input
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                aria-label={gameMode === 'tournament' ? 'Buy-in dollars' : 'Entrance dollars'}
+                className="h-11 sm:h-12 pl-7 text-lg sm:text-xl font-bold tabular-nums border-white/15 bg-black/40 text-primary focus-visible:ring-primary/50"
+                style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
+                value={amountInputFocused ? entranceDraft : entranceAmount.toFixed(2)}
+                onFocus={() => {
+                  setAmountInputFocused(true);
+                  setEntranceDraft(entranceAmount.toFixed(2));
+                }}
+                onBlur={() => {
+                  const v = parseFloat(entranceDraft.replace(/,/g, ''));
+                  const next = Number.isFinite(v) ? clampEntrance(v) : entranceAmount;
+                  setEntranceAmount(next);
+                  setEntranceDraft(next.toFixed(2));
+                  setAmountInputFocused(false);
+                }}
+                onChange={(e) => {
+                  const s = e.target.value;
+                  setEntranceDraft(s);
+                  const v = parseFloat(s.replace(/,/g, ''));
+                  if (Number.isFinite(v)) setEntranceAmount(clampEntrance(v));
+                }}
+              />
+            </div>
+
+            <div className="w-full flex items-center gap-3 sm:gap-4">
+              <span
+                className="text-muted-foreground text-[11px] sm:text-xs tabular-nums w-12 sm:w-14 shrink-0 text-right"
+                style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+              >
                 ${formatFunds(minEntrance)}
               </span>
               <input
@@ -867,11 +988,15 @@ const SitAndGoScreen = ({
                 max={maxEntrance}
                 step={stepSize}
                 value={Math.min(Math.max(entranceAmount, minEntrance), maxEntrance)}
-                onChange={(e) => setEntranceAmount(Math.round(Number(e.target.value) * 10) / 10)}
+                onChange={(e) => setEntranceAmount(clampEntrance(Number(e.target.value)))}
                 className="bet-amount-slider flex-1 h-5 sm:h-6 rounded-full appearance-none cursor-pointer touch-manipulation"
                 style={{ transition: 'none' }}
+                aria-label="Adjust amount with slider"
               />
-              <span className="text-muted-foreground text-xs sm:text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+              <span
+                className="text-muted-foreground text-[11px] sm:text-xs tabular-nums w-12 sm:w-14 shrink-0"
+                style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+              >
                 ${formatFunds(maxEntrance)}
               </span>
             </div>
@@ -1031,102 +1156,79 @@ const SitAndGoScreen = ({
         )}
       </AnimatePresence>
 
-      {matchmakingBusy && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/75 px-4">
+      {matchmakingBusy && matchPostCountdown == null && (
+        <div className="fixed inset-0 z-[260] bg-black">
+          <LoadingScreen
+            key="matchmaking-gta"
+            suppressAutoComplete
+            durationSec={MATCHMAKING_WAIT_MS / 1000}
+            isPublic
+          />
+        </div>
+      )}
+
+      {matchmakingBusy && matchPostCountdown != null && (
+        <div className="fixed inset-0 z-[261] flex items-center justify-center bg-black/80 px-4">
           <div className="rounded-2xl border border-primary/40 bg-background/95 px-8 py-6 text-center max-w-md w-full">
-            {matchPostCountdown != null ? (
-              <>
+            <motion.div
+              className="flex justify-center mb-4"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+            >
+              <Sparkles className="h-12 w-12 text-primary drop-shadow-[0_0_12px_hsl(var(--casino-gold)/0.6)]" />
+            </motion.div>
+            <p
+              className="text-primary font-bold tracking-wider text-lg mb-1"
+              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+            >
+              {matchedOpponents.some((p) => isMatchmakingBotUserId(p.userId)) ? 'Table ready' : 'Match found'}
+            </p>
+            <p className="text-muted-foreground text-xs mb-4">
+              {matchedOpponents.some((p) => isMatchmakingBotUserId(p.userId))
+                ? 'You’ll play with a table bot until more players join.'
+                : 'Real players at your table'}
+            </p>
+            <div className="flex flex-wrap justify-center gap-3 mb-5">
+              {matchedOpponents.map((p, i) => (
                 <motion.div
-                  className="flex justify-center mb-4"
-                  initial={{ scale: 0.5, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+                  key={p.userId}
+                  className="flex flex-col items-center gap-1"
+                  initial={{ y: 16, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.08 * i, type: 'spring', stiffness: 200, damping: 16 }}
                 >
-                  <Sparkles className="h-12 w-12 text-primary drop-shadow-[0_0_12px_hsl(var(--casino-gold)/0.6)]" />
-                </motion.div>
-                <p
-                  className="text-primary font-bold tracking-wider text-lg mb-1"
-                  style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-                >
-                  {matchedOpponents.some((p) => isMatchmakingBotUserId(p.userId))
-                    ? 'Table ready'
-                    : 'Match found'}
-                </p>
-                <p className="text-muted-foreground text-xs mb-4">
-                  {matchedOpponents.some((p) => isMatchmakingBotUserId(p.userId))
-                    ? 'You’ll play with a table bot until more players join.'
-                    : 'Real players at your table'}
-                </p>
-                <div className="flex flex-wrap justify-center gap-3 mb-5">
-                  {matchedOpponents.map((p, i) => (
-                    <motion.div
-                      key={p.userId}
-                      className="flex flex-col items-center gap-1"
-                      initial={{ y: 16, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.08 * i, type: 'spring', stiffness: 200, damping: 16 }}
-                    >
-                      <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/60 shadow-[0_0_12px_hsl(var(--casino-gold)/0.25)]">
-                        {isMatchmakingBotUserId(p.userId) ? (
-                          <div className="w-full h-full bg-muted flex items-center justify-center text-2xl" aria-hidden>
-                            🤖
-                          </div>
-                        ) : p.photoURL ? (
-                          <img src={p.photoURL} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div
-                            className="w-full h-full bg-primary/35 flex items-center justify-center text-primary text-lg font-bold"
-                            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-                          >
-                            {p.displayName[0]?.toUpperCase() ?? '?'}
-                          </div>
-                        )}
+                  <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/60 shadow-[0_0_12px_hsl(var(--casino-gold)/0.25)]">
+                    {isMatchmakingBotUserId(p.userId) ? (
+                      <div className="w-full h-full bg-muted flex items-center justify-center text-2xl" aria-hidden>
+                        🤖
                       </div>
-                      <span className="text-[10px] text-foreground max-w-[88px] truncate font-medium">
-                        {p.displayName}
-                      </span>
-                    </motion.div>
-                  ))}
-                </div>
-                <motion.div
-                  key={matchPostCountdown}
-                  className="text-5xl font-bold text-primary tabular-nums mb-2"
-                  style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-                  initial={{ scale: 1.35, opacity: 0.6 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  {matchPostCountdown}
+                    ) : p.photoURL ? (
+                      <img src={p.photoURL} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div
+                        className="w-full h-full bg-primary/35 flex items-center justify-center text-primary text-lg font-bold"
+                        style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                      >
+                        {p.displayName[0]?.toUpperCase() ?? '?'}
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-foreground max-w-[88px] truncate font-medium">{p.displayName}</span>
                 </motion.div>
-                <p className="text-muted-foreground text-xs tracking-wide">Continuing…</p>
-              </>
-            ) : (
-              <>
-                <div className="relative mx-auto w-24 h-24 mb-4 flex items-center justify-center">
-                  {[0, 1, 2].map((ring) => (
-                    <motion.div
-                      key={ring}
-                      className="absolute rounded-full border-2 border-primary/50"
-                      style={{ width: 56 + ring * 22, height: 56 + ring * 22 }}
-                      animate={{ scale: [1, 1.12, 1], opacity: [0.35, 0.85, 0.35] }}
-                      transition={{
-                        duration: 2.2,
-                        repeat: Infinity,
-                        delay: ring * 0.35,
-                        ease: 'easeInOut',
-                      }}
-                    />
-                  ))}
-                  <Loader2 className="h-10 w-10 animate-spin text-primary relative z-10" />
-                </div>
-                <p className="text-primary font-bold tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                  {mmPhaseLabel}
-                </p>
-                <p className="text-muted-foreground text-xs mt-2">
-                  Matching uses your tier, Sit &amp; Go / Tournament mode, blinds, and entrance — anyone in that pool can be seated with you.
-                </p>
-              </>
-            )}
+              ))}
+            </div>
+            <motion.div
+              key={matchPostCountdown}
+              className="text-5xl font-bold text-primary tabular-nums mb-2"
+              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+              initial={{ scale: 1.35, opacity: 0.6 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.25 }}
+            >
+              {matchPostCountdown}
+            </motion.div>
+            <p className="text-muted-foreground text-xs tracking-wide">Continuing…</p>
           </div>
         </div>
       )}

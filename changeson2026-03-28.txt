@@ -8,3 +8,6 @@ Date: 2026-03-28
 5. Multi-table matchmaking queue - One transaction can seat 4 players as 2+2, 5 as 2+3, 6 as 2+2+2, up to 6 per table, favoring as many tables as possible each with at least two humans
 6. Auto-start human matchmaking tables - startGame uses a Firestore transaction so multiple clients can call safely; Sit & Go shows a 5s match-found countdown with opponent names and avatars then starts the hand and opens the multiplayer table directly
 7. Matchmaking UI polish - Pulsing ring animation while searching for players; lobby shows “Starting table” for human-paired matchmaking instead of forcing only the host to press start
+8. Matchmaking loading overlay - GTA-style loader no longer fades in from transparent (tier lobby was visible briefly); solid black base and higher z-index so the lobby cannot flash above the loader or promotion modal
+9. Public lobby tier UX - Modern segmented Tournament / Sit & Go control, refreshed tier cards and stake grid, glass-style expanded tier panel with clearer SB/BB vs buy-in labeling
+10. Entrance and buy-in amount - Dollar field with direct numeric entry plus slider; Min/Mid/Max quick picks; amounts stay clamped when funds or step size change

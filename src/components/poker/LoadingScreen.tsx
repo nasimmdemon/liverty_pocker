@@ -2,13 +2,20 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface LoadingScreenProps {
-  onComplete: () => void;
+  onComplete?: () => void;
   isPublic?: boolean;
   embedded?: boolean;
+  /**
+   * When true, the 30s-style bar and character cycle run but `onComplete` is never called automatically
+   * (e.g. real-player matchmaking controls when to dismiss).
+   */
+  suppressAutoComplete?: boolean;
+  /** Length of one full progress-bar fill and character cycle (seconds). Default 30. */
+  durationSec?: number;
 }
 
-/** Full progress bar fill time (solo / test loading before table) */
-const LOADING_DURATION = 30;
+/** Default: solo / test loading and matchmaking bar length */
+const DEFAULT_LOADING_DURATION_SEC = 30;
 
 type CharacterPosition = 'left' | 'center' | 'right';
 
@@ -19,8 +26,6 @@ const LOADING_SCREENS: { background: string; character: string; position: Charac
   { background: '/loading_screen/loading_bg4.jpg', character: '/loading_screen/rat_loading_carecter.png', position: 'right' },
   { background: '/loading_screen/loadin_bg6.jpg', character: '/loading_screen/cat_2.png', position: 'center' },
 ];
-
-const FRAME_DURATION = LOADING_DURATION / LOADING_SCREENS.length;
 
 /** Position classes for each character placement */
 const POSITION_CLASSES: Record<CharacterPosition, string> = {
@@ -105,26 +110,37 @@ const LOADING_MESSAGES: MessagePart[][] = [
   ],
 ];
 
-const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: LoadingScreenProps) => {
+const LoadingScreen = ({
+  onComplete,
+  isPublic = true,
+  embedded = false,
+  suppressAutoComplete = false,
+  durationSec = DEFAULT_LOADING_DURATION_SEC,
+}: LoadingScreenProps) => {
   const [currentMessage, setCurrentMessage] = useState(0);
   const [currentFrame, setCurrentFrame] = useState(0);
+
+  const barSeconds = durationSec;
+  const frameSeconds = barSeconds / LOADING_SCREENS.length;
 
   useEffect(() => {
     preloadLoadingImages();
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => onComplete(), LOADING_DURATION * 1000);
+    if (suppressAutoComplete) return;
+    const done = onComplete ?? (() => {});
+    const timer = setTimeout(() => done(), barSeconds * 1000);
     return () => clearTimeout(timer);
-  }, [onComplete]);
+  }, [onComplete, suppressAutoComplete, barSeconds]);
 
-  // Cycle through frames evenly across LOADING_DURATION
+  // Cycle through frames evenly across barSeconds
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentFrame((p) => (p + 1) % LOADING_SCREENS.length);
-    }, FRAME_DURATION * 1000);
+    }, frameSeconds * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [frameSeconds]);
 
   // Cycle messages every 4 seconds
   useEffect(() => {
@@ -135,14 +151,16 @@ const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: Loadin
   }, []);
 
   const screen = LOADING_SCREENS[currentFrame];
+  /** Matchmaking must not fade in from transparent — tier UI would show through for ~600ms. */
+  const coverImmediately = suppressAutoComplete && !embedded;
 
   return (
     <motion.div
-      className={`${embedded ? 'absolute' : 'fixed'} inset-0 flex flex-col overflow-hidden`}
-      initial={{ opacity: 0 }}
+      className={`${embedded ? 'absolute' : 'fixed'} inset-0 flex flex-col overflow-hidden ${coverImmediately ? 'bg-black' : ''}`}
+      initial={coverImmediately ? { opacity: 1 } : { opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.6 }}
+      transition={{ duration: coverImmediately ? 0 : 0.6 }}
     >
       {/* Background + character: cycle every 5 seconds with crossfade */}
       <AnimatePresence mode="wait">
@@ -162,7 +180,7 @@ const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: Loadin
               scale: [1, 1.15],
             }}
             transition={{
-              duration: FRAME_DURATION,
+              duration: frameSeconds,
               ease: 'easeInOut',
             }}
           />
@@ -236,7 +254,7 @@ const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: Loadin
                 }}
                 initial={{ width: '0%' }}
                 animate={{ width: '100%' }}
-                transition={{ duration: LOADING_DURATION, ease: 'linear' }}
+                transition={{ duration: barSeconds, ease: 'linear' }}
               />
             </div>
           </div>
