@@ -138,3 +138,15 @@ TODAY'S SESSION — 2026-03-29
     - MultiplayerConfig gains optional userBuyInForExit set from the current user’s lobby
       chips when matchmaking completes (their actual entrance), used for profit on exit instead
       of room.buyIn when they differ across players at the same table.
+
+13. MONITOR — Live Games showed wrong or missing active tables
+    Files: src/lib/multiplayer.ts, src/pages/MonitorDashboard.tsx, firestore.indexes.json
+    - Root cause: query used where(status in …) with limit(300) but no orderBy, so Firestore
+      returned an arbitrary subset; dozens of zombie “playing” rows could crowd out the user’s
+      real table from the snapshot.
+    - Fix: orderBy('updatedAt', 'desc') so the listener always receives the most recently
+      updated active games first; composite index on games: status + updatedAt (DESC).
+    - firestoreTimestampToMs() handles Firestore Timestamp instances; getRoomActivityMs uses
+      max(updatedAt, createdAt) for staleness/sorting so timestamps are not misread as 0.
+    - subscribeToAllActiveGames optional onError; Live Games header shows a deploy-index hint
+      if the subscription fails (e.g. missing index).

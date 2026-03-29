@@ -4,6 +4,7 @@ import {
   subscribeToAllActiveGames,
   getEndedGames,
   isMatchmakingBotUserId,
+  firestoreTimestampToMs,
   type GameRoom,
 } from '@/lib/multiplayer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,14 +80,16 @@ const CHART_COLORS = ['hsl(var(--primary))', '#22c55e', '#eab308', '#3b82f6', '#
 const PLAYING_STALE_MS = 2 * 60 * 60 * 1000;   // 2 hours
 const WAITING_STALE_MS = 20 * 60 * 1000;         // 20 minutes
 
-function getUpdatedAtMs(room: GameRoom): number {
-  const u = room.updatedAt as { seconds?: number } | null | undefined;
-  if (!u) return 0;
-  return (u.seconds ?? 0) * 1000;
+/** Last activity time for staleness + sorting (prefers updatedAt, falls back to createdAt). */
+function getRoomActivityMs(room: GameRoom): number {
+  return Math.max(
+    firestoreTimestampToMs(room.updatedAt),
+    firestoreTimestampToMs(room.createdAt)
+  );
 }
 
 function isStale(room: GameRoom): boolean {
-  const updatedMs = getUpdatedAtMs(room);
+  const updatedMs = getRoomActivityMs(room);
   if (updatedMs === 0) return true; // no timestamp → treat as stale
   const age = Date.now() - updatedMs;
   if (room.status === 'playing') return age > PLAYING_STALE_MS;
@@ -176,7 +179,7 @@ function buildLiveTable(room: GameRoom, emailMap: Record<string, string>): LiveT
     realPlayers,
     bots,
     isMatchmaking: !!room.matchmakingOpen || !!room.matchmakingPoolId,
-    updatedAtMs: getUpdatedAtMs(room),
+    updatedAtMs: getRoomActivityMs(room),
   };
 }
 
@@ -234,7 +237,7 @@ function HistoryPanel({ emailMap }: { emailMap: Record<string, string> }) {
           realCount,
           botCount,
           type: classifyGame(room),
-          endedAtMs: getUpdatedAtMs(room),
+          endedAtMs: getRoomActivityMs(room),
           players,
         };
       });
@@ -415,6 +418,7 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
   const [liveLoaded, setLiveLoaded] = useState(false);
   const [expandedTable, setExpandedTable] = useState<string | null>(null);
   const [staleCount, setStaleCount] = useState(0);
+  const [liveSubError, setLiveSubError] = useState<string | null>(null);
 
   // Build userId → email map from analytics visits (unique by userId, email is de‑ duped)
   const emailMap = visits.reduce<Record<string, string>>((acc, v) => {
@@ -423,22 +427,33 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
   }, {});
 
   useEffect(() => {
-    const unsub = subscribeToAllActiveGames((rooms: GameRoom[]) => {
-      // Filter out stale zombie games
-      const fresh = rooms.filter((r) => !isStale(r));
-      const stale = rooms.length - fresh.length;
-      setStaleCount(stale);
+    const unsub = subscribeToAllActiveGames(
+      (rooms: GameRoom[]) => {
+        setLiveSubError(null);
+        // Filter out stale zombie games
+        const fresh = rooms.filter((r) => !isStale(r));
+        const stale = rooms.length - fresh.length;
+        setStaleCount(stale);
 
-      const processed = fresh.map((room) => buildLiveTable(room, emailMap));
-      // Sort: playing first, then most recently updated
-      processed.sort((a, b) => {
-        if (a.status === 'playing' && b.status !== 'playing') return -1;
-        if (b.status === 'playing' && a.status !== 'playing') return 1;
-        return b.updatedAtMs - a.updatedAtMs;
-      });
-      setTables(processed);
-      setLiveLoaded(true);
-    });
+        const processed = fresh.map((room) => buildLiveTable(room, emailMap));
+        // Sort: playing first, then most recently updated
+        processed.sort((a, b) => {
+          if (a.status === 'playing' && b.status !== 'playing') return -1;
+          if (b.status === 'playing' && a.status !== 'playing') return 1;
+          return b.updatedAtMs - a.updatedAtMs;
+        });
+        setTables(processed);
+        setLiveLoaded(true);
+      },
+      (err) => {
+        setLiveSubError(
+          err.code === 'failed-precondition'
+            ? 'Firestore index required: deploy firestore.indexes.json (status + updatedAt), or use the link in the browser console.'
+            : err.message || 'Live subscription failed'
+        );
+        setLiveLoaded(true);
+      }
+    );
     return () => unsub();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -486,6 +501,9 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
               </span>
             )}
           </p>
+          {liveSubError && (
+            <p className="text-xs text-destructive mt-1 max-w-xl">{liveSubError}</p>
+          )}
         </div>
       </div>
 

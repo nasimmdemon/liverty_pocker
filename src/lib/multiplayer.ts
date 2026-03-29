@@ -13,6 +13,7 @@ import {
   Timestamp,
   runTransaction,
   limit,
+  type FirestoreError,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { GameState, Player } from './gameTypes';
@@ -379,6 +380,18 @@ export async function leaveGameRoom(gameId: string, userId: string): Promise<Lea
   return null;
 }
 
+/** Milliseconds since epoch from Firestore Timestamp or serialized form (monitor + sorting). */
+export function firestoreTimestampToMs(ts: unknown): number {
+  if (ts == null) return 0;
+  if (ts instanceof Timestamp) return ts.toMillis();
+  if (typeof (ts as { toMillis?: () => number }).toMillis === 'function') {
+    return (ts as { toMillis: () => number }).toMillis();
+  }
+  const sec = (ts as { seconds?: number }).seconds;
+  if (typeof sec === 'number' && Number.isFinite(sec)) return sec * 1000;
+  return 0;
+}
+
 export function subscribeToGame(
   gameId: string,
   onUpdate: (room: GameRoom) => void
@@ -404,30 +417,42 @@ export function subscribeToGame(
  * Raw Firestore Timestamps are passed through so the caller can apply
  * staleness filtering (zombie games that never got marked 'ended').
  * Used by the monitor dashboard for real-time table & player tracking.
+ *
+ * IMPORTANT: Without orderBy, Firestore returns an arbitrary subset up to `limit`, so real
+ * active tables can be missing while old zombies fill the quota. We order by updatedAt desc
+ * so the N most recently touched games are always included (requires composite index).
  */
 export function subscribeToAllActiveGames(
-  onUpdate: (rooms: GameRoom[]) => void
+  onUpdate: (rooms: GameRoom[]) => void,
+  onError?: (error: FirestoreError) => void
 ): () => void {
   const q = query(
     collection(db, 'games'),
     where('status', 'in', ['waiting', 'playing']),
-    limit(200)
+    orderBy('updatedAt', 'desc'),
+    limit(300)
   );
-  return onSnapshot(q, (snap) => {
-    const rooms: GameRoom[] = snap.docs.map((d) => {
-      const data = d.data();
-      const gs = data?.gameState;
-      return {
-        id: d.id,
-        ...data,
-        // Keep raw Timestamp so monitor can read .seconds for staleness check
-        createdAt: data?.createdAt,
-        updatedAt: data?.updatedAt,
-        gameState: gs ? firestoreToGameState(gs as Record<string, unknown>) : null,
-      } as GameRoom;
-    });
-    onUpdate(rooms);
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      const rooms: GameRoom[] = snap.docs.map((d) => {
+        const data = d.data();
+        const gs = data?.gameState;
+        return {
+          id: d.id,
+          ...data,
+          createdAt: data?.createdAt,
+          updatedAt: data?.updatedAt,
+          gameState: gs ? firestoreToGameState(gs as Record<string, unknown>) : null,
+        } as GameRoom;
+      });
+      onUpdate(rooms);
+    },
+    (err) => {
+      console.error('[subscribeToAllActiveGames]', err);
+      onError?.(err);
+    }
+  );
 }
 
 /**
