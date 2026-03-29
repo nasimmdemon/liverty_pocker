@@ -115,3 +115,26 @@ TODAY'S SESSION — 2026-03-29
        • If finalChips > buyIn → calculates profit = finalChips - buyIn (rounded to ¢)
        • Calls addFunds(profit) which writes to Firestore users/{uid}.funds
        • Same rounding and guard logic as the solo table handleExitTable.
+
+10. MATCHMAKING POOL — Same tier + mode + SB/BB only (entrance can differ)
+    Files: src/lib/matchmaking.ts
+    - Pool document id is now `{tier}_{gameMode}_sb{X}_bb{Y}` with no buy-in segment so players
+      who chose different entrance amounts still queue together if stakes match.
+    - New tables: each seated player gets chips = their own queued buy-in; room.buyIn is set to
+      max(seated buy-ins, 2×SB) for legacy/table metadata and game-state seeding.
+    - Open-table join: tryJoinOpenMatchmakingGame now takes entrantBuyIn and seats the joiner with
+      that stack instead of copying the room’s single buyIn field.
+
+11. MATCHMAKING UI — GTA loader only while search is in flight
+    File: src/components/poker/SitAndGoScreen.tsx
+    - Added mmSearching: true until runMatchmakingUntilSeated resolves; GTA full-screen loader is
+      gated on matchmakingBusy && mmSearching (not merely “no countdown”).
+    - Fixes the flash where, after the match-found / avatar countdown, matchPostCountdown went
+      null while matchmakingBusy was still true and the GTA screen appeared again before navigate.
+    - If deductFunds fails before search, toast + clear busy/searching flags (no stuck overlay).
+
+12. EXIT PROFIT — Per-player starting stack after matchmaking
+    File: src/pages/Index.tsx
+    - MultiplayerConfig gains optional userBuyInForExit set from the current user’s lobby
+      chips when matchmaking completes (their actual entrance), used for profit on exit instead
+      of room.buyIn when they differ across players at the same table.

@@ -39,20 +39,18 @@ function roundMoney(n: number): number {
 }
 
 /**
- * Pool = same tier + game mode + blinds + buy-in (not grid index).
- * Fixes two phones picking FREE 0.01/0.02 with different subTierIndex / row.
+ * Pool = same tier + game mode + blinds only. Entrance / buy-in can differ per player;
+ * each player keeps their own stake as starting chips on the table.
  */
 export function buildMatchmakingPoolId(
   tierKey: MatchmakingTierKey,
   gameMode: 'tournament' | 'sit-and-go',
   smallBlind: number,
-  bigBlind: number,
-  buyIn: number
+  bigBlind: number
 ): string {
   const sb = roundMoney(smallBlind);
   const bb = roundMoney(bigBlind);
-  const bi = roundMoney(buyIn);
-  return `${tierKey}_${gameMode}_sb${sb}_bb${bb}_buy${bi}`;
+  return `${tierKey}_${gameMode}_sb${sb}_bb${bb}`;
 }
 
 const MAX_SEATS_PER_TABLE = 6;
@@ -118,7 +116,8 @@ export async function tryJoinOpenMatchmakingGame(
   userId: string,
   displayName: string,
   photoURL: string | null,
-  poolId: string
+  poolId: string,
+  entrantBuyIn: number
 ): Promise<string | null> {
   const q = query(
     collection(db, 'games'),
@@ -153,12 +152,13 @@ export async function tryJoinOpenMatchmakingGame(
       let seatIndex = 0;
       while (usedSeats.has(seatIndex) && seatIndex < 6) seatIndex++;
       if (seatIndex >= 6) return false;
+      const startChips = roundMoney(entrantBuyIn);
       players.push({
         userId,
         displayName,
         photoURL,
         seatIndex,
-        chips: data.buyIn ?? 1500,
+        chips: startChips,
         isReady: true,
       });
       const humans = players.filter((p) => !isMatchmakingBotUserId(p.userId));
@@ -295,9 +295,10 @@ export async function enqueueAndMaybePair(params: {
         cursor = tableSize;
         const sorted = [...slice].sort((a, b) => a.ts - b.ts);
         const host = sorted[0];
-        const buyIn = sorted[0].buyIn;
         const smallBlind = sorted[0].sb;
         const bigBlind = sorted[0].bb;
+        /** Table-level buy-in for legacy UI / minRaise seed; each seat uses its own chips. */
+        const tableBuyIn = Math.max(...sorted.map((q) => q.buyIn), smallBlind * 2);
         const gameRef = doc(collection(db, 'games'));
         const gameId = gameRef.id;
         const players: GameRoomPlayer[] = sorted.map((q, seatIndex) => ({
@@ -305,7 +306,7 @@ export async function enqueueAndMaybePair(params: {
           displayName: q.displayName,
           photoURL: q.photoURL,
           seatIndex,
-          chips: buyIn,
+          chips: q.buyIn,
           isReady: true,
         }));
         tx.set(gameRef, {
@@ -314,7 +315,7 @@ export async function enqueueAndMaybePair(params: {
           hostName: host.displayName,
           status: 'waiting',
           players,
-          buyIn,
+          buyIn: tableBuyIn,
           smallBlind,
           bigBlind,
           createdAt: serverTimestamp(),
@@ -380,7 +381,7 @@ export type MatchmakingSearchParams = {
   displayName: string;
   photoURL: string | null;
   tierKey: MatchmakingTierKey;
-  /** @deprecated Pool uses blinds + buy-in; kept for logging/UI only */
+  /** @deprecated Pool is tier + mode + blinds only; kept for UI/logging */
   subTierIndex?: number;
   gameMode: 'tournament' | 'sit-and-go';
   buyIn: number;
@@ -421,8 +422,7 @@ export async function runMatchmakingUntilSeated(
     params.tierKey,
     params.gameMode,
     params.smallBlind,
-    params.bigBlind,
-    params.buyIn
+    params.bigBlind
   );
   const sinceTs = Date.now();
   const base = {
@@ -439,7 +439,8 @@ export async function runMatchmakingUntilSeated(
     params.userId,
     params.displayName,
     params.photoURL,
-    poolId
+    poolId,
+    params.buyIn
   );
   if (openId) {
     options?.onPhase?.('open');
@@ -499,7 +500,8 @@ export async function runMatchmakingUntilSeated(
           params.userId,
           params.displayName,
           params.photoURL,
-          poolId
+          poolId,
+          params.buyIn
         );
         if (jid) {
           options?.onPhase?.('open');

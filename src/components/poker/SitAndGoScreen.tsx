@@ -267,6 +267,8 @@ const SitAndGoScreen = ({
   const [showPromotion, setShowPromotion] = useState<TierKey | null>(null);
   const [selectedSubTierIndex, setSelectedSubTierIndex] = useState(0);
   const [matchmakingBusy, setMatchmakingBusy] = useState(false);
+  /** GTA loader only while `runMatchmakingUntilSeated` is in flight — not after a room is returned. */
+  const [mmSearching, setMmSearching] = useState(false);
   const [matchPostCountdown, setMatchPostCountdown] = useState<number | null>(null);
   const [matchedOpponents, setMatchedOpponents] = useState<GameRoomPlayer[]>([]);
   const mmAbortRef = useRef<AbortController | null>(null);
@@ -346,7 +348,16 @@ const SitAndGoScreen = ({
     hapticHeavy();
     mmAbortRef.current = new AbortController();
     setMatchmakingBusy(true);
-    await deductFunds(entranceAmount);
+    setMmSearching(true);
+    try {
+      await deductFunds(entranceAmount);
+    } catch {
+      toast.error('Could not update your balance. Try again.');
+      setMatchmakingBusy(false);
+      setMmSearching(false);
+      mmAbortRef.current = null;
+      return;
+    }
     const abortSignal = mmAbortRef.current.signal;
     try {
       const room = await runMatchmakingUntilSeated(
@@ -363,6 +374,8 @@ const SitAndGoScreen = ({
         },
         { signal: abortSignal }
       );
+
+      setMmSearching(false);
 
       const opponentsForUi = room.players.filter((p) => p.userId !== user.uid);
       const showSeatFoundUi =
@@ -403,6 +416,7 @@ const SitAndGoScreen = ({
 
       onMatchmakingComplete(roomToOpen);
     } catch (e) {
+      setMmSearching(false);
       await addFunds(entranceAmount);
       if ((e as Error).name !== 'AbortError') {
         const code =
@@ -415,6 +429,7 @@ const SitAndGoScreen = ({
       }
     } finally {
       setMatchmakingBusy(false);
+      setMmSearching(false);
       setMatchPostCountdown(null);
       setMatchedOpponents([]);
       mmAbortRef.current = null;
@@ -1156,7 +1171,7 @@ const SitAndGoScreen = ({
         )}
       </AnimatePresence>
 
-      {matchmakingBusy && matchPostCountdown == null && (
+      {matchmakingBusy && mmSearching && (
         <div className="fixed inset-0 z-[260] bg-black">
           <LoadingScreen
             key="matchmaking-gta"

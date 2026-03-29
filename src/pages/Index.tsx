@@ -39,6 +39,8 @@ interface MultiplayerConfig {
   inviteCode: string;
   isHost: boolean;
   room: Awaited<ReturnType<typeof getGameByCode>>;
+  /** Starting stack for current user (matchmaking may differ from room.buyIn). */
+  userBuyInForExit?: number;
 }
 
 const Index = () => {
@@ -130,11 +132,13 @@ const Index = () => {
 
   const handleMatchmakingComplete = useCallback((room: GameRoom) => {
     if (!user) return;
+    const me = room.players.find((p) => p.userId === user.uid);
     setMultiplayerConfig({
       gameId: room.id,
       inviteCode: room.inviteCode,
       isHost: room.hostId === user.uid,
       room,
+      userBuyInForExit: me?.chips ?? room.buyIn,
     });
     if (room.status === 'playing') {
       setScreen('multiplayer-table');
@@ -280,7 +284,8 @@ const Index = () => {
           onExit={(finalChips?: number) => {
             // Credit winnings: if the player ended with more chips than they bought in with,
             // add the profit to their account balance (same logic as solo handleExitTable)
-            const buyIn = multiplayerConfig.room?.buyIn ?? 0;
+            const buyIn =
+              multiplayerConfig.userBuyInForExit ?? multiplayerConfig.room?.buyIn ?? 0;
             if (finalChips != null && finalChips > 0 && buyIn > 0) {
               const profit = Math.round((finalChips - buyIn) * 100) / 100;
               if (profit > 0) {

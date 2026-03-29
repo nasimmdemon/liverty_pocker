@@ -213,7 +213,7 @@ When **many developers join the same sub-tier simultaneously**:
 ## Client implementation (app)
 
 - **Entry:** Public table → choose tier + stake (same as solo) → **Quick match (players)**.
-- **Pool id:** `{tierKey}_{subTierIndex}_{gameMode}` — all devices must use the **same** tier, **same** stake cell (column index), and **same** mode (Sit & Go vs Tournament) to meet in one pool.
+- **Pool id:** `{tierKey}_{gameMode}_sb{small}_bb{big}` — same **tier**, **mode** (Sit & Go vs Tournament), **small blind**, and **big blind**. Entrance/buy-in may differ per player; each player’s starting stack is their own amount.
 - **Code:** `src/lib/matchmaking.ts`, `src/lib/multiplayer.ts` (matchmaking fields + bots), `SitAndGoScreen`, `MultiplayerLobby`, `PokerTable` (host-driven bot turns).
 - **Not yet in client:** reserve ledger, 3-game cooldown graph, sub-tier auto-scaling from measured RPM (doc only).
 
