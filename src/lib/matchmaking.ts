@@ -189,6 +189,61 @@ function normalizeQueue(queued: QueuedPlayer[], now: number): QueuedPlayer[] {
   return q;
 }
 
+/** Firestore rejects undefined in maps; normalize legacy/corrupt pool arrays. */
+function parseQueuedFromFirestore(raw: unknown): QueuedPlayer[] {
+  if (!Array.isArray(raw)) return [];
+  const out: QueuedPlayer[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const o = item as Record<string, unknown>;
+    const userId = typeof o.userId === 'string' ? o.userId : '';
+    if (!userId) continue;
+    const buyIn =
+      typeof o.buyIn === 'number' && Number.isFinite(o.buyIn) ? roundMoney(o.buyIn) : 0;
+    const sb = typeof o.sb === 'number' && Number.isFinite(o.sb) ? roundMoney(o.sb) : 0;
+    const bb = typeof o.bb === 'number' && Number.isFinite(o.bb) ? roundMoney(o.bb) : 0;
+    const ts = typeof o.ts === 'number' && Number.isFinite(o.ts) ? o.ts : Date.now();
+    const nonce = typeof o.nonce === 'string' ? o.nonce : `${ts}_${Math.random().toString(36).slice(2, 9)}`;
+    const displayName =
+      typeof o.displayName === 'string' && o.displayName.length > 0 ? o.displayName : 'Player';
+    const photoURL =
+      typeof o.photoURL === 'string' && o.photoURL.length > 0 ? o.photoURL : null;
+    out.push({ userId, displayName, photoURL, buyIn, sb, bb, ts, nonce });
+  }
+  return out;
+}
+
+function parseRecentPairsFromFirestore(raw: unknown): RecentPair[] {
+  if (!Array.isArray(raw)) return [];
+  const out: RecentPair[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const p = item as Record<string, unknown>;
+    const gameId = typeof p.gameId === 'string' ? p.gameId : '';
+    if (!gameId) continue;
+    const membersRaw = p.members;
+    const members = Array.isArray(membersRaw)
+      ? membersRaw.filter((m): m is string => typeof m === 'string' && m.length > 0)
+      : [];
+    const ts = typeof p.ts === 'number' && Number.isFinite(p.ts) ? p.ts : Date.now();
+    out.push({ gameId, members, ts });
+  }
+  return out;
+}
+
+function queueEntryForWrite(q: QueuedPlayer): Record<string, unknown> {
+  return {
+    userId: q.userId,
+    displayName: q.displayName,
+    photoURL: q.photoURL ?? null,
+    buyIn: q.buyIn,
+    sb: q.sb,
+    bb: q.bb,
+    ts: q.ts,
+    nonce: q.nonce,
+  };
+}
+
 /**
  * Add self to queue; form as many full tables as possible (2–6 per table, ≥2 humans each).
  */
@@ -207,15 +262,15 @@ export async function enqueueAndMaybePair(params: {
   const result = await runTransaction(db, async (tx) => {
     const poolSnap = await tx.get(poolRef);
     const data = poolSnap.exists() ? poolSnap.data() : {};
-    let queued = normalizeQueue((data.queued as QueuedPlayer[]) || [], now);
-    const recentPairs = ((data.recentPairs as RecentPair[]) || []).slice(-MAX_RECENT_PAIRS);
+    let queued = normalizeQueue(parseQueuedFromFirestore(data.queued), now);
+    const recentPairs = parseRecentPairsFromFirestore(data.recentPairs).slice(-MAX_RECENT_PAIRS);
 
     const exists = queued.some((q) => q.userId === params.userId);
     if (!exists) {
       queued.push({
         userId: params.userId,
-        displayName: params.displayName,
-        photoURL: params.photoURL,
+        displayName: String(params.displayName || 'Player'),
+        photoURL: params.photoURL ?? null,
         buyIn: roundMoney(params.buyIn),
         sb: roundMoney(params.smallBlind),
         bb: roundMoney(params.bigBlind),
@@ -230,46 +285,48 @@ export async function enqueueAndMaybePair(params: {
     let newQueued = [...queued];
     const newPairs: RecentPair[] = [...recentPairs];
 
+    /** One new table per transaction keeps commits small and avoids some backend precondition failures. */
     const plan = planMatchmakingTableSizes(newQueued.length);
     let cursor = 0;
-    for (const tableSize of plan) {
-      const slice = newQueued.slice(cursor, cursor + tableSize);
-      if (slice.length < tableSize) break;
-      cursor += tableSize;
-      const sorted = [...slice].sort((a, b) => a.ts - b.ts);
-      const host = sorted[0];
-      const buyIn = sorted[0].buyIn;
-      const smallBlind = sorted[0].sb;
-      const bigBlind = sorted[0].bb;
-      const gameRef = doc(collection(db, 'games'));
-      const gameId = gameRef.id;
-      const players: GameRoomPlayer[] = sorted.map((q, seatIndex) => ({
-        userId: q.userId,
-        displayName: q.displayName,
-        photoURL: q.photoURL,
-        seatIndex,
-        chips: buyIn,
-        isReady: true,
-      }));
-      tx.set(gameRef, {
-        inviteCode: generateInviteCode(),
-        hostId: host.userId,
-        hostName: host.displayName,
-        status: 'waiting',
-        players,
-        buyIn,
-        smallBlind,
-        bigBlind,
-        gameState: null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        matchmakingOpen: true,
-        matchmakingPoolId: params.poolId,
-        matchmakingHumanPair: true,
-      });
-      newPairs.push({ gameId, members: sorted.map((q) => q.userId), ts: now });
-      if (sorted.some((q) => q.userId === params.userId)) {
-        pairedGameId = gameId;
+    if (plan.length > 0) {
+      const tableSize = plan[0];
+      const slice = newQueued.slice(0, tableSize);
+      if (slice.length >= tableSize) {
+        cursor = tableSize;
+        const sorted = [...slice].sort((a, b) => a.ts - b.ts);
+        const host = sorted[0];
+        const buyIn = sorted[0].buyIn;
+        const smallBlind = sorted[0].sb;
+        const bigBlind = sorted[0].bb;
+        const gameRef = doc(collection(db, 'games'));
+        const gameId = gameRef.id;
+        const players: GameRoomPlayer[] = sorted.map((q, seatIndex) => ({
+          userId: q.userId,
+          displayName: q.displayName,
+          photoURL: q.photoURL,
+          seatIndex,
+          chips: buyIn,
+          isReady: true,
+        }));
+        tx.set(gameRef, {
+          inviteCode: generateInviteCode(),
+          hostId: host.userId,
+          hostName: host.displayName,
+          status: 'waiting',
+          players,
+          buyIn,
+          smallBlind,
+          bigBlind,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          matchmakingOpen: true,
+          matchmakingPoolId: params.poolId,
+          matchmakingHumanPair: true,
+        });
+        newPairs.push({ gameId, members: sorted.map((q) => q.userId), ts: now });
+        if (sorted.some((q) => q.userId === params.userId)) {
+          pairedGameId = gameId;
+        }
       }
     }
     newQueued = newQueued.slice(cursor);
@@ -278,8 +335,12 @@ export async function enqueueAndMaybePair(params: {
     tx.set(
       poolRef,
       {
-        queued: newQueued,
-        recentPairs: trimmedPairs,
+        queued: newQueued.map(queueEntryForWrite),
+        recentPairs: trimmedPairs.map((p) => ({
+          gameId: p.gameId,
+          members: p.members,
+          ts: p.ts,
+        })),
         updatedAt: serverTimestamp(),
       },
       { merge: true }
@@ -302,8 +363,15 @@ export async function leaveMatchmakingQueue(poolId: string, userId: string): Pro
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(poolRef);
     if (!snap.exists()) return;
-    const queued = ((snap.data().queued || []) as QueuedPlayer[]).filter((q) => q.userId !== userId);
-    tx.set(poolRef, { queued, updatedAt: serverTimestamp() }, { merge: true });
+    const now = Date.now();
+    const queued = normalizeQueue(parseQueuedFromFirestore(snap.data().queued), now).filter(
+      (q) => q.userId !== userId
+    );
+    tx.set(
+      poolRef,
+      { queued: queued.map(queueEntryForWrite), updatedAt: serverTimestamp() },
+      { merge: true }
+    );
   });
 }
 

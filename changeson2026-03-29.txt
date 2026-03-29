@@ -2,3 +2,6 @@ Liberty Poker - Completed Tasks
 Date: 2026-03-29
 
 1. Matchmaking stuck on loading screen - Removed switching to the solo GTA loading screen when real-player matchmaking starts; that unmount aborted the matchmaking AbortController. Matchmaking now stays on Sit & Go with the existing overlay until a table is found or bot fallback runs. Removed unused useRef/loadingMode from Index and abort-on-unmount from Sit & Go; back buttons abort matchmaking when leaving.
+2. Firestore matchmaking pool writes - Sanitize queued/recentPairs from corrupt types, write plain queue maps (no undefined), drop gameState:null on paired game creates, one table per transaction, and safer leave-queue serialization to fix failed-precondition commits.
+3. Sit & Go matchmaking UI - Restored full-screen overlay (search rings + match panel); opponent row includes bots (robot tile); 5s countdown before lobby or auto-start; join chip disabled while busy; toast shows error code on failure.
+4. GTA loading screen - Progress bar and total wait aligned to 30 seconds; character frames cycle evenly across that duration.

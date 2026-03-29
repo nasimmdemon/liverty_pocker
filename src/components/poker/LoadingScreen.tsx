@@ -7,8 +7,8 @@ interface LoadingScreenProps {
   embedded?: boolean;
 }
 
-const LOADING_DURATION = 24;
-const FRAME_DURATION = 6;
+/** Full progress bar fill time (solo / test loading before table) */
+const LOADING_DURATION = 30;
 
 type CharacterPosition = 'left' | 'center' | 'right';
 
@@ -19,6 +19,8 @@ const LOADING_SCREENS: { background: string; character: string; position: Charac
   { background: '/loading_screen/loading_bg4.jpg', character: '/loading_screen/rat_loading_carecter.png', position: 'right' },
   { background: '/loading_screen/loadin_bg6.jpg', character: '/loading_screen/cat_2.png', position: 'center' },
 ];
+
+const FRAME_DURATION = LOADING_DURATION / LOADING_SCREENS.length;
 
 /** Position classes for each character placement */
 const POSITION_CLASSES: Record<CharacterPosition, string> = {
@@ -116,7 +118,7 @@ const LoadingScreen = ({ onComplete, isPublic = true, embedded = false }: Loadin
     return () => clearTimeout(timer);
   }, [onComplete]);
 
-  // Cycle through 4 frames every 5 seconds
+  // Cycle through frames evenly across LOADING_DURATION
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentFrame((p) => (p + 1) % LOADING_SCREENS.length);

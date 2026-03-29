@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsLandscapeMobile } from '@/hooks/use-orientation';
-import { X, Users, UserPlus, Lock, Sparkles } from 'lucide-react';
+import { X, Users, UserPlus, Lock, Sparkles, Loader2 } from 'lucide-react';
 import { hapticLight, hapticMedium, hapticHeavy, hapticSuccess } from '@/lib/haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import CreateGameModal from '@/components/multiplayer/CreateGameModal';
@@ -338,20 +338,16 @@ const SitAndGoScreen = ({
         }
       );
 
-      const allHuman =
-        room.status === 'waiting' &&
-        room.players.length >= 2 &&
-        room.players.every((p) => !isMatchmakingBotUserId(p.userId));
+      const opponentsForUi = room.players.filter((p) => p.userId !== user.uid);
+      const showSeatFoundUi =
+        room.status === 'waiting' && room.players.length >= 2 && opponentsForUi.length >= 1;
 
       let roomToOpen: GameRoom = room;
 
-      if (allHuman) {
+      if (showSeatFoundUi) {
         hapticSuccess();
         setMmPhase('paired');
-        const opponents = room.players.filter(
-          (p) => p.userId !== user.uid && !isMatchmakingBotUserId(p.userId)
-        );
-        setMatchedOpponents(opponents);
+        setMatchedOpponents(opponentsForUi);
         try {
           for (let s = MATCHMAKING_POST_MATCH_COUNTDOWN_SEC; s >= 1; s--) {
             if (abortSignal.aborted) throw new DOMException('Aborted', 'AbortError');
@@ -371,15 +367,26 @@ const SitAndGoScreen = ({
         }
         if (abortSignal.aborted) throw new DOMException('Aborted', 'AbortError');
 
-        await startGame(room.id);
-        roomToOpen = (await getGameRoomById(room.id)) ?? room;
+        const allHuman =
+          room.players.length >= 2 &&
+          room.players.every((p) => !isMatchmakingBotUserId(p.userId));
+        if (allHuman) {
+          await startGame(room.id);
+          roomToOpen = (await getGameRoomById(room.id)) ?? room;
+        }
       }
 
       onMatchmakingComplete(roomToOpen);
     } catch (e) {
       await addFunds(entranceAmount);
       if ((e as Error).name !== 'AbortError') {
-        toast.error('Matchmaking failed. Funds were restored.');
+        const code =
+          e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
+        toast.error(
+          code
+            ? `Matchmaking failed (${code}). Funds were restored.`
+            : 'Matchmaking failed. Funds were restored.'
+        );
       }
     } finally {
       setMatchmakingBusy(false);
@@ -877,8 +884,10 @@ const SitAndGoScreen = ({
           <motion.button
             className="join-btn group mt-2 mb-2"
             onClick={() => void handleQuickMatch()}
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.95 }}
+            disabled={matchmakingBusy || !onMatchmakingComplete}
+            whileHover={matchmakingBusy ? {} : { scale: 1.08 }}
+            whileTap={matchmakingBusy ? {} : { scale: 0.95 }}
+            style={{ opacity: matchmakingBusy || !onMatchmakingComplete ? 0.55 : 1 }}
           >
             <img
               src={joinTableChip}
@@ -1022,6 +1031,105 @@ const SitAndGoScreen = ({
         )}
       </AnimatePresence>
 
+      {matchmakingBusy && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/75 px-4">
+          <div className="rounded-2xl border border-primary/40 bg-background/95 px-8 py-6 text-center max-w-md w-full">
+            {matchPostCountdown != null ? (
+              <>
+                <motion.div
+                  className="flex justify-center mb-4"
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+                >
+                  <Sparkles className="h-12 w-12 text-primary drop-shadow-[0_0_12px_hsl(var(--casino-gold)/0.6)]" />
+                </motion.div>
+                <p
+                  className="text-primary font-bold tracking-wider text-lg mb-1"
+                  style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                >
+                  {matchedOpponents.some((p) => isMatchmakingBotUserId(p.userId))
+                    ? 'Table ready'
+                    : 'Match found'}
+                </p>
+                <p className="text-muted-foreground text-xs mb-4">
+                  {matchedOpponents.some((p) => isMatchmakingBotUserId(p.userId))
+                    ? 'You’ll play with a table bot until more players join.'
+                    : 'Real players at your table'}
+                </p>
+                <div className="flex flex-wrap justify-center gap-3 mb-5">
+                  {matchedOpponents.map((p, i) => (
+                    <motion.div
+                      key={p.userId}
+                      className="flex flex-col items-center gap-1"
+                      initial={{ y: 16, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.08 * i, type: 'spring', stiffness: 200, damping: 16 }}
+                    >
+                      <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/60 shadow-[0_0_12px_hsl(var(--casino-gold)/0.25)]">
+                        {isMatchmakingBotUserId(p.userId) ? (
+                          <div className="w-full h-full bg-muted flex items-center justify-center text-2xl" aria-hidden>
+                            🤖
+                          </div>
+                        ) : p.photoURL ? (
+                          <img src={p.photoURL} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div
+                            className="w-full h-full bg-primary/35 flex items-center justify-center text-primary text-lg font-bold"
+                            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                          >
+                            {p.displayName[0]?.toUpperCase() ?? '?'}
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-foreground max-w-[88px] truncate font-medium">
+                        {p.displayName}
+                      </span>
+                    </motion.div>
+                  ))}
+                </div>
+                <motion.div
+                  key={matchPostCountdown}
+                  className="text-5xl font-bold text-primary tabular-nums mb-2"
+                  style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                  initial={{ scale: 1.35, opacity: 0.6 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  {matchPostCountdown}
+                </motion.div>
+                <p className="text-muted-foreground text-xs tracking-wide">Continuing…</p>
+              </>
+            ) : (
+              <>
+                <div className="relative mx-auto w-24 h-24 mb-4 flex items-center justify-center">
+                  {[0, 1, 2].map((ring) => (
+                    <motion.div
+                      key={ring}
+                      className="absolute rounded-full border-2 border-primary/50"
+                      style={{ width: 56 + ring * 22, height: 56 + ring * 22 }}
+                      animate={{ scale: [1, 1.12, 1], opacity: [0.35, 0.85, 0.35] }}
+                      transition={{
+                        duration: 2.2,
+                        repeat: Infinity,
+                        delay: ring * 0.35,
+                        ease: 'easeInOut',
+                      }}
+                    />
+                  ))}
+                  <Loader2 className="h-10 w-10 animate-spin text-primary relative z-10" />
+                </div>
+                <p className="text-primary font-bold tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                  {mmPhaseLabel}
+                </p>
+                <p className="text-muted-foreground text-xs mt-2">
+                  Matching uses your tier, Sit &amp; Go / Tournament mode, blinds, and entrance — anyone in that pool can be seated with you.
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Promotion Screen Modal */}
       <AnimatePresence>
