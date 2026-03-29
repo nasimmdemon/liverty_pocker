@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { WATCH_EARN_REWARD } from '@/lib/bonusConstants';
 import { useSearchParams } from 'react-router-dom';
 import { trackVisit, trackPlayed } from '@/lib/analytics';

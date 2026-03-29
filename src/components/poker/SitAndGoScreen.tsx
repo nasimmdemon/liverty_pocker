@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsLandscapeMobile } from '@/hooks/use-orientation';
-import { X, Users, UserPlus, Lock, Loader2, Sparkles } from 'lucide-react';
+import { X, Users, UserPlus, Lock, Sparkles } from 'lucide-react';
 import { hapticLight, hapticMedium, hapticHeavy, hapticSuccess } from '@/lib/haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import CreateGameModal from '@/components/multiplayer/CreateGameModal';
@@ -27,13 +27,6 @@ import {
 } from '@/lib/multiplayer';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import pokerTableBg from '@/assets/poker-table-bg.png';
 import joinTableChip from '@/assets/join-table-chip.png';
 
@@ -57,29 +50,29 @@ const TIERS: TierData[] = [
   {
     key: 'human', label: 'HUMAN', emoji: '🧑',
     commission: '5.0%', tournamentEntrance: '11%', organizerProfit: 0, affiliateShare: 30,
-    sitAndGoOptions: ['FREE 0.01-0.02', '0.08-0.16', '0.24-0.48', '0.48-0.72'],
-    tournamentOptions: ['FREE $0.15', '$1.20', '$3.60', '$6.50'],
+    sitAndGoOptions: ['0.01-0.02', '0.02-0.04', '0.04-0.08', '0.08-0.16'],
+    tournamentOptions: ['$0.15', '$0.30', '$0.60', '$1.20'],
     color: '200 60% 50%',
   },
   {
     key: 'rat', label: 'RAT', emoji: '🐀',
     commission: '3.5%', tournamentEntrance: '7%', organizerProfit: 7, affiliateShare: 30,
-    sitAndGoOptions: ['0.02-0.04', '0.16-0.32', '0.32-0.64', '0.50-0.80'],
-    tournamentOptions: ['$0.30', '$2.40', '$4.80', '$6.50'],
+    sitAndGoOptions: ['0.08-0.16', '0.16-0.32', '0.24-0.48', '0.32-0.64'],
+    tournamentOptions: ['$1.20', '$2.40', '$3.60', '$4.80'],
     color: '120 50% 45%',
   },
   {
     key: 'cat', label: 'CAT', emoji: '🐱',
     commission: '2.5%', tournamentEntrance: '6%', organizerProfit: 8, affiliateShare: 30,
-    sitAndGoOptions: ['0.04-0.08', '0.24-0.48', '0.48-0.72', '0.60-0.90'],
-    tournamentOptions: ['$0.60', '$3.60', '$6.00', '$7.50'],
+    sitAndGoOptions: ['0.24-0.48', '0.32-0.64', '0.48-0.72', '0.50-0.80'],
+    tournamentOptions: ['$3.60', '$4.80', '$6.00', '$6.50'],
     color: '280 55% 55%',
   },
   {
     key: 'dog', label: 'DOG', emoji: '🐕',
     commission: '2.0%', tournamentEntrance: '5%', organizerProfit: 10, affiliateShare: 30,
-    sitAndGoOptions: ['0.08-0.16', '0.32-0.64', '0.50-0.80', '0.70-1.00'],
-    tournamentOptions: ['$1.20', '$4.80', '$6.50', '$8.50'],
+    sitAndGoOptions: ['0.48-0.72', '0.50-0.80', '0.60-0.90', '0.70-1.00'],
+    tournamentOptions: ['$6.00', '$6.50', '$7.50', '$8.50'],
     color: '40 80% 50%',
   },
 ];
@@ -273,15 +266,10 @@ const SitAndGoScreen = ({
   const [matchPostCountdown, setMatchPostCountdown] = useState<number | null>(null);
   const [matchedOpponents, setMatchedOpponents] = useState<GameRoomPlayer[]>([]);
   const mmAbortRef = useRef<AbortController | null>(null);
-  const [playModeDialogOpen, setPlayModeDialogOpen] = useState(false);
 
   useEffect(() => {
     setSelectedSubTierIndex(0);
   }, [expandedTier?.key]);
-
-  useEffect(() => () => {
-    mmAbortRef.current?.abort();
-  }, []);
 
   // Tier progression: 100 hands per tier to unlock next
   const HANDS_PER_TIER = 100;
@@ -309,19 +297,6 @@ const SitAndGoScreen = ({
     onJoinTable(entranceAmount, stake.small, stake.big, gameMode, cardBack);
   };
 
-  const openPlayModeDialog = () => {
-    hapticLight();
-    if (!expandedTier || !selectedStake) {
-      toast.error('Select a tier and a stake (blind / buy-in) first.');
-      return;
-    }
-    if (entranceAmount > funds + 1e-6) {
-      toast.error('Not enough funds for this entrance.');
-      return;
-    }
-    setPlayModeDialogOpen(true);
-  };
-
   const handleTierSelect = (small: number, big: number, subTierIndex?: number) => {
     hapticMedium();
     setSelectedStake({ small, big });
@@ -330,7 +305,10 @@ const SitAndGoScreen = ({
   };
 
   const handleQuickMatch = async () => {
-    if (!expandedTier || !selectedStake || !user || !deductFunds || !addFunds || !onMatchmakingComplete) return;
+    if (!expandedTier || !selectedStake || !user || !deductFunds || !addFunds || !onMatchmakingComplete) {
+      toast.error('Select a tier and a stake first, or matchmaking is unavailable.');
+      return;
+    }
     if (entranceAmount > funds + 1e-6) {
       toast.error('Not enough funds for this entrance.');
       return;
@@ -423,6 +401,16 @@ const SitAndGoScreen = ({
             ? 'Starting a table — filling with a bot until more players join…'
             : 'Searching…';
 
+  const handleBackFromTierChoice = () => {
+    if (matchmakingBusy) mmAbortRef.current?.abort();
+    onBack();
+  };
+
+  const handleBackFromLobby = () => {
+    if (matchmakingBusy) mmAbortRef.current?.abort();
+    setTableType(null);
+  };
+
   const tabBtnClass = (active: boolean) =>
     `px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-sm font-bold tracking-wider transition-all border-2 ${
       active
@@ -466,7 +454,7 @@ const SitAndGoScreen = ({
         <div className="choose-header absolute top-3 left-3 z-10">
           <motion.button
             className="back-btn casino-btn text-[10px] sm:text-xs px-3 sm:px-4 py-2 sm:py-2 min-h-[40px] touch-manipulation"
-            onClick={onBack}
+            onClick={handleBackFromTierChoice}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -563,7 +551,8 @@ const SitAndGoScreen = ({
   // ── Main lobby (after choosing Public/Private) ──
   return (
     <motion.div
-      className="sitandgo-screen fixed inset-0 flex flex-col items-center overflow-y-auto overflow-x-hidden"
+      className="sitandgo-screen fixed inset-0 flex flex-col items-center overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -576,7 +565,7 @@ const SitAndGoScreen = ({
       <div className="lobby-header relative z-10 w-full flex-shrink-0 flex justify-between items-center gap-2 px-2 sm:px-6 py-2 sm:py-4 min-w-0">
         <motion.button
           className="lobby-back casino-btn text-[10px] sm:text-xs px-2 sm:px-4 py-1.5 sm:py-2 min-h-[36px] sm:min-h-[40px] shrink-0 touch-manipulation"
-          onClick={() => setTableType(null)}
+          onClick={handleBackFromLobby}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
@@ -610,7 +599,7 @@ const SitAndGoScreen = ({
 
       {/* Unified content column — scrollable; justify-start so scroll works in landscape */}
       {tableType === 'public' && (
-        <div className="lobby-content relative z-10 flex-1 flex flex-col items-center w-full max-w-[680px] px-4 py-4 overflow-y-auto overflow-x-hidden min-h-0 overscroll-contain">
+        <div className="lobby-content relative z-10 flex-1 flex flex-col items-center w-full max-w-[680px] px-4 py-4 overflow-y-auto overflow-x-hidden min-h-0 overscroll-contain [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}>
           <div className="flex flex-col items-center w-full gap-4 sm:gap-5 py-2">
           {/* Game Mode Tabs */}
           <motion.div
@@ -705,7 +694,7 @@ const SitAndGoScreen = ({
                     {tier.label}
                   </span>
                   <span className="tier-fee text-muted-foreground text-[10px] sm:text-xs leading-tight">
-                    {tier.key === 'human' ? 'FREE • ' : ''}{tier.tournamentEntrance} fee
+                    {gameMode === 'sit-and-go' ? `${tier.commission} commission` : `${tier.tournamentEntrance} fee`}
                   </span>
                   {isSelected && (
                     <motion.div
@@ -881,20 +870,19 @@ const SitAndGoScreen = ({
             </div>
           </div>
 
-          {/* Join chip → choose real players vs practice (solo bots) */}
+          {/* Join chip → directly starts real-people matchmaking */}
           <p className="text-[10px] sm:text-xs text-muted-foreground text-center max-w-xs -mb-1">
-            Tap the chip: <span className="text-primary">real people</span> matchmaking, or{' '}
-            <span className="text-muted-foreground">practice vs bots</span> (single-device table).
+            Tap the chip to <span className="text-primary">find a table</span> with real players.
           </p>
           <motion.button
             className="join-btn group mt-2 mb-2"
-            onClick={openPlayModeDialog}
+            onClick={() => void handleQuickMatch()}
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
           >
             <img
               src={joinTableChip}
-              alt="Choose play mode"
+              alt="Find a table"
               className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] group-hover:drop-shadow-[0_8px_32px_hsl(var(--casino-gold)/0.4)] transition-all duration-300"
             />
           </motion.button>
@@ -1034,147 +1022,6 @@ const SitAndGoScreen = ({
         )}
       </AnimatePresence>
 
-      {matchmakingBusy && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/75 px-4">
-          <div className="rounded-2xl border border-primary/40 bg-background/95 px-8 py-6 text-center max-w-md w-full">
-            {matchPostCountdown != null ? (
-              <>
-                <motion.div
-                  className="flex justify-center mb-4"
-                  initial={{ scale: 0.5, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-                >
-                  <Sparkles className="h-12 w-12 text-primary drop-shadow-[0_0_12px_hsl(var(--casino-gold)/0.6)]" />
-                </motion.div>
-                <p
-                  className="text-primary font-bold tracking-wider text-lg mb-1"
-                  style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-                >
-                  Match found
-                </p>
-                <p className="text-muted-foreground text-xs mb-4">Your table is filling with real players</p>
-                <div className="flex flex-wrap justify-center gap-3 mb-5">
-                  {matchedOpponents.map((p, i) => (
-                    <motion.div
-                      key={p.userId}
-                      className="flex flex-col items-center gap-1"
-                      initial={{ y: 16, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.08 * i, type: 'spring', stiffness: 200, damping: 16 }}
-                    >
-                      <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/60 shadow-[0_0_12px_hsl(var(--casino-gold)/0.25)]">
-                        {p.photoURL ? (
-                          <img src={p.photoURL} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div
-                            className="w-full h-full bg-primary/35 flex items-center justify-center text-primary text-lg font-bold"
-                            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-                          >
-                            {p.displayName[0]?.toUpperCase() ?? '?'}
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-foreground max-w-[72px] truncate font-medium">{p.displayName}</span>
-                    </motion.div>
-                  ))}
-                </div>
-                <motion.div
-                  key={matchPostCountdown}
-                  className="text-5xl font-bold text-primary tabular-nums mb-2"
-                  style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-                  initial={{ scale: 1.35, opacity: 0.6 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  {matchPostCountdown}
-                </motion.div>
-                <p className="text-muted-foreground text-xs tracking-wide">Starting the hand…</p>
-              </>
-            ) : (
-              <>
-                <div className="relative mx-auto w-24 h-24 mb-4 flex items-center justify-center">
-                  {[0, 1, 2].map((ring) => (
-                    <motion.div
-                      key={ring}
-                      className="absolute rounded-full border-2 border-primary/50"
-                      style={{ width: 56 + ring * 22, height: 56 + ring * 22 }}
-                      animate={{ scale: [1, 1.12, 1], opacity: [0.35, 0.85, 0.35] }}
-                      transition={{
-                        duration: 2.2,
-                        repeat: Infinity,
-                        delay: ring * 0.35,
-                        ease: 'easeInOut',
-                      }}
-                    />
-                  ))}
-                  <Loader2 className="h-10 w-10 animate-spin text-primary relative z-10" />
-                </div>
-                <p className="text-primary font-bold tracking-wider" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                  {mmPhaseLabel}
-                </p>
-                <p className="text-muted-foreground text-xs mt-2">
-                  Matching uses your tier, Sit &amp; Go / Tournament mode, blinds, and entrance — anyone in that pool can be seated with you.
-                </p>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      <Dialog open={playModeDialogOpen} onOpenChange={setPlayModeDialogOpen}>
-        <DialogContent className="z-[125] sm:max-w-md border-primary/30">
-          <DialogHeader>
-            <DialogTitle
-              className="text-primary tracking-wide text-xl"
-              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-            >
-              How do you want to play?
-            </DialogTitle>
-            <DialogDescription asChild>
-              <div className="text-left text-sm text-muted-foreground space-y-3 pt-1">
-                <p>
-                  <span className="text-foreground font-semibold">Play with real people</span> — Matchmaking groups everyone
-                  with the <span className="text-primary">same tier</span>, <span className="text-primary">same blinds / buy-in row</span>,{' '}
-                  <span className="text-primary">same mode</span> (Sit &amp; Go vs Tournament), and <span className="text-primary">same entrance amount</span>.
-                  You&apos;ll join a shared lobby when another real player is in that pool (or a bot fills the seat after a short wait).
-                </p>
-                <p>
-                  <span className="text-foreground font-semibold">Practice vs bots</span> — Only this device; computer
-                  opponents (e.g. SHADOW, LADY_LUCK). <span className="text-amber-200/90">Does not use matchmaking.</span>
-                </p>
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-3 pt-2">
-            {deductFunds && addFunds && onMatchmakingComplete ? (
-              <Button
-                className="w-full casino-btn h-12 text-sm"
-                onClick={() => {
-                  setPlayModeDialogOpen(false);
-                  void handleQuickMatch();
-                }}
-                disabled={matchmakingBusy}
-              >
-                Play with real people (matchmaking)
-              </Button>
-            ) : (
-              <p className="text-xs text-center text-muted-foreground">Matchmaking is not available in this build.</p>
-            )}
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-12 border-primary/40"
-              onClick={() => {
-                setPlayModeDialogOpen(false);
-                handleJoin();
-              }}
-            >
-              Practice vs bots only
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Promotion Screen Modal */}
       <AnimatePresence>
