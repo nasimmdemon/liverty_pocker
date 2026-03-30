@@ -17,7 +17,7 @@ import PokerTable from '@/components/poker/PokerTable';
 import WatchAndEarnScreen from '@/components/poker/WatchAndEarnScreen';
 import MultiplayerLobby from '@/components/multiplayer/MultiplayerLobby';
 import MultiplayerPokerTable from '@/components/multiplayer/MultiplayerPokerTable';
-import { getGameByCode, joinGameRoom, type GameRoom } from '@/lib/multiplayer';
+import { getGameByCode, joinGameRoom, subscribeToWaitingLobbyPlayerCount, type GameRoom } from '@/lib/multiplayer';
 
 type Screen = 'start' | 'loading' | 'sitandgo' | 'testing' | 'table' | 'watch-and-earn' | 'multiplayer-lobby' | 'multiplayer-table';
 
@@ -63,6 +63,7 @@ const Index = () => {
   const funds = profile?.funds ?? 0;
   const [tableConfig, setTableConfig] = useState<TableConfig>({ buyIn: 1500, smallBlind: 5, bigBlind: 10 });
   const [multiplayerConfig, setMultiplayerConfig] = useState<MultiplayerConfig | null>(null);
+  const [lobbyPlayerCount, setLobbyPlayerCount] = useState(0);
 
   const handlePlay = useCallback(() => setScreen('sitandgo'), []);
   const handleWatchAndEarn = useCallback(() => setScreen('watch-and-earn'), []);
@@ -163,6 +164,18 @@ const Index = () => {
   }, [user?.uid, user?.email, user?.displayName]);
 
   useEffect(() => {
+    if (screen !== 'start' || !user) {
+      setLobbyPlayerCount(0);
+      return;
+    }
+    const unsub = subscribeToWaitingLobbyPlayerCount(setLobbyPlayerCount);
+    return () => {
+      unsub();
+      setLobbyPlayerCount(0);
+    };
+  }, [screen, user]);
+
+  useEffect(() => {
     if (joinCodeFromUrl && canInviteFriends && user) {
       getGameByCode(joinCodeFromUrl).then(async room => {
         if (room) {
@@ -205,7 +218,13 @@ const Index = () => {
     <div className={`min-h-[100dvh] h-[100dvh] overflow-hidden flex flex-col ${showContinueBanner ? 'pb-[52px]' : ''}`} data-landscape-mobile={isLandscapeMobile ? 'true' : undefined}>
     <AnimatePresence mode="wait">
       {screen === 'start' && (
-        <StartScreen key="start" onPlay={handlePlay} onWatchAndEarn={handleWatchAndEarn} funds={funds} />
+        <StartScreen
+          key="start"
+          onPlay={handlePlay}
+          onWatchAndEarn={handleWatchAndEarn}
+          funds={funds}
+          lobbyPlayerCount={lobbyPlayerCount}
+        />
       )}
       {screen === 'watch-and-earn' && (
         <WatchAndEarnScreen

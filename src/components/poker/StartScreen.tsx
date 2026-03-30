@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { LogOut, UserPlus, User, Tv } from 'lucide-react';
+import { LogOut, UserPlus, User, Tv, LayoutDashboard } from 'lucide-react';
 import PlayButton from './PlayButton';
 import { formatFunds } from '@/lib/formatChips';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,9 +11,11 @@ interface StartScreenProps {
   onPlay: () => void;
   onWatchAndEarn?: () => void;
   funds?: number;
+  /** Unique real players currently in a waiting-room table (live from Firestore). */
+  lobbyPlayerCount?: number;
 }
 
-const StartScreen = ({ onPlay, onWatchAndEarn, funds = 0 }: StartScreenProps) => {
+const StartScreen = ({ onPlay, onWatchAndEarn, funds = 0, lobbyPlayerCount = 0 }: StartScreenProps) => {
   const { user, signOut } = useAuth();
   return (
     <motion.div
@@ -93,6 +95,20 @@ const StartScreen = ({ onPlay, onWatchAndEarn, funds = 0 }: StartScreenProps) =>
           WELCOME TO LIBERTY POKER
         </motion.h2>
 
+        {lobbyPlayerCount > 0 && (
+          <motion.p
+            className="text-center text-sm sm:text-base tracking-wider -mt-1 sm:-mt-2"
+            style={{ fontFamily: "'Bebas Neue', 'Cinzel', serif", color: 'rgba(242, 210, 122, 0.9)' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.45, duration: 0.4 }}
+          >
+            {lobbyPlayerCount === 1
+              ? '1 player in the lobby'
+              : `${lobbyPlayerCount} players in the lobby`}
+          </motion.p>
+        )}
+
         <motion.div
           className="start-buttons flex flex-col items-center gap-2 sm:gap-4"
           initial={{ opacity: 0, scale: 0.8 }}
@@ -133,6 +149,21 @@ const StartScreen = ({ onPlay, onWatchAndEarn, funds = 0 }: StartScreenProps) =>
           >
             <UserPlus className="h-5 w-5 sm:h-6 sm:w-6" />
             INVITE FRIEND
+          </Link>
+          <Link
+            to="/monitor"
+            className="secondary-btn flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 rounded-xl border-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            style={{
+              fontFamily: "'Bebas Neue', 'Cinzel', serif",
+              color: '#F2D27A',
+              borderColor: '#F2D27A',
+              background: 'rgba(0,0,0,0.3)',
+              fontSize: '1.1rem',
+              letterSpacing: '0.12em',
+            }}
+          >
+            <LayoutDashboard className="h-5 w-5 sm:h-6 sm:w-6" />
+            MONITOR DASHBOARD
           </Link>
         </motion.div>
       </div>

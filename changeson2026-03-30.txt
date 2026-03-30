@@ -1,0 +1,7 @@
+Liberty Poker - Completed Tasks
+Date: 2026-03-30
+
+1. Monitor Live Games Firestore error — Removed the composite-index requirement for the live games listener by dropping orderBy and sorting active games client-side; the monitor should load without deploying indexes first (deploying firestore.indexes.json remains recommended at scale).
+2. Home screen — Added a MONITOR DASHBOARD button next to Watch & Earn and Invite Friend, linking to /monitor.
+3. Home screen lobby awareness — Subscribed to waiting game rooms and show a live line such as “1 player in the lobby” when unique real players are in non-stale waiting tables.
+4. Monitor login — Removed hardcoded passwords from source; login uses VITE_MONITOR_LOGIN_EMAIL and VITE_MONITOR_LOGIN_PASSWORD (see .env.example). Added “Login as Alexy” and “Login as Adi” quick-fill buttons that use the same shared credentials.

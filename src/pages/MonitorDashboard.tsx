@@ -67,10 +67,9 @@ import {
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
-const MONITOR_CREDENTIALS: Record<string, string> = {
-  'nasimmdemon@gmail.com': 'Emon4288@',
-  'alexywiseman@gmail.com': 'Paradise1@',
-};
+/** Set in `.env.local` / hosting: VITE_MONITOR_LOGIN_EMAIL, VITE_MONITOR_LOGIN_PASSWORD */
+const MONITOR_LOGIN_EMAIL = (import.meta.env.VITE_MONITOR_LOGIN_EMAIL as string | undefined)?.trim() ?? '';
+const MONITOR_LOGIN_PASSWORD = (import.meta.env.VITE_MONITOR_LOGIN_PASSWORD as string | undefined) ?? '';
 const STORAGE_KEY = 'monitor_logged_in';
 const CHART_COLORS = ['hsl(var(--primary))', '#22c55e', '#eab308', '#3b82f6', '#a855f7', '#ec4899'];
 
@@ -448,7 +447,7 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
       (err) => {
         setLiveSubError(
           err.code === 'failed-precondition'
-            ? 'Firestore index required: deploy firestore.indexes.json (status + updatedAt), or use the link in the browser console.'
+            ? 'Firestore query failed (index or rules). Try deploying firestore.indexes.json, or check the browser console link.'
             : err.message || 'Live subscription failed'
         );
         setLiveLoaded(true);
@@ -808,13 +807,21 @@ const MonitorDashboard = () => {
   const [days, setDays] = useState<7 | 14 | 30>(30);
   const [activeTab, setActiveTab] = useState<ActiveTab>('live');
 
+  const fillQuickMonitorLogin = () => {
+    setLoginError('');
+    setEmail(MONITOR_LOGIN_EMAIL);
+    setPassword(MONITOR_LOGIN_PASSWORD);
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
     setLoginLoading(true);
     const normalizedEmail = email.trim().toLowerCase();
-    const expectedPass = MONITOR_CREDENTIALS[normalizedEmail];
-    if (expectedPass && password === expectedPass) {
+    const expectedEmail = MONITOR_LOGIN_EMAIL.toLowerCase();
+    if (!expectedEmail || !MONITOR_LOGIN_PASSWORD) {
+      setLoginError('Monitor login is not configured. Set VITE_MONITOR_LOGIN_EMAIL and VITE_MONITOR_LOGIN_PASSWORD for the build.');
+    } else if (normalizedEmail === expectedEmail && password === MONITOR_LOGIN_PASSWORD) {
       setUser({ email: normalizedEmail });
       sessionStorage.setItem(STORAGE_KEY, normalizedEmail);
     } else {
@@ -859,7 +866,9 @@ const MonitorDashboard = () => {
         <Card className="w-full max-w-md border-primary/30">
           <CardHeader>
             <CardTitle className="font-display text-primary">Monitor Login</CardTitle>
-            <CardDescription>Sign in with an authorized account to access the analytics dashboard</CardDescription>
+            <CardDescription>
+              Sign in with the monitor account. Use the quick buttons below to fill email and password when configured on the server build.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
@@ -883,6 +892,16 @@ const MonitorDashboard = () => {
               <Button type="submit" disabled={loginLoading} className="w-full">
                 {loginLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign In'}
               </Button>
+              {MONITOR_LOGIN_EMAIL && MONITOR_LOGIN_PASSWORD && (
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <Button type="button" variant="outline" className="w-full text-xs sm:text-sm" onClick={fillQuickMonitorLogin}>
+                    Login as Alexy
+                  </Button>
+                  <Button type="button" variant="outline" className="w-full text-xs sm:text-sm" onClick={fillQuickMonitorLogin}>
+                    Login as Adi
+                  </Button>
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>

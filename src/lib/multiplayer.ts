@@ -412,15 +412,64 @@ export function subscribeToGame(
   });
 }
 
+/** Same staleness window as the monitor for waiting lobbies (zombie rooms). */
+const WAITING_LOBBY_STALE_MS = 20 * 60 * 1000;
+
+function roomActivityMsForLobby(room: GameRoom): number {
+  return Math.max(firestoreTimestampToMs(room.updatedAt), firestoreTimestampToMs(room.createdAt));
+}
+
+function isWaitingLobbyStale(room: GameRoom): boolean {
+  const ms = roomActivityMsForLobby(room);
+  if (ms === 0) return true;
+  return Date.now() - ms > WAITING_LOBBY_STALE_MS;
+}
+
+/**
+ * Real-time count of unique real (non-bot) players seated in non-stale waiting rooms.
+ * Used on the home screen (“N players in the lobby”).
+ */
+export function subscribeToWaitingLobbyPlayerCount(
+  onCount: (count: number) => void,
+  onError?: (error: FirestoreError) => void
+): () => void {
+  const q = query(collection(db, 'games'), where('status', '==', 'waiting'), limit(200));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const ids = new Set<string>();
+      for (const d of snap.docs) {
+        const data = d.data();
+        const room = {
+          id: d.id,
+          ...data,
+          createdAt: data?.createdAt,
+          updatedAt: data?.updatedAt,
+        } as GameRoom;
+        if (isWaitingLobbyStale(room)) continue;
+        for (const p of room.players || []) {
+          if (!isMatchmakingBotUserId(p.userId)) ids.add(p.userId);
+        }
+      }
+      onCount(ids.size);
+    },
+    (err) => {
+      console.error('[subscribeToWaitingLobbyPlayerCount]', err);
+      onError?.(err);
+    }
+  );
+}
+
 /**
  * Subscribe to all active game rooms (status = 'waiting' | 'playing').
  * Raw Firestore Timestamps are passed through so the caller can apply
  * staleness filtering (zombie games that never got marked 'ended').
  * Used by the monitor dashboard for real-time table & player tracking.
  *
- * IMPORTANT: Without orderBy, Firestore returns an arbitrary subset up to `limit`, so real
- * active tables can be missing while old zombies fill the quota. We order by updatedAt desc
- * so the N most recently touched games are always included (requires composite index).
+ * We intentionally omit orderBy here so no composite index is required (avoids
+ * failed-precondition until firestore.indexes.json is deployed). Results are sorted
+ * client-side by last activity. If you have more than `limit` active games, deploy
+ * the status + updatedAt index and add orderBy('updatedAt', 'desc') for stronger guarantees.
  */
 export function subscribeToAllActiveGames(
   onUpdate: (rooms: GameRoom[]) => void,
@@ -429,7 +478,6 @@ export function subscribeToAllActiveGames(
   const q = query(
     collection(db, 'games'),
     where('status', 'in', ['waiting', 'playing']),
-    orderBy('updatedAt', 'desc'),
     limit(300)
   );
   return onSnapshot(
@@ -446,6 +494,7 @@ export function subscribeToAllActiveGames(
           gameState: gs ? firestoreToGameState(gs as Record<string, unknown>) : null,
         } as GameRoom;
       });
+      rooms.sort((a, b) => roomActivityMsForLobby(b) - roomActivityMsForLobby(a));
       onUpdate(rooms);
     },
     (err) => {
