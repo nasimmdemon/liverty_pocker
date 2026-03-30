@@ -66,11 +66,28 @@ import {
 } from 'recharts';
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
-
-/** Set in `.env.local` / hosting: VITE_MONITOR_LOGIN_EMAIL, VITE_MONITOR_LOGIN_PASSWORD */
+// Client-side monitor gate only (bundle-visible). Optional env overrides / extra account below.
+const MONITOR_CREDENTIALS: Record<string, string> = {
+  'nasimmdemon@gmail.com': 'Emon4288@',
+  'alexywiseman@gmail.com': 'Paradise1@',
+};
 const MONITOR_LOGIN_EMAIL = (import.meta.env.VITE_MONITOR_LOGIN_EMAIL as string | undefined)?.trim() ?? '';
 const MONITOR_LOGIN_PASSWORD = (import.meta.env.VITE_MONITOR_LOGIN_PASSWORD as string | undefined) ?? '';
 const STORAGE_KEY = 'monitor_logged_in';
+
+function monitorPasswordForEmail(normalizedEmail: string): string | undefined {
+  return MONITOR_CREDENTIALS[normalizedEmail] ?? undefined;
+}
+
+function isValidMonitorPassword(normalizedEmail: string, password: string): boolean {
+  const fromMap = monitorPasswordForEmail(normalizedEmail);
+  if (fromMap && password === fromMap) return true;
+  const envEmail = MONITOR_LOGIN_EMAIL.toLowerCase();
+  if (envEmail && MONITOR_LOGIN_PASSWORD && normalizedEmail === envEmail && password === MONITOR_LOGIN_PASSWORD) {
+    return true;
+  }
+  return false;
+}
 const CHART_COLORS = ['hsl(var(--primary))', '#22c55e', '#eab308', '#3b82f6', '#a855f7', '#ec4899'];
 
 // ─── Staleness thresholds ────────────────────────────────────────────────────
@@ -807,21 +824,36 @@ const MonitorDashboard = () => {
   const [days, setDays] = useState<7 | 14 | 30>(30);
   const [activeTab, setActiveTab] = useState<ActiveTab>('live');
 
-  const fillQuickMonitorLogin = () => {
+  const fillMonitorLoginAsAlexy = () => {
     setLoginError('');
-    setEmail(MONITOR_LOGIN_EMAIL);
-    setPassword(MONITOR_LOGIN_PASSWORD);
+    setEmail('alexywiseman@gmail.com');
+    setPassword(MONITOR_CREDENTIALS['alexywiseman@gmail.com'] ?? '');
   };
+
+  const fillMonitorLoginAsAdi = () => {
+    setLoginError('');
+    setEmail('nasimmdemon@gmail.com');
+    setPassword(MONITOR_CREDENTIALS['nasimmdemon@gmail.com'] ?? '');
+  };
+
+  // Prefill when showing the login form (mount or after logout).
+  useEffect(() => {
+    if (user) return;
+    setLoginError('');
+    setEmail('nasimmdemon@gmail.com');
+    setPassword(MONITOR_CREDENTIALS['nasimmdemon@gmail.com'] ?? '');
+  }, [user]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
     setLoginLoading(true);
     const normalizedEmail = email.trim().toLowerCase();
-    const expectedEmail = MONITOR_LOGIN_EMAIL.toLowerCase();
-    if (!expectedEmail || !MONITOR_LOGIN_PASSWORD) {
-      setLoginError('Monitor login is not configured. Set VITE_MONITOR_LOGIN_EMAIL and VITE_MONITOR_LOGIN_PASSWORD for the build.');
-    } else if (normalizedEmail === expectedEmail && password === MONITOR_LOGIN_PASSWORD) {
+    const hasAnyAuth =
+      Object.keys(MONITOR_CREDENTIALS).length > 0 || (MONITOR_LOGIN_EMAIL && MONITOR_LOGIN_PASSWORD);
+    if (!hasAnyAuth) {
+      setLoginError('Monitor login is not configured. Add accounts in code or set VITE_MONITOR_LOGIN_EMAIL / VITE_MONITOR_LOGIN_PASSWORD.');
+    } else if (isValidMonitorPassword(normalizedEmail, password)) {
       setUser({ email: normalizedEmail });
       sessionStorage.setItem(STORAGE_KEY, normalizedEmail);
     } else {
@@ -867,11 +899,19 @@ const MonitorDashboard = () => {
           <CardHeader>
             <CardTitle className="font-display text-primary">Monitor Login</CardTitle>
             <CardDescription>
-              Sign in with the monitor account. Use the quick buttons below to fill email and password when configured on the server build.
+              Email and password are filled automatically for debugging. Use Alexy / Adi to switch accounts, or edit the fields and sign in.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                <Button type="button" variant="outline" className="w-full text-xs sm:text-sm" onClick={fillMonitorLoginAsAlexy}>
+                  Login as Alexy
+                </Button>
+                <Button type="button" variant="outline" className="w-full text-xs sm:text-sm" onClick={fillMonitorLoginAsAdi}>
+                  Login as Adi
+                </Button>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="monitor-email">Email</Label>
                 <div className="relative">
@@ -892,16 +932,6 @@ const MonitorDashboard = () => {
               <Button type="submit" disabled={loginLoading} className="w-full">
                 {loginLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign In'}
               </Button>
-              {MONITOR_LOGIN_EMAIL && MONITOR_LOGIN_PASSWORD && (
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <Button type="button" variant="outline" className="w-full text-xs sm:text-sm" onClick={fillQuickMonitorLogin}>
-                    Login as Alexy
-                  </Button>
-                  <Button type="button" variant="outline" className="w-full text-xs sm:text-sm" onClick={fillQuickMonitorLogin}>
-                    Login as Adi
-                  </Button>
-                </div>
-              )}
             </form>
           </CardContent>
         </Card>
