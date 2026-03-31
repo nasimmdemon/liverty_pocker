@@ -419,13 +419,19 @@ const SitAndGoScreen = ({
       setMmSearching(false);
       await addFunds(entranceAmount);
       if ((e as Error).name !== 'AbortError') {
-        const code =
-          e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
-        toast.error(
-          code
-            ? `Matchmaking failed (${code}). Funds were restored.`
-            : 'Matchmaking failed. Funds were restored.'
-        );
+        if (e instanceof Error && e.message === 'MATCHMAKING_BOT_DISABLED') {
+          toast.error(
+            'No opponent found in time and automatic table fill is off for this stake. Funds were restored.'
+          );
+        } else {
+          const code =
+            e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
+          toast.error(
+            code
+              ? `Matchmaking failed (${code}). Funds were restored.`
+              : 'Matchmaking failed. Funds were restored.'
+          );
+        }
       }
     } finally {
       setMatchmakingBusy(false);

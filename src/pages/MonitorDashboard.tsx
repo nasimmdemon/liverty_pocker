@@ -1,12 +1,15 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { getAnalyticsVisits, type AnalyticsVisit } from '@/lib/analytics';
 import {
   subscribeToAllActiveGames,
   getEndedGames,
   isMatchmakingBotUserId,
   firestoreTimestampToMs,
+  closeGameRoomAsEnded,
   type GameRoom,
 } from '@/lib/multiplayer';
+import MonitorLiveOperations from '@/components/monitor/MonitorLiveOperations';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -469,6 +472,7 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
   const [expandedTable, setExpandedTable] = useState<string | null>(null);
   const [staleCount, setStaleCount] = useState(0);
   const [liveSubError, setLiveSubError] = useState<string | null>(null);
+  const [closingGameId, setClosingGameId] = useState<string | null>(null);
 
   // Build userId → email map from analytics visits (unique by userId, email is de‑ duped)
   const emailMap = visits.reduce<Record<string, string>>((acc, v) => {
@@ -645,16 +649,17 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
               Loading table list…
             </div>
           ) : (
-            <div className="divide-y divide-border">
+            <div>
               {tables.map((table) => {
                 const isExpanded = expandedTable === table.id;
                 const ageMinutes = table.updatedAtMs
                   ? Math.round((Date.now() - table.updatedAtMs) / 60000)
                   : null;
                 return (
-                  <div key={table.id}>
+                  <div key={table.id} className="flex flex-col sm:flex-row sm:items-stretch border-b border-border last:border-0">
                     <button
-                      className="w-full text-left px-4 py-3 hover:bg-muted/40 transition-colors flex items-center gap-3 flex-wrap"
+                      type="button"
+                      className="flex-1 min-w-0 text-left px-4 py-3 hover:bg-muted/40 transition-colors flex items-center gap-3 flex-wrap"
                       onClick={() => setExpandedTable(isExpanded ? null : table.id)}
                     >
                       <span className="text-muted-foreground shrink-0">
@@ -721,6 +726,42 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
                         )}
                       </span>
                     </button>
+                    {!table.isOpenSlot && (
+                      <div className="flex items-center justify-end sm:flex-col sm:justify-center gap-1 px-3 py-2 sm:border-l border-border/50 bg-muted/10 shrink-0">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive border-destructive/40 hover:bg-destructive/10 text-xs h-8"
+                          disabled={closingGameId === table.id}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (
+                              !confirm(
+                                `Close table #${table.id.slice(0, 8)}? It will be marked ended in Firestore.`
+                              )
+                            ) {
+                              return;
+                            }
+                            setClosingGameId(table.id);
+                            try {
+                              await closeGameRoomAsEnded(table.id);
+                              toast.success('Table marked ended.');
+                            } catch {
+                              toast.error('Failed. Sign in to the game in this browser (Firebase), then try again.');
+                            } finally {
+                              setClosingGameId(null);
+                            }
+                          }}
+                        >
+                          {closingGameId === table.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            'Close table'
+                          )}
+                        </Button>
+                      </div>
+                    )}
 
                     {isExpanded && (
                       <div className="bg-muted/20 border-t border-border/50">
@@ -1117,7 +1158,12 @@ const MonitorDashboard = () => {
         </div>
 
         {/* ── LIVE TAB ──────────────────────────────────────────────────────── */}
-        {activeTab === 'live' && <LiveGamesSection visits={visits} />}
+        {activeTab === 'live' && (
+          <div className="space-y-6">
+            <MonitorLiveOperations />
+            <LiveGamesSection visits={visits} />
+          </div>
+        )}
 
         {/* ── HISTORY TAB ───────────────────────────────────────────────────── */}
         {activeTab === 'history' && <HistoryPanel emailMap={emailMap} />}

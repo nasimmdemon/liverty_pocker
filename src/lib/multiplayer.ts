@@ -16,6 +16,7 @@ import {
   type FirestoreError,
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { buildMatchmakingPoolId, type MatchmakingTierKey } from './matchmakingPoolId';
 import type { GameState, Player } from './gameTypes';
 import { createInitialGameState, startNewRound } from './gameLogic';
 import avatar1 from '@/assets/avatar-1.png';
@@ -188,6 +189,34 @@ export async function createMatchmakingGameRoom(
   };
   await setDoc(roomRef, room);
   return { id: gameId, ...room } as GameRoom;
+}
+
+/** Mark a game ended (monitor / admin). */
+export async function closeGameRoomAsEnded(gameId: string): Promise<void> {
+  await updateDoc(doc(db, 'games', gameId), {
+    status: 'ended',
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Creates an open matchmaking table with only the host seated (no bot).
+ * Host must be a real Firebase user; others can join via the same pool.
+ */
+export async function createMonitorMatchmakingOpenTable(
+  hostId: string,
+  hostName: string,
+  hostPhoto: string | null,
+  opts: {
+    tierKey: MatchmakingTierKey;
+    gameMode: 'tournament' | 'sit-and-go';
+    buyIn: number;
+    smallBlind: number;
+    bigBlind: number;
+  }
+): Promise<GameRoom> {
+  const poolId = buildMatchmakingPoolId(opts.tierKey, opts.gameMode, opts.smallBlind, opts.bigBlind);
+  return createMatchmakingGameRoom(hostId, hostName, hostPhoto, null, false, opts.buyIn, opts.smallBlind, opts.bigBlind, poolId);
 }
 
 export async function getGameRoomById(gameId: string): Promise<GameRoom | null> {

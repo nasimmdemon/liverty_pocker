@@ -6,3 +6,9 @@ Date: 2026-03-31
 3. Monitor stats — “Open Tables” uses the full displayed list length (live + padded). The waiting badge counts real waiting games plus open listings so an empty lobby still reads as three waiting lines when only synthetic rows show. “Tables with Bots” percentage uses live Firestore tables only.
 4. Monitor Table Details — Card copy explains freshness windows and that at least three listings always appear; empty-state text adjusted while the padded list loads.
 5. Live subscription errors — If the Firestore listener still fails, the UI shows the error message and three open listings so the layout stays consistent.
+
+6. Monitor operations — Live tab: pause matchmaking bot table fill per tier/mode/sub-stake (Firestore `monitor_settings/controls`). Matchmaking reads this before creating a bot table after the wait timer; players are refunded with a clear toast if paused.
+
+7. Monitor operations — Add open matchmaking table (Firebase-signed-in user as host, chosen pool from catalog) and Close table on each live row (marks `games/{id}` status `ended`). New helpers: `matchmakingPoolId.ts`, `matchmakingPoolCatalog.ts`, `monitorSettings.ts`, `closeGameRoomAsEnded`, `createMonitorMatchmakingOpenTable`.
+
+8. Firestore rules — `monitor_settings/{docId}`: read allowed for everyone, write if `request.auth != null` (deploy rules for production).

@@ -23,8 +23,11 @@ import {
   type GameRoom,
   type GameRoomPlayer,
 } from '@/lib/multiplayer';
+import { buildMatchmakingPoolId, type MatchmakingTierKey } from '@/lib/matchmakingPoolId';
+import { fetchBotFallbackDisabledPools } from '@/lib/monitorSettings';
 
-export type MatchmakingTierKey = 'human' | 'rat' | 'cat' | 'dog';
+export type { MatchmakingTierKey } from '@/lib/matchmakingPoolId';
+export { buildMatchmakingPoolId } from '@/lib/matchmakingPoolId';
 
 export const MATCHMAKING_WAIT_MS = 30_000;
 /** After a full human table is found, UI countdown before auto startGame */
@@ -36,21 +39,6 @@ const PAIR_TS_LOOKBACK_MS = 120_000;
 
 function roundMoney(n: number): number {
   return Math.round(n * 1e6) / 1e6;
-}
-
-/**
- * Pool = same tier + game mode + blinds only. Entrance / buy-in can differ per player;
- * each player keeps their own stake as starting chips on the table.
- */
-export function buildMatchmakingPoolId(
-  tierKey: MatchmakingTierKey,
-  gameMode: 'tournament' | 'sit-and-go',
-  smallBlind: number,
-  bigBlind: number
-): string {
-  const sb = roundMoney(smallBlind);
-  const bb = roundMoney(bigBlind);
-  return `${tierKey}_${gameMode}_sb${sb}_bb${bb}`;
 }
 
 const MAX_SEATS_PER_TABLE = 6;
@@ -526,6 +514,12 @@ export async function runMatchmakingUntilSeated(
     const timer = window.setTimeout(async () => {
       if (settled) return;
       try {
+        const disabled = await fetchBotFallbackDisabledPools();
+        if (disabled.has(poolId)) {
+          await leaveMatchmakingQueue(poolId, params.userId).catch(() => {});
+          fail(new Error('MATCHMAKING_BOT_DISABLED'));
+          return;
+        }
         await leaveMatchmakingQueue(poolId, params.userId);
         options?.onPhase?.('bot');
         const room = await createMatchmakingGameRoom(
