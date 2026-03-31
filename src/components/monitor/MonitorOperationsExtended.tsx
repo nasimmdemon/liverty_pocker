@@ -34,14 +34,48 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Timer, Wallet, Activity, Infinity as InfinityIcon, BotOff, DollarSign } from 'lucide-react';
+import {
+  Loader2,
+  Timer,
+  Wallet,
+  Activity,
+  Infinity as InfinityIcon,
+  BotOff,
+  DollarSign,
+  BookOpen,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
-const TIER_ORDER: { key: MatchmakingTierKey; label: string }[] = [
-  { key: 'human', label: 'Human' },
-  { key: 'rat', label: 'Rat' },
-  { key: 'cat', label: 'Cat' },
-  { key: 'dog', label: 'Dog' },
+const TIER_ORDER: {
+  key: MatchmakingTierKey;
+  label: string;
+  /** What “current / reserve filled” represents for operators (Human vs animal tiers differ). */
+  reserveFilledMeaning: string;
+}[] = [
+  {
+    key: 'human',
+    label: 'Human',
+    reserveFilledMeaning:
+      'Reserve here = funds given to bots plus any free credits / promo value players received (combined).',
+  },
+  {
+    key: 'rat',
+    label: 'Rat',
+    reserveFilledMeaning:
+      'Reserve here = money allocated to bots to play against people (table bot bankroll).',
+  },
+  {
+    key: 'cat',
+    label: 'Cat',
+    reserveFilledMeaning:
+      'Reserve here = money allocated to bots to play against people (table bot bankroll).',
+  },
+  {
+    key: 'dog',
+    label: 'Dog',
+    reserveFilledMeaning:
+      'Reserve here = money the bot received to play against a person (stake / float for that lane).',
+  },
 ];
 
 function emptyReserve(): MonitorTierReserve {
@@ -227,6 +261,61 @@ export default function MonitorOperationsExtended() {
 
   return (
     <div className="space-y-6">
+      <Card className="border-primary/25 bg-muted/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-primary" />
+            Reserve &amp; DB record semantics
+          </CardTitle>
+          <CardDescription>Operator definitions (wireframes: dbRecord / withdraw / reserve / expiry).</CardDescription>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-border/60 bg-background/50 px-3 py-2 space-y-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-foreground">Global signals</p>
+              <ul className="list-disc pl-4 space-y-1 text-xs leading-relaxed">
+                <li>
+                  <span className="text-destructive font-medium">Withdraw</span> — reserve <strong>shrank</strong>{' '}
+                  (cash or liability left the tier pool).
+                </li>
+                <li>
+                  <span className="text-foreground font-medium">DB record size ↑</span> — house / bot{' '}
+                  <strong>lost</strong> (to a player or to another player); liability or paid-out edge grew.
+                </li>
+                <li>
+                  <span className="text-foreground font-medium">Expiry</span> —{' '}
+                  <strong>pre-withdrawn</strong> / scheduled: not in active play reserve (e.g. 3d vs 14d buckets).
+                </li>
+              </ul>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background/50 px-3 py-2 space-y-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                “Reserve filled” by tier
+              </p>
+              <ul className="space-y-2 text-xs leading-relaxed">
+                <li>
+                  <Badge variant="outline" className="mr-1.5 text-[10px]">
+                    Human
+                  </Badge>
+                  Bot subsidies <strong>+</strong> free / promo value to players — both count toward reserve in this
+                  lane.
+                </li>
+                <li>
+                  <Badge variant="outline" className="mr-1.5 text-[10px]">
+                    Dog · Rat · Cat
+                  </Badge>
+                  Money the <strong>bot got</strong> to sit vs humans (narrower than Human).
+                </li>
+              </ul>
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground/90 border-t border-border/50 pt-3">
+            Use <span className="font-mono text-foreground">Current $</span> in the table below as your live “reserve
+            filled” input per tier; meanings above explain how to interpret Human vs Dog rows on the same card.
+          </p>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 xl:grid-cols-2">
         <Card className="border-border/80">
           <CardHeader className="pb-2">
@@ -268,7 +357,7 @@ export default function MonitorOperationsExtended() {
             <CardDescription>
               Operational caps — not enforced in game logic yet. <strong>Even split (÷4 tiers):</strong>{' '}
               <span className="text-primary font-mono">${evenSplit.toFixed(2)}</span> per tier if you divide the max
-              evenly.
+              evenly. <strong>Current</strong> = reserve filled (see glossary: Human vs Dog differ).
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -279,16 +368,26 @@ export default function MonitorOperationsExtended() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tier</TableHead>
+                  <TableHead className="min-w-[200px]">Tier / reserve meaning</TableHead>
                   <TableHead className="text-right">Max $</TableHead>
                   <TableHead className="text-right">Allocated $</TableHead>
-                  <TableHead className="text-right">Current $</TableHead>
+                  <TableHead className="text-right">
+                    <span className="text-emerald-600/90 dark:text-emerald-400/90">Current</span>
+                    <span className="block text-[10px] font-normal text-muted-foreground">
+                      (= reserve filled)
+                    </span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {TIER_ORDER.map(({ key, label }) => (
+                {TIER_ORDER.map(({ key, label, reserveFilledMeaning }) => (
                   <TableRow key={key}>
-                    <TableCell className="font-medium">{label}</TableCell>
+                    <TableCell className="align-top py-2">
+                      <div className="font-medium text-foreground">{label}</div>
+                      <p className="text-[10px] text-muted-foreground leading-snug mt-1 max-w-[240px]">
+                        {reserveFilledMeaning}
+                      </p>
+                    </TableCell>
                     <TableCell className="text-right p-1">
                       <Input
                         className="h-8 text-right font-mono text-xs"
@@ -423,9 +522,10 @@ export default function MonitorOperationsExtended() {
             Economy ledger (outflows & losses)
           </CardTitle>
           <CardDescription>
-            <strong>Video / rewards</strong> increments when players claim Watch &amp; Earn. <strong>Wins vs bots</strong> /
-            <strong> Losses vs bots</strong> update when leaving tables that included bots (solo public + matchmaking).
-            <strong> Expired (14d)</strong> is manual or job-driven — edit here when you purge inactive balances.
+            <strong>Video / rewards</strong> increments when players claim Watch &amp; Earn. <strong>Wins vs bots</strong>{' '}
+            / <strong>losses vs bots</strong> track realized P&amp;L vs bot tables. Totals align with{' '}
+            <strong className="text-destructive">withdraw</strong> (reserve shrink) in the glossary.{' '}
+            <strong>Expired (14d)</strong> = pre-withdrawn / policy removals — manual or job until automated expiry ships.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
