@@ -28,6 +28,11 @@ import {
   type LobbyMetricsSnapshot,
 } from '@/lib/matchmakingLobbyMetrics';
 import {
+  fetchMonitorMatchmakingTiming,
+  fetchBotFallbackDisabledPools,
+  isTierAllBotFallbackDisabled,
+} from '@/lib/monitorSettings';
+import {
   startGame,
   getGameRoomById,
   isMatchmakingBotUserId,
@@ -277,6 +282,8 @@ const SitAndGoScreen = ({
   const [matchmakingBusy, setMatchmakingBusy] = useState(false);
   /** GTA loader only while `runMatchmakingUntilSeated` is in flight — not after a room is returned. */
   const [mmSearching, setMmSearching] = useState(false);
+  /** Progress bar length for matchmaking loader (synced to monitor “await time”, longer when tier is human-only). */
+  const [mmMatchmakingBarSec, setMmMatchmakingBarSec] = useState(MATCHMAKING_WAIT_MS / 1000);
   const [matchPostCountdown, setMatchPostCountdown] = useState<number | null>(null);
   const [matchedOpponents, setMatchedOpponents] = useState<GameRoomPlayer[]>([]);
   const mmAbortRef = useRef<AbortController | null>(null);
@@ -434,6 +441,21 @@ const SitAndGoScreen = ({
     }
     hapticHeavy();
     mmAbortRef.current = new AbortController();
+    try {
+      const timing = await fetchMonitorMatchmakingTiming();
+      const disabled = await fetchBotFallbackDisabledPools();
+      const tierHumanOnly = isTierAllBotFallbackDisabled(
+        matchmakingTier.key as MatchmakingTierKey,
+        disabled
+      );
+      const sec = Math.max(5, Math.ceil(timing.waitMs / 1000));
+      setMmMatchmakingBarSec(tierHumanOnly ? Math.max(sec, 120) : sec);
+      if (tierHumanOnly) {
+        toast.info('Human-only tier: no bot fallback until ops re-enable bot fill.');
+      }
+    } catch {
+      setMmMatchmakingBarSec(MATCHMAKING_WAIT_MS / 1000);
+    }
     setMatchmakingBusy(true);
     setMmSearching(true);
     try {
@@ -1290,7 +1312,7 @@ const SitAndGoScreen = ({
           <LoadingScreen
             key="matchmaking-gta"
             suppressAutoComplete
-            durationSec={MATCHMAKING_WAIT_MS / 1000}
+            durationSec={mmMatchmakingBarSec}
             isPublic
           />
         </div>

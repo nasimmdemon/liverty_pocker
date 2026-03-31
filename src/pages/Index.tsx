@@ -21,10 +21,12 @@ import {
   getGameByCode,
   getGameRoomById,
   joinGameRoom,
+  isMatchmakingBotUserId,
   subscribeToWaitingLobbyPlayerCount,
   type GameRoom,
 } from '@/lib/multiplayer';
 import { recordMatchmakingGameEnded } from '@/lib/matchmaking';
+import { incrementMonitorEconomy } from '@/lib/monitorEconomy';
 
 type Screen = 'start' | 'loading' | 'sitandgo' | 'testing' | 'table' | 'watch-and-earn' | 'multiplayer-lobby' | 'multiplayer-table';
 
@@ -76,6 +78,7 @@ const Index = () => {
   const handleWatchAndEarn = useCallback(() => setScreen('watch-and-earn'), []);
   const handleWatchAndEarnClaim = useCallback(async () => {
     await addFunds(WATCH_EARN_REWARD);
+    await incrementMonitorEconomy('videoPayoutsTotal', WATCH_EARN_REWARD).catch(() => {});
     setScreen('sitandgo');
   }, [addFunds]);
   const handleLoadingComplete = useCallback(() => {
@@ -95,6 +98,7 @@ const Index = () => {
       gameMode: mode,
       turnTimer: 10,
       cardBack,
+      botCount: 5,
     });
     setScreen('loading');
   }, [deductFunds]);
@@ -117,16 +121,22 @@ const Index = () => {
 
   const handleExitTable = useCallback((userChips?: number) => {
     incrementBotMatches();
+    const buyIn = tableConfig.buyIn;
+    const hadBots = (tableConfig.botCount ?? 0) > 0;
     // Add winnings to funds when leaving regular table (not test, not multiplayer)
-    if (!tableConfig.isTestingTable && userChips != null && userChips > 0) {
-      const buyIn = tableConfig.buyIn;
+    if (!tableConfig.isTestingTable && userChips != null) {
       const profit = Math.round((userChips - buyIn) * 100) / 100;
       if (profit > 0) {
         addFunds(profit);
+        if (hadBots) {
+          void incrementMonitorEconomy('winsVsBotsTotal', profit);
+        }
+      } else if (profit < 0 && hadBots) {
+        void incrementMonitorEconomy('lossesToBotsTotal', Math.abs(profit));
       }
     }
     setScreen('start');
-  }, [incrementBotMatches, tableConfig.isTestingTable, tableConfig.buyIn, addFunds]);
+  }, [incrementBotMatches, tableConfig.isTestingTable, tableConfig.buyIn, tableConfig.botCount, addFunds]);
 
   const handleMultiplayerCreate = useCallback((room: import('@/lib/multiplayer').GameRoom) => {
     setMultiplayerConfig({
@@ -316,13 +326,19 @@ const Index = () => {
                 await recordMatchmakingGameEnded(gameId).catch(() => {});
               }
             }
+            const hadBot = cfg?.room?.players?.some((p) => isMatchmakingBotUserId(p.userId)) ?? false;
             // Credit winnings: if the player ended with more chips than they bought in with,
             // add the profit to their account balance (same logic as solo handleExitTable)
             const buyIn = cfg?.userBuyInForExit ?? cfg?.room?.buyIn ?? 0;
-            if (finalChips != null && finalChips > 0 && buyIn > 0) {
+            if (finalChips != null && buyIn > 0) {
               const profit = Math.round((finalChips - buyIn) * 100) / 100;
               if (profit > 0) {
                 addFunds(profit);
+                if (hadBot) {
+                  void incrementMonitorEconomy('winsVsBotsTotal', profit);
+                }
+              } else if (profit < 0 && hadBot) {
+                void incrementMonitorEconomy('lossesToBotsTotal', Math.abs(profit));
               }
             }
             setScreen('start');

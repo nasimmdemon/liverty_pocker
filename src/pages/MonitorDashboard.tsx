@@ -14,6 +14,7 @@ import {
   type LobbyMetricsSnapshot,
 } from '@/lib/matchmakingLobbyMetrics';
 import MonitorLiveOperations from '@/components/monitor/MonitorLiveOperations';
+import MonitorOperationsExtended from '@/components/monitor/MonitorOperationsExtended';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -1315,6 +1316,7 @@ const MonitorDashboard = () => {
         {/* ── LIVE TAB ──────────────────────────────────────────────────────── */}
         {activeTab === 'live' && (
           <div className="space-y-6">
+            <MonitorOperationsExtended />
             <MonitorLiveOperations />
             <LiveGamesSection visits={visits} />
           </div>

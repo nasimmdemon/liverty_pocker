@@ -24,7 +24,11 @@ import {
   type GameRoomPlayer,
 } from '@/lib/multiplayer';
 import { buildMatchmakingPoolId, type MatchmakingTierKey } from '@/lib/matchmakingPoolId';
-import { fetchBotFallbackDisabledPools } from '@/lib/monitorSettings';
+import {
+  fetchBotFallbackDisabledPools,
+  fetchMonitorMatchmakingTiming,
+  isTierAllBotFallbackDisabled,
+} from '@/lib/monitorSettings';
 
 export type { MatchmakingTierKey } from '@/lib/matchmakingPoolId';
 export { buildMatchmakingPoolId } from '@/lib/matchmakingPoolId';
@@ -375,6 +379,7 @@ export function pickQueueIndicesForTable(
  * and applies a short re-queue cooldown. Idempotent per `gameId`.
  */
 export async function recordMatchmakingGameEnded(gameId: string): Promise<void> {
+  const { postMatchCooldownMs } = await fetchMonitorMatchmakingTiming();
   const gameRef = doc(db, 'games', gameId);
   await runTransaction(db, async (tx) => {
     const gSnap = await tx.get(gameRef);
@@ -404,7 +409,7 @@ export async function recordMatchmakingGameEnded(gameId: string): Promise<void> 
 
     for (const uid of humans) {
       seq[uid] = (seq[uid] || 0) + 1;
-      cooldownUntil[uid] = Math.max(cooldownUntil[uid] || 0, now + MATCHMAKING_POST_MATCH_COOLDOWN_MS);
+      cooldownUntil[uid] = Math.max(cooldownUntil[uid] || 0, now + postMatchCooldownMs);
     }
 
     if (humans.length >= 2) {
@@ -669,6 +674,10 @@ export async function runMatchmakingUntilSeated(
     if (room) return room;
   }
 
+  const timing = await fetchMonitorMatchmakingTiming();
+  const disabledPools = await fetchBotFallbackDisabledPools();
+  const tierInfiniteWait = isTierAllBotFallbackDisabled(params.tierKey, disabledPools);
+
   return new Promise((resolve, reject) => {
     let settled = false;
     const cleanupFns: Array<() => void> = [];
@@ -727,35 +736,41 @@ export async function runMatchmakingUntilSeated(
     }, 2000);
     cleanupFns.push(() => clearInterval(poll));
 
-    const timer = window.setTimeout(async () => {
-      if (settled) return;
-      try {
-        const disabled = await fetchBotFallbackDisabledPools();
-        if (disabled.has(poolId)) {
-          await leaveMatchmakingQueue(poolId, params.userId).catch(() => {});
-          fail(new Error('MATCHMAKING_BOT_DISABLED'));
-          return;
+    const scheduleBotFallbackTimer = () => {
+      const timer = window.setTimeout(async () => {
+        if (settled) return;
+        try {
+          const disabled = await fetchBotFallbackDisabledPools();
+          if (disabled.has(poolId)) {
+            await leaveMatchmakingQueue(poolId, params.userId).catch(() => {});
+            fail(new Error('MATCHMAKING_BOT_DISABLED'));
+            return;
+          }
+          await leaveMatchmakingQueue(poolId, params.userId);
+          options?.onPhase?.('bot');
+          const room = await createMatchmakingGameRoom(
+            params.userId,
+            params.displayName,
+            params.photoURL,
+            null,
+            true,
+            params.buyIn,
+            params.smallBlind,
+            params.bigBlind,
+            poolId
+          );
+          await logFlow(poolId, 'bot', params.userId);
+          finish(room);
+        } catch (e) {
+          fail(e instanceof Error ? e : new Error('Matchmaking failed'));
         }
-        await leaveMatchmakingQueue(poolId, params.userId);
-        options?.onPhase?.('bot');
-        const room = await createMatchmakingGameRoom(
-          params.userId,
-          params.displayName,
-          params.photoURL,
-          null,
-          true,
-          params.buyIn,
-          params.smallBlind,
-          params.bigBlind,
-          poolId
-        );
-        await logFlow(poolId, 'bot', params.userId);
-        finish(room);
-      } catch (e) {
-        fail(e instanceof Error ? e : new Error('Matchmaking failed'));
-      }
-    }, MATCHMAKING_WAIT_MS);
-    cleanupFns.push(() => clearTimeout(timer));
+      }, timing.waitMs);
+      cleanupFns.push(() => clearTimeout(timer));
+    };
+
+    if (!tierInfiniteWait) {
+      scheduleBotFallbackTimer();
+    }
 
     const onAbort = () => {
       leaveMatchmakingQueue(poolId, params.userId).catch(() => {});
