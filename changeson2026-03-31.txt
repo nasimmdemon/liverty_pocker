@@ -1,0 +1,8 @@
+Liberty Poker - Completed Tasks
+Date: 2026-03-31
+
+1. Monitor Live Games — Firestore live feed no longer uses `status in ('waiting','playing')`. It now uses two parallel listeners (`status == 'waiting'` and `status == 'playing'`), merges documents by id, and sorts by last activity in the client. This avoids composite-index `failed-precondition` errors in production.
+2. Monitor Live Games — The dashboard always shows at least three table rows. When fewer than three real games pass the staleness filter, the list is padded with synthetic “open” rows (sky “Open” badge, “Listing 1/2/3”, standard stakes copy). Nothing is labeled “reserved”; rows are monitor-only and are not written to Firestore.
+3. Monitor stats — “Open Tables” uses the full displayed list length (live + padded). The waiting badge counts real waiting games plus open listings so an empty lobby still reads as three waiting lines when only synthetic rows show. “Tables with Bots” percentage uses live Firestore tables only.
+4. Monitor Table Details — Card copy explains freshness windows and that at least three listings always appear; empty-state text adjusted while the padded list loads.
+5. Live subscription errors — If the Firestore listener still fails, the UI shows the error message and three open listings so the layout stays consistent.

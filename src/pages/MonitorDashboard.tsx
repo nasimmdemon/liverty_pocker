@@ -128,6 +128,9 @@ interface LivePlayerInfo {
   status: string; // active / folded / all-in / sitting-out
 }
 
+/** Monitor always shows at least this many table rows (synthetic “open” rows pad shortfalls). */
+const MIN_MONITOR_OPEN_TABLES = 3;
+
 interface LiveTableInfo {
   id: string;
   status: 'waiting' | 'playing';
@@ -145,6 +148,10 @@ interface LiveTableInfo {
   bots: LivePlayerInfo[];
   isMatchmaking: boolean;
   updatedAtMs: number;
+  /** Synthetic row so the dashboard always lists baseline open tables (not stored in Firestore). */
+  isOpenSlot?: boolean;
+  /** 1-based label index for open slots */
+  openSlotIndex?: number;
 }
 
 function buildLiveTable(room: GameRoom, emailMap: Record<string, string>): LiveTableInfo {
@@ -197,6 +204,33 @@ function buildLiveTable(room: GameRoom, emailMap: Record<string, string>): LiveT
     isMatchmaking: !!room.matchmakingOpen || !!room.matchmakingPoolId,
     updatedAtMs: getRoomActivityMs(room),
   };
+}
+
+/** Default stakes for synthetic monitor-only open rows (matches common public table defaults). */
+function buildOpenSlotLiveTable(slotIndex: number): LiveTableInfo {
+  return {
+    id: `__monitor_open_${slotIndex}`,
+    status: 'waiting',
+    buyIn: 1500,
+    smallBlind: 5,
+    bigBlind: 10,
+    pot: 0,
+    currentBet: 0,
+    phase: '',
+    players: [],
+    realPlayers: [],
+    bots: [],
+    isMatchmaking: false,
+    updatedAtMs: Date.now(),
+    isOpenSlot: true,
+    openSlotIndex: slotIndex,
+  };
+}
+
+function padTablesToMinimumOpen(realTables: LiveTableInfo[], minimum: number): LiveTableInfo[] {
+  const need = Math.max(0, minimum - realTables.length);
+  const slots = Array.from({ length: need }, (_, i) => buildOpenSlotLiveTable(i + 1));
+  return [...realTables, ...slots];
 }
 
 // ─── History Panel ───────────────────────────────────────────────────────────
@@ -458,15 +492,16 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
           if (b.status === 'playing' && a.status !== 'playing') return 1;
           return b.updatedAtMs - a.updatedAtMs;
         });
-        setTables(processed);
+        setTables(padTablesToMinimumOpen(processed, MIN_MONITOR_OPEN_TABLES));
         setLiveLoaded(true);
       },
       (err) => {
         setLiveSubError(
           err.code === 'failed-precondition'
-            ? 'Firestore query failed (index or rules). Try deploying firestore.indexes.json, or check the browser console link.'
+            ? 'Firestore query failed (index or rules). Check firestore.rules and the browser console link.'
             : err.message || 'Live subscription failed'
         );
+        setTables(padTablesToMinimumOpen([], MIN_MONITOR_OPEN_TABLES));
         setLiveLoaded(true);
       }
     );
@@ -474,10 +509,12 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const realTablesOnly = tables.filter((t) => !t.isOpenSlot);
   const totalTables = tables.length;
-  const playingTables = tables.filter((t) => t.status === 'playing');
-  const waitingTables = tables.filter((t) => t.status === 'waiting');
-  const tablesWithBots = tables.filter((t) => t.bots.length > 0).length;
+  const playingTables = realTablesOnly.filter((t) => t.status === 'playing');
+  const waitingTables = realTablesOnly.filter((t) => t.status === 'waiting');
+  const openSlotRows = tables.filter((t) => t.isOpenSlot);
+  const tablesWithBots = realTablesOnly.filter((t) => t.bots.length > 0).length;
 
   // Deduplicate real players by userId across ALL tables
   const playingUserIds = new Set<string>();
@@ -537,12 +574,12 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-emerald-400">{totalTables}</div>
-              <div className="flex gap-2 mt-1">
+              <div className="flex gap-2 mt-1 flex-wrap">
                 <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-400">
                   {playingTables.length} playing
                 </Badge>
                 <Badge variant="outline" className="text-xs border-amber-500/30 text-amber-400">
-                  {waitingTables.length} waiting
+                  {waitingTables.length + openSlotRows.length} waiting
                 </Badge>
               </div>
             </CardContent>
@@ -578,7 +615,7 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
             <CardContent>
               <div className="text-2xl font-bold text-purple-400">{tablesWithBots}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                {totalTables > 0 ? Math.round((tablesWithBots / totalTables) * 100) : 0}% of active tables
+                {realTablesOnly.length > 0 ? Math.round((tablesWithBots / realTablesOnly.length) * 100) : 0}% of live tables
               </p>
             </CardContent>
           </Card>
@@ -593,8 +630,8 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
             Table Details — Right Now
           </CardTitle>
           <CardDescription>
-            Only tables updated in the last {playingTables.length > 0 ? '2 hrs (playing) / 20 min (waiting)' : '20 min'}.
-            Click a row to see player details.
+            Live tables are only counted if updated in the last {playingTables.length > 0 ? '2 hrs (playing) / 20 min (waiting)' : '20 min'}.
+            The list always shows at least three open listings. Click a row for player details.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -605,7 +642,7 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
           ) : tables.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground text-sm">
               <Table2 className="h-8 w-8 mx-auto mb-2 opacity-20" />
-              No active tables right now
+              Loading table list…
             </div>
           ) : (
             <div className="divide-y divide-border">
@@ -624,27 +661,37 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
                         {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                       </span>
 
-                      {table.status === 'playing' ? (
+                      {table.isOpenSlot ? (
+                        <Badge variant="outline" className="border-sky-500/50 text-sky-300 text-xs px-2 py-0 shrink-0">Open</Badge>
+                      ) : table.status === 'playing' ? (
                         <Badge className="bg-emerald-600 text-white text-xs px-2 py-0 shrink-0">Playing</Badge>
                       ) : (
                         <Badge variant="outline" className="border-amber-500/50 text-amber-400 text-xs px-2 py-0 shrink-0">Waiting</Badge>
                       )}
 
                       <span className="font-mono text-xs text-muted-foreground shrink-0 hidden sm:block">
-                        #{table.id.slice(0, 8)}
+                        {table.isOpenSlot ? (
+                          <span className="text-sky-300/80">Listing {table.openSlotIndex ?? '—'}</span>
+                        ) : (
+                          <>#{table.id.slice(0, 8)}</>
+                        )}
                       </span>
 
                       <span className="text-xs text-muted-foreground shrink-0">
-                        {table.smallBlind}/{table.bigBlind} — Buy‑in {table.buyIn.toLocaleString()}
+                        {table.isOpenSlot ? (
+                          <>Standard stakes · {table.smallBlind}/{table.bigBlind} · Buy‑in {table.buyIn.toLocaleString()}</>
+                        ) : (
+                          <>{table.smallBlind}/{table.bigBlind} — Buy‑in {table.buyIn.toLocaleString()}</>
+                        )}
                       </span>
 
-                      {table.isMatchmaking && (
+                      {!table.isOpenSlot && table.isMatchmaking && (
                         <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400 shrink-0">
                           Matchmaking
                         </Badge>
                       )}
 
-                      {ageMinutes !== null && (
+                      {!table.isOpenSlot && ageMinutes !== null && (
                         <span className="text-[11px] text-muted-foreground/50 shrink-0 hidden md:block">
                           updated {ageMinutes}m ago
                         </span>
@@ -699,8 +746,17 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
                             </div>
                           )}
                           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-                            Players at Table #{table.id.slice(0, 8)}
+                            {table.isOpenSlot ? (
+                              <>Open listing {table.openSlotIndex ?? ''} · seats available</>
+                            ) : (
+                              <>Players at Table #{table.id.slice(0, 8)}</>
+                            )}
                           </div>
+                          {table.isOpenSlot ? (
+                            <p className="text-sm text-muted-foreground py-4 px-1">
+                              No players seated yet. This listing stays open on the dashboard for visibility.
+                            </p>
+                          ) : (
                           <div className="rounded-md border border-border/50 overflow-hidden">
                             <Table>
                               <TableHeader>
@@ -791,6 +847,7 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
                               </TableBody>
                             </Table>
                           </div>
+                          )}
                         </div>
                       </div>
                     )}

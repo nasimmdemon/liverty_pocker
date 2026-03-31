@@ -460,48 +460,70 @@ export function subscribeToWaitingLobbyPlayerCount(
   );
 }
 
+function mapGameDocToRoom(d: { id: string; data: () => Record<string, unknown> }): GameRoom {
+  const data = d.data();
+  const gs = data?.gameState;
+  return {
+    id: d.id,
+    ...data,
+    createdAt: data?.createdAt,
+    updatedAt: data?.updatedAt,
+    gameState: gs ? firestoreToGameState(gs as Record<string, unknown>) : null,
+  } as GameRoom;
+}
+
 /**
  * Subscribe to all active game rooms (status = 'waiting' | 'playing').
- * Raw Firestore Timestamps are passed through so the caller can apply
- * staleness filtering (zombie games that never got marked 'ended').
- * Used by the monitor dashboard for real-time table & player tracking.
- *
- * We intentionally omit orderBy here so no composite index is required (avoids
- * failed-precondition until firestore.indexes.json is deployed). Results are sorted
- * client-side by last activity. If you have more than `limit` active games, deploy
- * the status + updatedAt index and add orderBy('updatedAt', 'desc') for stronger guarantees.
+ * Uses two separate equality queries instead of `status in (...)` so Firestore does not
+ * require a composite index (avoids failed-precondition in production).
+ * Merges by document id, sorts client-side by last activity.
  */
 export function subscribeToAllActiveGames(
   onUpdate: (rooms: GameRoom[]) => void,
   onError?: (error: FirestoreError) => void
 ): () => void {
-  const q = query(
-    collection(db, 'games'),
-    where('status', 'in', ['waiting', 'playing']),
-    limit(300)
-  );
-  return onSnapshot(
-    q,
+  const qWaiting = query(collection(db, 'games'), where('status', '==', 'waiting'), limit(200));
+  const qPlaying = query(collection(db, 'games'), where('status', '==', 'playing'), limit(200));
+
+  let waitingRooms: GameRoom[] = [];
+  let playingRooms: GameRoom[] = [];
+
+  const mergeAndEmit = () => {
+    const byId = new Map<string, GameRoom>();
+    for (const r of playingRooms) byId.set(r.id, r);
+    for (const r of waitingRooms) byId.set(r.id, r);
+    const rooms = [...byId.values()];
+    rooms.sort((a, b) => roomActivityMsForLobby(b) - roomActivityMsForLobby(a));
+    onUpdate(rooms);
+  };
+
+  const unsubW = onSnapshot(
+    qWaiting,
     (snap) => {
-      const rooms: GameRoom[] = snap.docs.map((d) => {
-        const data = d.data();
-        const gs = data?.gameState;
-        return {
-          id: d.id,
-          ...data,
-          createdAt: data?.createdAt,
-          updatedAt: data?.updatedAt,
-          gameState: gs ? firestoreToGameState(gs as Record<string, unknown>) : null,
-        } as GameRoom;
-      });
-      rooms.sort((a, b) => roomActivityMsForLobby(b) - roomActivityMsForLobby(a));
-      onUpdate(rooms);
+      waitingRooms = snap.docs.map((docSnap) => mapGameDocToRoom(docSnap));
+      mergeAndEmit();
     },
     (err) => {
-      console.error('[subscribeToAllActiveGames]', err);
+      console.error('[subscribeToAllActiveGames waiting]', err);
       onError?.(err);
     }
   );
+  const unsubP = onSnapshot(
+    qPlaying,
+    (snap) => {
+      playingRooms = snap.docs.map((docSnap) => mapGameDocToRoom(docSnap));
+      mergeAndEmit();
+    },
+    (err) => {
+      console.error('[subscribeToAllActiveGames playing]', err);
+      onError?.(err);
+    }
+  );
+
+  return () => {
+    unsubW();
+    unsubP();
+  };
 }
 
 /**
