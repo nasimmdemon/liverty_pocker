@@ -11,6 +11,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { firestoreTimestampToMs } from '@/lib/multiplayer';
+import { listMatchmakingPoolCatalog } from '@/lib/matchmakingPoolCatalog';
+import type { MatchmakingTierKey } from '@/lib/matchmakingPoolId';
 
 const FLOW_WINDOW_MS = 60_000;
 const FLOW_QUERY_LIMIT = 1000;
@@ -52,6 +54,35 @@ export function openOptionsFromPressure(pressure: number): number {
   return Math.min(4, Math.floor(pressure / 6));
 }
 
+/** Max pressure across all pool ids for this tier + mode (Sit & Go vs Tournament separated). */
+export function maxPressureForTierMode(
+  snapshot: LobbyMetricsSnapshot | null,
+  tierKey: MatchmakingTierKey,
+  gameMode: 'tournament' | 'sit-and-go'
+): number {
+  if (!snapshot) return 0;
+  let max = 0;
+  for (const row of listMatchmakingPoolCatalog()) {
+    if (row.tierKey !== tierKey || row.gameMode !== gameMode) continue;
+    const p = snapshot.byPool.get(row.poolId)?.pressure ?? 0;
+    if (p > max) max = p;
+  }
+  return max;
+}
+
+/**
+ * How many stake / entry buttons to show in the lobby for this tier+mode.
+ * 6 → 1, 12 → 2, 18 → 3, 24 → 4 (floor(pressure/6), clamped 1–4).
+ * Before Firestore data loads, show all 4 so the UI does not flash empty.
+ */
+export function visibleLobbyStakeOptionCount(
+  tierModeMaxPressure: number,
+  hasReceivedFirestoreSnapshot: boolean
+): number {
+  if (!hasReceivedFirestoreSnapshot) return 4;
+  return Math.max(1, Math.min(4, Math.floor(tierModeMaxPressure / 6)));
+}
+
 function poolIdIsTournament(poolId: string): boolean {
   return poolId.includes('_tournament_');
 }
@@ -88,24 +119,35 @@ function mergeSnapshot(
 }
 
 export function subscribeMatchmakingLobbyMetrics(
-  onUpdate: (snapshot: LobbyMetricsSnapshot) => void
+  onUpdate: (snapshot: LobbyMetricsSnapshot) => void,
+  onError?: () => void
 ): () => void {
   let poolsMap = new Map<string, { queue: number; userIds: string[] }>();
   let flowMap = new Map<string, number>();
+  let reportedError = false;
+  const fireError = () => {
+    if (reportedError) return;
+    reportedError = true;
+    onError?.();
+  };
 
   const emit = () => {
     onUpdate(mergeSnapshot(poolsMap, flowMap));
   };
 
-  const unsubPools = onSnapshot(collection(db, 'matchmaking_pools'), (snap) => {
-    const next = new Map<string, { queue: number; userIds: string[] }>();
-    for (const d of snap.docs) {
-      const { count, userIds } = parsePoolQueued(d.data() as Record<string, unknown>);
-      next.set(d.id, { queue: count, userIds });
-    }
-    poolsMap = next;
-    emit();
-  });
+  const unsubPools = onSnapshot(
+    collection(db, 'matchmaking_pools'),
+    (snap) => {
+      const next = new Map<string, { queue: number; userIds: string[] }>();
+      for (const d of snap.docs) {
+        const { count, userIds } = parsePoolQueued(d.data() as Record<string, unknown>);
+        next.set(d.id, { queue: count, userIds });
+      }
+      poolsMap = next;
+      emit();
+    },
+    () => fireError()
+  );
 
   const flowQ = query(
     collection(db, 'matchmaking_flow'),
@@ -113,20 +155,24 @@ export function subscribeMatchmakingLobbyMetrics(
     limit(FLOW_QUERY_LIMIT)
   );
 
-  const unsubFlow = onSnapshot(flowQ, (snap) => {
-    const now = Date.now();
-    const fc = new Map<string, number>();
-    for (const d of snap.docs) {
-      const data = d.data();
-      const ms = firestoreTimestampToMs(data.createdAt);
-      if (ms === 0 || now - ms > FLOW_WINDOW_MS) continue;
-      const pid = typeof data.poolId === 'string' ? data.poolId : '';
-      if (!pid) continue;
-      fc.set(pid, (fc.get(pid) ?? 0) + 1);
-    }
-    flowMap = fc;
-    emit();
-  });
+  const unsubFlow = onSnapshot(
+    flowQ,
+    (snap) => {
+      const now = Date.now();
+      const fc = new Map<string, number>();
+      for (const d of snap.docs) {
+        const data = d.data();
+        const ms = firestoreTimestampToMs(data.createdAt);
+        if (ms === 0 || now - ms > FLOW_WINDOW_MS) continue;
+        const pid = typeof data.poolId === 'string' ? data.poolId : '';
+        if (!pid) continue;
+        fc.set(pid, (fc.get(pid) ?? 0) + 1);
+      }
+      flowMap = fc;
+      emit();
+    },
+    () => fireError()
+  );
 
   return () => {
     unsubPools();

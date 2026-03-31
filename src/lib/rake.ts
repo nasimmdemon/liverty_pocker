@@ -1,7 +1,13 @@
 /**
  * Rake (commission) system for Liberty Poker.
  *
- * House rake: 5% from every pot (capped), min pot 60 for rake to apply.
+ * Tier-based Sit & Go commission (pot rake %):
+ *   Human → 5.0%
+ *   Rat   → 3.5%
+ *   Cat   → 2.5%
+ *   Dog   → 2.0%
+ *
+ * Min pot for rake to apply: 60 chips.
  *
  * The rake is then split PER-PLAYER based on their role attribution:
  *
@@ -18,11 +24,19 @@
  *   D. Creator can be both inviter + host (stacks: 10% + 10% = 20%)
  *   E. Missing roles → share goes to house
  *
+ * Affiliate share: 30% of commission for ALL tiers.
+ *
  * Tier-based TOURNAMENT ENTRANCE fees (separate from pot rake):
  *   Human → 11%
  *   Rat   → 7%
  *   Cat   → 6%
  *   Dog   → 5%
+ *
+ * Organizer Profit PT:
+ *   Human → 0
+ *   Rat   → 7
+ *   Cat   → 8
+ *   Dog   → 10
  */
 
 import type { Player } from './gameTypes';
@@ -30,12 +44,29 @@ import type { Player } from './gameTypes';
 export type PlayerTier = 'human' | 'rat' | 'cat' | 'dog';
 
 // ── Pot Rake (per hand) ──────────────────────────────────
+/** Default/fallback Sit & Go commission — matches Human tier */
 const HOUSE_RAKE_PERCENT = 5;
 export const MIN_POT_FOR_RAKE = 60;
 const MAX_RAKE_CAP = 50; // max rake per pot in chips
 
+/** Tier-based Sit & Go commission percentages */
+export const TIER_SITANDGO_PERCENT: Record<PlayerTier, number> = {
+  human: 5.0,
+  rat:   3.5,
+  cat:   2.5,
+  dog:   2.0,
+};
+
+/** Organizer Profit PT per tier */
+export const TIER_ORGANIZER_PROFIT: Record<PlayerTier, number> = {
+  human: 0,
+  rat:   7,
+  cat:   8,
+  dog:   10,
+};
+
 // Rake split percentages (of the rake amount, applied per-player)
-const AFFILIATE_SHARE_PERCENT = 30;
+const AFFILIATE_SHARE_PERCENT = 30; // 30% for ALL tiers
 const HOSTER_SHARE_PERCENT = 10;
 const INVITER_SHARE_PERCENT = 10;
 
@@ -46,7 +77,7 @@ export interface RakeBreakdown {
   inviterShare: number;    // sum of inviter shares (private only)
   houseRevenue: number;    // remainder
   netPot: number;          // pot after rake
-  rakePercent: number;     // always 5
+  rakePercent: number;     // tier-based: Human 5%, Rat 3.5%, Cat 2.5%, Dog 2%
 }
 
 export interface RakeContext {
@@ -62,10 +93,12 @@ export interface RakeContext {
 }
 
 /**
- * Calculate the rake and its breakdown for a given pot (legacy, no context).
+ * Calculate the rake and its breakdown for a given pot.
+ * Pass an optional tier to apply the correct Sit & Go commission rate.
  */
-export function calculateRake(pot: number, cap: number = MAX_RAKE_CAP): RakeBreakdown {
-  const rawRake = Math.floor(pot * HOUSE_RAKE_PERCENT / 100);
+export function calculateRake(pot: number, cap: number = MAX_RAKE_CAP, tier: PlayerTier = 'human'): RakeBreakdown {
+  const rakePercent = TIER_SITANDGO_PERCENT[tier] ?? HOUSE_RAKE_PERCENT;
+  const rawRake = Math.floor(pot * rakePercent / 100);
   const totalRake = Math.min(rawRake, cap);
   const affiliateShare = Math.floor(totalRake * AFFILIATE_SHARE_PERCENT / 100);
   const hosterShare = Math.floor(totalRake * HOSTER_SHARE_PERCENT / 100);
@@ -79,7 +112,7 @@ export function calculateRake(pot: number, cap: number = MAX_RAKE_CAP): RakeBrea
     inviterShare,
     houseRevenue,
     netPot: pot - totalRake,
-    rakePercent: HOUSE_RAKE_PERCENT,
+    rakePercent,
   };
 }
 
@@ -95,8 +128,11 @@ export function calculateRake(pot: number, cap: number = MAX_RAKE_CAP): RakeBrea
  */
 export function calculateRakeWithContext(
   ctx: RakeContext,
-  cap: number = MAX_RAKE_CAP
+  cap: number = MAX_RAKE_CAP,
+  tier: PlayerTier = 'human'
 ): RakeBreakdown {
+  const rakePercent = TIER_SITANDGO_PERCENT[tier] ?? HOUSE_RAKE_PERCENT;
+
   if (ctx.pot < MIN_POT_FOR_RAKE) {
     return {
       totalRake: 0,
@@ -105,11 +141,11 @@ export function calculateRakeWithContext(
       inviterShare: 0,
       houseRevenue: 0,
       netPot: ctx.pot,
-      rakePercent: HOUSE_RAKE_PERCENT,
+      rakePercent,
     };
   }
 
-  const rawRake = Math.floor(ctx.pot * HOUSE_RAKE_PERCENT / 100);
+  const rawRake = Math.floor(ctx.pot * rakePercent / 100);
   const totalRake = Math.min(rawRake, cap);
 
   if (totalRake === 0) {
@@ -120,7 +156,7 @@ export function calculateRakeWithContext(
       inviterShare: 0,
       houseRevenue: 0,
       netPot: ctx.pot,
-      rakePercent: HOUSE_RAKE_PERCENT,
+      rakePercent,
     };
   }
 
@@ -135,7 +171,7 @@ export function calculateRakeWithContext(
       inviterShare: 0,
       houseRevenue: totalRake,
       netPot: ctx.pot - totalRake,
-      rakePercent: HOUSE_RAKE_PERCENT,
+      rakePercent,
     };
   }
 
@@ -199,7 +235,7 @@ export function calculateRakeWithContext(
     inviterShare,
     houseRevenue,
     netPot: ctx.pot - totalRake,
-    rakePercent: HOUSE_RAKE_PERCENT,
+    rakePercent,
   };
 }
 

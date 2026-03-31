@@ -22,6 +22,12 @@ import {
   type MatchmakingTierKey,
 } from '@/lib/matchmaking';
 import {
+  subscribeMatchmakingLobbyMetrics,
+  maxPressureForTierMode,
+  visibleLobbyStakeOptionCount,
+  type LobbyMetricsSnapshot,
+} from '@/lib/matchmakingLobbyMetrics';
+import {
   startGame,
   getGameRoomById,
   isMatchmakingBotUserId,
@@ -273,9 +279,66 @@ const SitAndGoScreen = ({
   const [matchedOpponents, setMatchedOpponents] = useState<GameRoomPlayer[]>([]);
   const mmAbortRef = useRef<AbortController | null>(null);
 
+  const [lobbyMetrics, setLobbyMetrics] = useState<LobbyMetricsSnapshot | null>(null);
+  const [lobbyMetricsReady, setLobbyMetricsReady] = useState(false);
+  const [lobbyMetricsFailed, setLobbyMetricsFailed] = useState(false);
+
+  useEffect(() => {
+    const unsub = subscribeMatchmakingLobbyMetrics(
+      (snap) => {
+        setLobbyMetrics(snap);
+        setLobbyMetricsReady(true);
+      },
+      () => setLobbyMetricsFailed(true)
+    );
+    return () => unsub();
+  }, []);
+
+  const visibleStakeButtonCount = useMemo(() => {
+    if (!expandedTier) return 4;
+    if (lobbyMetricsFailed || !lobbyMetricsReady) return 4;
+    const maxP = maxPressureForTierMode(lobbyMetrics, expandedTier.key as MatchmakingTierKey, gameMode);
+    return visibleLobbyStakeOptionCount(maxP, true);
+  }, [expandedTier, gameMode, lobbyMetrics, lobbyMetricsReady, lobbyMetricsFailed]);
+
+  const selectedStakeRef = useRef(selectedStake);
+  selectedStakeRef.current = selectedStake;
+
   useEffect(() => {
     setSelectedSubTierIndex(0);
   }, [expandedTier?.key]);
+
+  /** Keep selected stake inside visible tier options when demand hides higher stakes. */
+  useEffect(() => {
+    if (!expandedTier) return;
+    const opts = gameMode === 'sit-and-go' ? expandedTier.sitAndGoOptions : expandedTier.tournamentOptions;
+    if (opts.length === 0) return;
+    const n = Math.min(visibleStakeButtonCount, opts.length);
+    const parseOne = (opt: string) => {
+      const isFree = opt.startsWith('FREE ');
+      const cleanOpt = isFree ? opt.replace('FREE ', '') : opt;
+      const rawOpt = cleanOpt.replace(/\$/g, '');
+      const parts = rawOpt.split('-');
+      const small = parseFloat(parts[0]);
+      const big = parts.length > 1 ? parseFloat(parts[1]) : small;
+      return { small, big };
+    };
+    const firstN = opts.slice(0, n).map((opt, subIdx) => ({ ...parseOne(opt), subIdx }));
+    if (firstN.length === 0) return;
+
+    const cur = selectedStakeRef.current;
+    let pick = firstN[0];
+    if (cur) {
+      const hit = firstN.find((x) => x.small === cur.small && x.big === cur.big);
+      if (hit) pick = hit;
+    }
+
+    setSelectedStake((prev) => {
+      if (prev && prev.small === pick.small && prev.big === pick.big) return prev;
+      return { small: pick.small, big: pick.big };
+    });
+    setSelectedSubTierIndex((prev) => (prev === pick.subIdx ? prev : pick.subIdx));
+  }, [expandedTier, gameMode, visibleStakeButtonCount]);
 
   // Tier progression: 100 hands per tier to unlock next
   const HANDS_PER_TIER = 100;
@@ -287,15 +350,25 @@ const SitAndGoScreen = ({
   const handsInCurrentTier = handsPlayed % HANDS_PER_TIER;
   const nextTier = currentTierIndex < tierOrder.length - 1 ? TIERS[currentTierIndex + 1] : null;
   const funds = fundsProp;
-  // Buy-in range correlates to player funds — use dollar-scale steps
-  const minEntrance = useMemo(
-    () => Math.max(0.1, Math.round(funds * 0.1 * 10) / 10),
-    [funds]
-  );
-  const maxEntrance = useMemo(
-    () => Math.round(Math.max(minEntrance + 0.5, funds) * 10) / 10,
-    [minEntrance, funds]
-  );
+  // Sit & Go: allowed entrance is between (SB+BB)/2×20 and (SB+BB)×20 for the selected stakes.
+  // Tournament: buy-in range still scales with player funds.
+  const minEntrance = useMemo(() => {
+    if (gameMode === 'sit-and-go') {
+      const stake = selectedStake ?? FREE_SIT_AND_GO;
+      const sum = stake.small + stake.big;
+      return Math.round(((sum / 2) * 20) * 100) / 100;
+    }
+    return Math.max(0.1, Math.round(funds * 0.1 * 10) / 10);
+  }, [gameMode, selectedStake, funds]);
+
+  const maxEntrance = useMemo(() => {
+    if (gameMode === 'sit-and-go') {
+      const stake = selectedStake ?? FREE_SIT_AND_GO;
+      const sum = stake.small + stake.big;
+      return Math.round((sum * 20) * 100) / 100;
+    }
+    return Math.round(Math.max(minEntrance + 0.5, funds) * 10) / 10;
+  }, [gameMode, selectedStake, funds, minEntrance]);
   const stepSize = useMemo(
     () => (maxEntrance <= 5 ? 0.1 : maxEntrance <= 50 ? 0.5 : 1),
     [maxEntrance]
@@ -311,8 +384,16 @@ const SitAndGoScreen = ({
   );
 
   const [entranceAmount, setEntranceAmount] = useState(0.5);
+  /** After deductFunds for matchmaking, wallet `funds` already excludes this; add back for display math so header ≠ double-count. */
+  const [buyInHeldForMatchmaking, setBuyInHeldForMatchmaking] = useState(0);
   const [amountInputFocused, setAmountInputFocused] = useState(false);
   const [entranceDraft, setEntranceDraft] = useState('');
+
+  /** Public lobby: show wallet minus selected buy-in; during matchmaking after deduct, offset by held amount so it stays correct. */
+  const headerFundsDisplay = useMemo(() => {
+    if (tableType !== 'public') return funds;
+    return Math.max(0, Math.round((funds + buyInHeldForMatchmaking - entranceAmount) * 100) / 100);
+  }, [tableType, funds, buyInHeldForMatchmaking, entranceAmount]);
 
   useEffect(() => {
     setEntranceAmount((prev) => clampEntrance(prev));
@@ -351,6 +432,7 @@ const SitAndGoScreen = ({
     setMmSearching(true);
     try {
       await deductFunds(entranceAmount);
+      setBuyInHeldForMatchmaking(entranceAmount);
     } catch {
       toast.error('Could not update your balance. Try again.');
       setMatchmakingBusy(false);
@@ -434,6 +516,7 @@ const SitAndGoScreen = ({
         }
       }
     } finally {
+      setBuyInHeldForMatchmaking(0);
       setMatchmakingBusy(false);
       setMmSearching(false);
       setMatchPostCountdown(null);
@@ -589,16 +672,17 @@ const SitAndGoScreen = ({
           ← BACK
         </motion.button>
 
-        <div className="flex items-center gap-2 min-w-0 flex-1 justify-center overflow-hidden">
-          <span className="text-[10px] sm:text-sm px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-primary/40 text-primary uppercase tracking-wider shrink-0" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-            {tableType === 'public' ? '🌐 Public' : '🔒 Private'}
-          </span>
+        <div className="flex items-center min-w-0 flex-1 justify-center overflow-hidden px-1">
           <span
-            className="text-sm sm:text-2xl tracking-wider truncate"
+            className="text-base sm:text-2xl md:text-3xl tracking-wider truncate text-center"
             style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}
-            title={`FUNDS: $${formatFunds(funds)}`}
+            title={
+              tableType === 'public'
+                ? `Wallet $${formatFunds(funds)} · Buy-in $${formatFunds(entranceAmount)} · Shown: balance after this buy-in`
+                : `FUNDS: $${formatFunds(funds)}`
+            }
           >
-            FUNDS: ${formatFunds(funds)}
+            FUNDS: ${formatFunds(headerFundsDisplay)}
           </span>
         </div>
 
@@ -697,7 +781,7 @@ const SitAndGoScreen = ({
             transition={{ delay: 0.15 }}
           >
             <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.32em] text-muted-foreground/75 font-medium">
-              Public matchmaking
+              🌐 Public — matchmaking
             </span>
             <h2
               className="lobby-select-tier text-2xl sm:text-4xl tracking-[0.18em] text-center bg-gradient-to-b from-amber-100 via-amber-300 to-amber-500/85 bg-clip-text text-transparent drop-shadow-sm"
@@ -840,7 +924,9 @@ const SitAndGoScreen = ({
                 </div>
 
                 <div className="lobby-stake-options px-5 pb-5 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                  {(gameMode === 'sit-and-go' ? expandedTier.sitAndGoOptions : expandedTier.tournamentOptions).map((opt, i) => {
+                  {(gameMode === 'sit-and-go' ? expandedTier.sitAndGoOptions : expandedTier.tournamentOptions)
+                    .slice(0, visibleStakeButtonCount)
+                    .map((opt, i) => {
                     const isFree = opt.startsWith('FREE ');
                     const cleanOpt = isFree ? opt.replace('FREE ', '') : opt;
                     const rawOpt = cleanOpt.replace(/\$/g, '');
@@ -1053,6 +1139,9 @@ const SitAndGoScreen = ({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
+          <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.32em] text-muted-foreground/75 font-medium">
+            🔒 Private tables
+          </span>
           <h2
             className="text-lg sm:text-2xl tracking-wider"
             style={{ fontFamily: "'Bebas Neue', sans-serif", color: 'hsl(var(--casino-gold))' }}

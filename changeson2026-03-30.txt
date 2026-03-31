@@ -4,6 +4,5 @@ Date: 2026-03-30
 1. Monitor Live Games Firestore error — Removed the composite-index requirement for the live games listener by dropping orderBy and sorting active games client-side; the monitor should load without deploying indexes first (deploying firestore.indexes.json remains recommended at scale).
 2. Home screen — Added a MONITOR DASHBOARD button next to Watch & Earn and Invite Friend, linking to /monitor.
 3. Home screen lobby awareness — Subscribed to waiting game rooms and show a live line such as “1 player in the lobby” when unique real players are in non-stale waiting tables.
-4. Monitor login — Removed hardcoded passwords from source; login uses VITE_MONITOR_LOGIN_EMAIL and VITE_MONITOR_LOGIN_PASSWORD (see .env.example). Added “Login as Alexy” and “Login as Adi” quick-fill buttons that use the same shared credentials.
-
-5. Monitor login (follow-up) — Restored authorized email/password pairs in-app so monitor works without Vite env on the host; optional env still works. Login form prefills the Adi account on load and after sign-out; Alexy/Adi buttons sit above the fields and swap credentials.
+4. Monitor login — Authorized accounts live in-app (optional VITE_MONITOR_LOGIN_* still supported). Login screen prefills the Adi account when opened or after sign-out; “Login as Alexy” / “Login as Adi” above the fields swap to each account for faster debugging.
+5. Sit & Go / Tournament lobby — Stake and entry buttons scale with live matchmaking demand (max queue-or-flow pressure per tier and mode): one option from 0–11/min equivalent, two from 12–17, three from 18–23, four at 24+; Firestore errors keep all four visible; added tests for the lobby visibility helpers.

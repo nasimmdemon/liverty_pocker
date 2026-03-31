@@ -14,3 +14,7 @@ Date: 2026-03-31
 8. Firestore rules — `monitor_settings/{docId}`: read allowed for everyone, write if `request.auth != null` (deploy rules for production).
 
 9. Monitor demand scaling — Synthetic “Demand” rows per matchmaking pool (tier + Sit & Go vs Tournament + stake) from `max(queue size, matchmaking_flow events in last 60s)`; open option count = min(4, floor(pressure/6)) with pressure below 6 → 0 rows for that pool (then 6–11→1 … 24+→4). If no real games and no demand rows, three generic listings remain. “In Lobby / Waiting” includes queue players with Sit & Go vs Tournament breakdown.
+
+10. Sit & Go lobby — Entrance amount slider and field are clamped to stakes-based bounds: minimum `(small blind + big blind) / 2 × 20`, maximum `(small blind + big blind) × 20` (e.g. 0.01/0.02 → $0.30–$0.60). Tournament buy-in range is unchanged (still tied to balance).
+
+11. Public lobby header — Removed the centered Public pill from the top bar (funds stay prominent). “Public” is indicated in the matchmaking section as “🌐 Public — matchmaking”; private flow has “🔒 Private tables” above create/join. Header **FUNDS** shows **wallet minus the selected buy-in** (live as you move the slider); after `deductFunds` for matchmaking, a small held offset avoids double-subtracting until the flow ends.
