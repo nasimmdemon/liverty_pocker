@@ -18,3 +18,7 @@ Date: 2026-03-31
 10. Sit & Go lobby — Entrance amount slider and field are clamped to stakes-based bounds: minimum `(small blind + big blind) / 2 × 20`, maximum `(small blind + big blind) × 20` (e.g. 0.01/0.02 → $0.30–$0.60). Tournament buy-in range is unchanged (still tied to balance).
 
 11. Public lobby header — Removed the centered Public pill from the top bar (funds stay prominent). “Public” is indicated in the matchmaking section as “🌐 Public — matchmaking”; private flow has “🔒 Private tables” above create/join. Header **FUNDS** shows **wallet minus the selected buy-in** (live as you move the slider); after `deductFunds` for matchmaking, a small held offset avoids double-subtracting until the flow ends.
+
+12. Public lobby tier UX — Choosing a stake closes the expanded tier panel and shows a pill-style **SELECTED: … (SB/BB)** row; `matchmakingTier` keeps tier + stakes for join while the panel is collapsed; tier cards stay highlighted for the committed tier.
+
+13. Matchmaking fairness — Pool docs store per-user public match counts, pair blocks (no rematch until each player has played **three** more recorded matches after sharing a table), and a **25s** re-pair cooldown after a game ends. Queue pairing and open-table joins respect blocks + cooldown; `recordMatchmakingGameEnded` runs when a matchmaking game reaches **ended** (idempotent per game). Tests cover pairing helpers.

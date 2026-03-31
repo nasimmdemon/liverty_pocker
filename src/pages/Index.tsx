@@ -17,7 +17,14 @@ import PokerTable from '@/components/poker/PokerTable';
 import WatchAndEarnScreen from '@/components/poker/WatchAndEarnScreen';
 import MultiplayerLobby from '@/components/multiplayer/MultiplayerLobby';
 import MultiplayerPokerTable from '@/components/multiplayer/MultiplayerPokerTable';
-import { getGameByCode, joinGameRoom, subscribeToWaitingLobbyPlayerCount, type GameRoom } from '@/lib/multiplayer';
+import {
+  getGameByCode,
+  getGameRoomById,
+  joinGameRoom,
+  subscribeToWaitingLobbyPlayerCount,
+  type GameRoom,
+} from '@/lib/multiplayer';
+import { recordMatchmakingGameEnded } from '@/lib/matchmaking';
 
 type Screen = 'start' | 'loading' | 'sitandgo' | 'testing' | 'table' | 'watch-and-earn' | 'multiplayer-lobby' | 'multiplayer-table';
 
@@ -300,11 +307,18 @@ const Index = () => {
           currentUserId={user.uid}
           isHost={multiplayerConfig.isHost}
           initialRoom={multiplayerConfig.room!}
-          onExit={(finalChips?: number) => {
+          onExit={async (finalChips?: number) => {
+            const cfg = multiplayerConfig;
+            const gameId = cfg?.gameId;
+            if (cfg?.room?.matchmakingPoolId && gameId) {
+              const after = await getGameRoomById(gameId);
+              if (after?.status === 'ended') {
+                await recordMatchmakingGameEnded(gameId).catch(() => {});
+              }
+            }
             // Credit winnings: if the player ended with more chips than they bought in with,
             // add the profit to their account balance (same logic as solo handleExitTable)
-            const buyIn =
-              multiplayerConfig.userBuyInForExit ?? multiplayerConfig.room?.buyIn ?? 0;
+            const buyIn = cfg?.userBuyInForExit ?? cfg?.room?.buyIn ?? 0;
             if (finalChips != null && finalChips > 0 && buyIn > 0) {
               const profit = Math.round((finalChips - buyIn) * 100) / 100;
               if (profit > 0) {

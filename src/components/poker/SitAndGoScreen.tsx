@@ -269,6 +269,8 @@ const SitAndGoScreen = ({
   const [tableType, setTableType] = useState<TableType | null>(null);
   const [selectedTierPopup, setSelectedTierPopup] = useState<TierData | null>(null);
   const [expandedTier, setExpandedTier] = useState<TierData | null>(null);
+  /** Tier used for stakes + matchmaking after details are collapsed (kept when expandedTier is null). */
+  const [matchmakingTier, setMatchmakingTier] = useState<TierData | null>(null);
   const [selectedStake, setSelectedStake] = useState<{ small: number; big: number } | null>(null);
   const [showPromotion, setShowPromotion] = useState<TierKey | null>(null);
   const [selectedSubTierIndex, setSelectedSubTierIndex] = useState(0);
@@ -294,24 +296,26 @@ const SitAndGoScreen = ({
     return () => unsub();
   }, []);
 
+  const tierForStakes = expandedTier ?? matchmakingTier;
+
   const visibleStakeButtonCount = useMemo(() => {
-    if (!expandedTier) return 4;
+    if (!tierForStakes) return 4;
     if (lobbyMetricsFailed || !lobbyMetricsReady) return 4;
-    const maxP = maxPressureForTierMode(lobbyMetrics, expandedTier.key as MatchmakingTierKey, gameMode);
+    const maxP = maxPressureForTierMode(lobbyMetrics, tierForStakes.key as MatchmakingTierKey, gameMode);
     return visibleLobbyStakeOptionCount(maxP, true);
-  }, [expandedTier, gameMode, lobbyMetrics, lobbyMetricsReady, lobbyMetricsFailed]);
+  }, [tierForStakes, gameMode, lobbyMetrics, lobbyMetricsReady, lobbyMetricsFailed]);
 
   const selectedStakeRef = useRef(selectedStake);
   selectedStakeRef.current = selectedStake;
 
   useEffect(() => {
     setSelectedSubTierIndex(0);
-  }, [expandedTier?.key]);
+  }, [tierForStakes?.key]);
 
   /** Keep selected stake inside visible tier options when demand hides higher stakes. */
   useEffect(() => {
-    if (!expandedTier) return;
-    const opts = gameMode === 'sit-and-go' ? expandedTier.sitAndGoOptions : expandedTier.tournamentOptions;
+    if (!tierForStakes) return;
+    const opts = gameMode === 'sit-and-go' ? tierForStakes.sitAndGoOptions : tierForStakes.tournamentOptions;
     if (opts.length === 0) return;
     const n = Math.min(visibleStakeButtonCount, opts.length);
     const parseOne = (opt: string) => {
@@ -338,7 +342,7 @@ const SitAndGoScreen = ({
       return { small: pick.small, big: pick.big };
     });
     setSelectedSubTierIndex((prev) => (prev === pick.subIdx ? prev : pick.subIdx));
-  }, [expandedTier, gameMode, visibleStakeButtonCount]);
+  }, [tierForStakes, gameMode, visibleStakeButtonCount]);
 
   // Tier progression: 100 hands per tier to unlock next
   const HANDS_PER_TIER = 100;
@@ -412,13 +416,15 @@ const SitAndGoScreen = ({
 
   const handleTierSelect = (small: number, big: number, subTierIndex?: number) => {
     hapticMedium();
+    if (expandedTier) setMatchmakingTier(expandedTier);
     setSelectedStake({ small, big });
     if (typeof subTierIndex === 'number') setSelectedSubTierIndex(subTierIndex);
     setSelectedTierPopup(null);
+    setExpandedTier(null);
   };
 
   const handleQuickMatch = async () => {
-    if (!expandedTier || !selectedStake || !user || !deductFunds || !addFunds || !onMatchmakingComplete) {
+    if (!matchmakingTier || !selectedStake || !user || !deductFunds || !addFunds || !onMatchmakingComplete) {
       toast.error('Select a tier and a stake first, or matchmaking is unavailable.');
       return;
     }
@@ -447,7 +453,7 @@ const SitAndGoScreen = ({
           userId: user.uid,
           displayName: user.displayName || user.email?.split('@')[0] || 'Player',
           photoURL: user.photoURL ?? null,
-          tierKey: expandedTier.key as MatchmakingTierKey,
+          tierKey: matchmakingTier.key as MatchmakingTierKey,
           subTierIndex: selectedSubTierIndex,
           gameMode,
           buyIn: entranceAmount,
@@ -807,7 +813,9 @@ const SitAndGoScreen = ({
             transition={{ delay: 0.2 }}
           >
             {TIERS.map((tier) => {
-              const isSelected = expandedTier?.key === tier.key;
+              const isExpandedPanel = expandedTier?.key === tier.key;
+              const isCommittedTier = matchmakingTier?.key === tier.key && selectedStake != null;
+              const showTierActive = isExpandedPanel || isCommittedTier;
               const isLocked = !unlockedTiers.has(tier.key);
               return (
                 <motion.button
@@ -816,29 +824,38 @@ const SitAndGoScreen = ({
                     'tier-card relative flex flex-col items-center gap-1.5 px-2.5 py-3 sm:py-4 rounded-2xl border transition-all overflow-hidden touch-manipulation backdrop-blur-sm',
                     isLocked && 'border-white/10 cursor-not-allowed',
                     !isLocked &&
-                      !isSelected &&
+                      !showTierActive &&
                       'border-white/10 hover:border-white/25 hover:bg-white/[0.03]',
                     !isLocked &&
-                      isSelected &&
+                      showTierActive &&
                       'border-primary ring-2 ring-primary/50 ring-offset-2 ring-offset-black/40 shadow-[0_0_28px_hsl(var(--casino-gold)/0.22)]'
                   )}
                   style={{
                     background: isLocked
                       ? 'linear-gradient(160deg, hsl(0 0% 10% / 0.95) 0%, hsl(0 0% 4%) 100%)'
-                      : isSelected
+                      : showTierActive
                         ? `linear-gradient(160deg, hsl(${tier.color} / 0.28) 0%, hsl(0 0% 5%) 100%)`
                         : `linear-gradient(160deg, hsl(${tier.color} / 0.12) 0%, hsl(0 0% 6%) 100%)`,
                     fontFamily: "'Bebas Neue', sans-serif",
                     opacity: isLocked ? 0.5 : 1,
                   }}
-                  onClick={() => { if (!isLocked) { hapticLight(); setExpandedTier(isSelected ? null : tier); } }}
+                  onClick={() => {
+                    if (isLocked) return;
+                    hapticLight();
+                    if (isExpandedPanel) {
+                      setExpandedTier(null);
+                    } else {
+                      setExpandedTier(tier);
+                      setMatchmakingTier(tier);
+                    }
+                  }}
                   whileTap={isLocked ? {} : { scale: 0.97 }}
                 >
-                  {isSelected && (
+                  {showTierActive && (
                     <motion.div
                       className="absolute inset-0 rounded-2xl pointer-events-none"
                       style={{ boxShadow: `inset 0 0 36px hsl(${tier.color} / 0.2)` }}
-                      layoutId="tier-glow"
+                      layoutId={`tier-glow-${tier.key}`}
                     />
                   )}
                   {isLocked && (
@@ -853,11 +870,11 @@ const SitAndGoScreen = ({
                   <span className="tier-fee text-muted-foreground text-[10px] sm:text-xs leading-tight">
                     {gameMode === 'sit-and-go' ? `${tier.commission} commission` : `${tier.tournamentEntrance} fee`}
                   </span>
-                  {isSelected && (
+                  {showTierActive && (
                     <motion.div
                       className="w-6 h-0.5 rounded-full mt-0.5"
                       style={{ background: `hsl(${tier.color})` }}
-                      layoutId="tier-indicator"
+                      layoutId={`tier-indicator-${tier.key}`}
                     />
                   )}
                 </motion.button>
@@ -985,12 +1002,14 @@ const SitAndGoScreen = ({
           {/* Selected stake display */}
           {selectedStake && !expandedTier && (
             <motion.div
-              className="w-full flex items-center gap-3 px-5 py-3 rounded-lg border border-primary/30 bg-primary/5"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              className="w-full flex flex-wrap items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 rounded-full border border-primary/50 bg-black/35 shadow-[0_0_0_1px_hsl(var(--casino-gold)/0.2)]"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
             >
-              <span className="text-muted-foreground text-sm" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>SELECTED:</span>
-              <span className="text-primary text-base font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+              <span className="text-muted-foreground text-xs sm:text-sm font-semibold tracking-wide" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                SELECTED:
+              </span>
+              <span className="text-primary text-sm sm:text-base font-bold tracking-wide" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                 {gameMode === 'sit-and-go'
                   ? `${selectedStake.small} / ${selectedStake.big} (SB/BB)`
                   : `$${selectedStake.small} Buy-in`}

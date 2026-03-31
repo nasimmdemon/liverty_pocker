@@ -32,8 +32,13 @@ export { buildMatchmakingPoolId } from '@/lib/matchmakingPoolId';
 export const MATCHMAKING_WAIT_MS = 30_000;
 /** After a full human table is found, UI countdown before auto startGame */
 export const MATCHMAKING_POST_MATCH_COUNTDOWN_SEC = 5;
+/** Humans who shared a table cannot be paired again until each has played this many more public matches. */
+export const OPPONENT_REMATCH_GAP_MATCHES = 3;
+/** After a matchmaking game is recorded ended, this delay before the player can be paired again (ms). */
+export const MATCHMAKING_POST_MATCH_COOLDOWN_MS = 25_000;
 const QUEUE_STALE_MS = 120_000;
 const MAX_RECENT_PAIRS = 48;
+const MAX_PROCESSED_GAME_ENDS = 120;
 /** Pair `ts` is client time; allow skew vs `sinceTs` without matching hours-old `recentPairs` */
 const PAIR_TS_LOOKBACK_MS = 120_000;
 
@@ -129,6 +134,7 @@ export async function tryJoinOpenMatchmakingGame(
     const gameId = d.id;
     const ok = await runTransaction(db, async (tx) => {
       const ref = doc(db, 'games', gameId);
+      const poolRef = doc(db, 'matchmaking_pools', poolId);
       const s = await tx.get(ref);
       if (!s.exists() || s.data()?.status !== 'waiting') return false;
       const data = s.data()!;
@@ -136,6 +142,18 @@ export async function tryJoinOpenMatchmakingGame(
       const players = [...((data.players as GameRoomPlayer[]) || [])];
       if (players.some((p) => p.userId === userId)) return true;
       if (players.length >= 6) return false;
+
+      const poolSnap = await tx.get(poolRef);
+      const pdata = poolSnap.exists() ? poolSnap.data() : {};
+      const t = Date.now();
+      if (t < (parseCooldownUntil(pdata.mmCooldownUntil)[userId] ?? 0)) return false;
+      const seq = parseUserMatchSeq(pdata.mmUserMatchSeq);
+      const blocks = parsePairBlocksRecord(pdata.mmPairBlocks);
+      const existingHumans = players.filter((p) => !isMatchmakingBotUserId(p.userId));
+      for (const p of existingHumans) {
+        if (!canPairOpponents(userId, p.userId, seq, blocks)) return false;
+      }
+
       const usedSeats = new Set(players.map((p) => p.seatIndex));
       let seatIndex = 0;
       while (usedSeats.has(seatIndex) && seatIndex < 6) seatIndex++;
@@ -232,6 +250,194 @@ function queueEntryForWrite(q: QueuedPlayer): Record<string, unknown> {
   };
 }
 
+function parseUserMatchSeq(raw: unknown): Record<string, number> {
+  if (!raw || typeof raw !== 'object') return {};
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof v === 'number' && Number.isFinite(v)) out[k] = Math.floor(v);
+  }
+  return out;
+}
+
+function parsePairBlocksRecord(
+  raw: unknown
+): Record<string, { minSeqLow: number; minSeqHigh: number }> {
+  if (!raw || typeof raw !== 'object') return {};
+  const out: Record<string, { minSeqLow: number; minSeqHigh: number }> = {};
+  for (const [key, val] of Object.entries(raw as Record<string, unknown>)) {
+    if (!val || typeof val !== 'object') continue;
+    const o = val as Record<string, unknown>;
+    const minSeqLow = typeof o.minSeqLow === 'number' && Number.isFinite(o.minSeqLow) ? o.minSeqLow : 0;
+    const minSeqHigh = typeof o.minSeqHigh === 'number' && Number.isFinite(o.minSeqHigh) ? o.minSeqHigh : 0;
+    out[key] = { minSeqLow, minSeqHigh };
+  }
+  return out;
+}
+
+function parseCooldownUntil(raw: unknown): Record<string, number> {
+  if (!raw || typeof raw !== 'object') return {};
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof v === 'number' && Number.isFinite(v)) out[k] = v;
+  }
+  return out;
+}
+
+function parseProcessedGameEnds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((x): x is string => typeof x === 'string' && x.length > 0);
+}
+
+/** Exported for tests — whether two users may sit at the same new table given pool stats. */
+export function canPairOpponents(
+  u: string,
+  v: string,
+  seq: Record<string, number>,
+  pairBlocks: Record<string, { minSeqLow: number; minSeqHigh: number }>
+): boolean {
+  if (u === v) return false;
+  const [low, high] = u < v ? [u, v] : [v, u];
+  const b = pairBlocks[`${low}__${high}`];
+  if (!b) return true;
+  return (seq[low] ?? 0) >= b.minSeqLow && (seq[high] ?? 0) >= b.minSeqHigh;
+}
+
+function cliqueOk(
+  candidateUid: string,
+  cliqueUids: string[],
+  seq: Record<string, number>,
+  pairBlocks: Record<string, { minSeqLow: number; minSeqHigh: number }>
+): boolean {
+  return cliqueUids.every((u) => canPairOpponents(candidateUid, u, seq, pairBlocks));
+}
+
+/**
+ * Pick queue indices for one table (FIFO-prioritized) respecting cooldown + opponent rematch gap.
+ * Exported for unit tests.
+ */
+export function pickQueueIndicesForTable(
+  queued: { userId: string; ts: number }[],
+  tableSize: number,
+  seq: Record<string, number>,
+  pairBlocks: Record<string, { minSeqLow: number; minSeqHigh: number }>,
+  cooldownUntil: Record<string, number>,
+  now: number
+): number[] | null {
+  if (tableSize < 2 || queued.length < tableSize) return null;
+
+  const eligibleIdx: number[] = [];
+  for (let i = 0; i < queued.length; i++) {
+    const uid = queued[i].userId;
+    if (now >= (cooldownUntil[uid] ?? 0)) eligibleIdx.push(i);
+  }
+  if (eligibleIdx.length < tableSize) return null;
+
+  if (tableSize === 2) {
+    for (let a = 0; a < eligibleIdx.length; a++) {
+      for (let b = a + 1; b < eligibleIdx.length; b++) {
+        const ia = eligibleIdx[a];
+        const ib = eligibleIdx[b];
+        const ua = queued[ia].userId;
+        const ub = queued[ib].userId;
+        if (canPairOpponents(ua, ub, seq, pairBlocks)) return [ia, ib];
+      }
+    }
+    return null;
+  }
+
+  function tryBuild(startSlot: number): number[] | null {
+    const firstIdx = eligibleIdx[startSlot];
+    const clique: number[] = [firstIdx];
+    const cliqueUids: string[] = [queued[firstIdx].userId];
+
+    for (const ei of eligibleIdx) {
+      if (ei === firstIdx) continue;
+      const uid = queued[ei].userId;
+      if (!cliqueOk(uid, cliqueUids, seq, pairBlocks)) continue;
+      clique.push(ei);
+      cliqueUids.push(uid);
+      if (clique.length === tableSize) {
+        return [...clique].sort((x, y) => queued[x].ts - queued[y].ts);
+      }
+    }
+    return null;
+  }
+
+  for (let s = 0; s <= eligibleIdx.length - tableSize; s++) {
+    const built = tryBuild(s);
+    if (built) return built;
+  }
+  return null;
+}
+
+/**
+ * After a matchmaking `games/{id}` ends, update pool counters so pairing avoids immediate rematches
+ * and applies a short re-queue cooldown. Idempotent per `gameId`.
+ */
+export async function recordMatchmakingGameEnded(gameId: string): Promise<void> {
+  const gameRef = doc(db, 'games', gameId);
+  await runTransaction(db, async (tx) => {
+    const gSnap = await tx.get(gameRef);
+    if (!gSnap.exists()) return;
+    const d = gSnap.data();
+    const poolId = typeof d.matchmakingPoolId === 'string' ? d.matchmakingPoolId : '';
+    if (!poolId) return;
+
+    const players = (d.players || []) as GameRoomPlayer[];
+    const humans = [
+      ...new Set(
+        players.map((p) => p.userId).filter((uid) => uid && !isMatchmakingBotUserId(uid))
+      ),
+    ];
+    if (humans.length === 0) return;
+
+    const poolRef = doc(db, 'matchmaking_pools', poolId);
+    const pSnap = await tx.get(poolRef);
+    const pdata = pSnap.exists() ? pSnap.data() : {};
+    const processed = parseProcessedGameEnds(pdata.mmProcessedGameEnds);
+    if (processed.includes(gameId)) return;
+
+    const seq = { ...parseUserMatchSeq(pdata.mmUserMatchSeq) };
+    const blocks = { ...parsePairBlocksRecord(pdata.mmPairBlocks) };
+    const cooldownUntil = { ...parseCooldownUntil(pdata.mmCooldownUntil) };
+    const now = Date.now();
+
+    for (const uid of humans) {
+      seq[uid] = (seq[uid] || 0) + 1;
+      cooldownUntil[uid] = Math.max(cooldownUntil[uid] || 0, now + MATCHMAKING_POST_MATCH_COOLDOWN_MS);
+    }
+
+    if (humans.length >= 2) {
+      for (let i = 0; i < humans.length; i++) {
+        for (let j = i + 1; j < humans.length; j++) {
+          const u = humans[i];
+          const v = humans[j];
+          const [low, high] = u < v ? [u, v] : [v, u];
+          const key = `${low}__${high}`;
+          blocks[key] = {
+            minSeqLow: (seq[low] || 0) + OPPONENT_REMATCH_GAP_MATCHES,
+            minSeqHigh: (seq[high] || 0) + OPPONENT_REMATCH_GAP_MATCHES,
+          };
+        }
+      }
+    }
+
+    const newProcessed = [...processed, gameId].slice(-MAX_PROCESSED_GAME_ENDS);
+
+    tx.set(
+      poolRef,
+      {
+        mmUserMatchSeq: seq,
+        mmPairBlocks: blocks,
+        mmCooldownUntil: cooldownUntil,
+        mmProcessedGameEnds: newProcessed,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  });
+}
+
 /**
  * Add self to queue; form as many full tables as possible (2–6 per table, ≥2 humans each).
  */
@@ -275,13 +481,23 @@ export async function enqueueAndMaybePair(params: {
 
     /** One new table per transaction keeps commits small and avoids some backend precondition failures. */
     const plan = planMatchmakingTableSizes(newQueued.length);
-    let cursor = 0;
+    const seq = parseUserMatchSeq(data.mmUserMatchSeq);
+    const pairBlocks = parsePairBlocksRecord(data.mmPairBlocks);
+    const cooldownUntil = parseCooldownUntil(data.mmCooldownUntil);
+
     if (plan.length > 0) {
       const tableSize = plan[0];
-      const slice = newQueued.slice(0, tableSize);
-      if (slice.length >= tableSize) {
-        cursor = tableSize;
-        const sorted = [...slice].sort((a, b) => a.ts - b.ts);
+      const picked = pickQueueIndicesForTable(
+        newQueued,
+        tableSize,
+        seq,
+        pairBlocks,
+        cooldownUntil,
+        now
+      );
+      if (picked && picked.length === tableSize) {
+        const pickedSet = new Set(picked);
+        const sorted = picked.map((i) => newQueued[i]).sort((a, b) => a.ts - b.ts);
         const host = sorted[0];
         const smallBlind = sorted[0].sb;
         const bigBlind = sorted[0].bb;
@@ -316,9 +532,9 @@ export async function enqueueAndMaybePair(params: {
         if (sorted.some((q) => q.userId === params.userId)) {
           pairedGameId = gameId;
         }
+        newQueued = newQueued.filter((_, idx) => !pickedSet.has(idx));
       }
     }
-    newQueued = newQueued.slice(cursor);
 
     const trimmedPairs = newPairs.slice(-MAX_RECENT_PAIRS);
     tx.set(
