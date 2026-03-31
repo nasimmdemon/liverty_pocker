@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { getAnalyticsVisits, type AnalyticsVisit } from '@/lib/analytics';
 import {
   subscribeToAllActiveGames,
@@ -8,6 +8,11 @@ import {
   closeGameRoomAsEnded,
   type GameRoom,
 } from '@/lib/multiplayer';
+import { listMatchmakingPoolCatalog, type PoolCatalogRow } from '@/lib/matchmakingPoolCatalog';
+import {
+  subscribeMatchmakingLobbyMetrics,
+  type LobbyMetricsSnapshot,
+} from '@/lib/matchmakingLobbyMetrics';
 import MonitorLiveOperations from '@/components/monitor/MonitorLiveOperations';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -131,8 +136,10 @@ interface LivePlayerInfo {
   status: string; // active / folded / all-in / sitting-out
 }
 
-/** Monitor always shows at least this many table rows (synthetic “open” rows pad shortfalls). */
-const MIN_MONITOR_OPEN_TABLES = 3;
+/** When there are no live games and no demand-driven rows, show this many generic placeholders. */
+const MIN_MONITOR_FALLBACK_OPEN_TABLES = 3;
+
+const MATCHMAKING_POOL_CATALOG: PoolCatalogRow[] = listMatchmakingPoolCatalog();
 
 interface LiveTableInfo {
   id: string;
@@ -155,6 +162,10 @@ interface LiveTableInfo {
   isOpenSlot?: boolean;
   /** 1-based label index for open slots */
   openSlotIndex?: number;
+  /** Demand-driven synthetic row tied to a matchmaking pool (tier / mode / stake). */
+  monitorPoolId?: string;
+  monitorTierLabel?: string;
+  monitorStakesLabel?: string;
 }
 
 function buildLiveTable(room: GameRoom, emailMap: Record<string, string>): LiveTableInfo {
@@ -234,6 +245,60 @@ function padTablesToMinimumOpen(realTables: LiveTableInfo[], minimum: number): L
   const need = Math.max(0, minimum - realTables.length);
   const slots = Array.from({ length: need }, (_, i) => buildOpenSlotLiveTable(i + 1));
   return [...realTables, ...slots];
+}
+
+function safePoolIdForDom(poolId: string): string {
+  return poolId.replace(/[^a-zA-Z0-9]+/g, '_');
+}
+
+/** Synthetic row for a catalog pool; count scales from lobby pressure (see matchmakingLobbyMetrics). */
+function buildDemandOpenSlot(row: PoolCatalogRow, slotIndexInPool: number): LiveTableInfo {
+  const key = safePoolIdForDom(row.poolId);
+  return {
+    id: `__monitor_demand_${key}_${slotIndexInPool}`,
+    status: 'waiting',
+    buyIn: Math.max(row.bigBlind * 80, row.smallBlind * 160, 0.5),
+    smallBlind: row.smallBlind,
+    bigBlind: row.bigBlind,
+    pot: 0,
+    currentBet: 0,
+    phase: '',
+    players: [],
+    realPlayers: [],
+    bots: [],
+    isMatchmaking: true,
+    updatedAtMs: Date.now(),
+    isOpenSlot: true,
+    openSlotIndex: slotIndexInPool,
+    monitorPoolId: row.poolId,
+    monitorTierLabel:
+      row.gameMode === 'sit-and-go'
+        ? `${row.tierLabel} · Sit & Go`
+        : `${row.tierLabel} · Tournament`,
+    monitorStakesLabel: row.stakesLabel,
+  };
+}
+
+function mergeRealTablesWithDemand(
+  realTables: LiveTableInfo[],
+  lobbyMetrics: LobbyMetricsSnapshot | null
+): LiveTableInfo[] {
+  const demandRows: LiveTableInfo[] = [];
+  if (lobbyMetrics) {
+    for (const row of MATCHMAKING_POOL_CATALOG) {
+      const m = lobbyMetrics.byPool.get(row.poolId);
+      const n = m?.openOptions ?? 0;
+      if (n < 1) continue;
+      for (let i = 1; i <= n; i++) {
+        demandRows.push(buildDemandOpenSlot(row, i));
+      }
+    }
+  }
+  const merged = [...realTables, ...demandRows];
+  if (realTables.length === 0 && demandRows.length === 0) {
+    return padTablesToMinimumOpen([], MIN_MONITOR_FALLBACK_OPEN_TABLES);
+  }
+  return merged;
 }
 
 // ─── History Panel ───────────────────────────────────────────────────────────
@@ -467,7 +532,8 @@ function HistoryPanel({ emailMap }: { emailMap: Record<string, string> }) {
 // ─── Live Games Section ──────────────────────────────────────────────────────
 
 function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
-  const [tables, setTables] = useState<LiveTableInfo[]>([]);
+  const [realTables, setRealTables] = useState<LiveTableInfo[]>([]);
+  const [lobbyMetrics, setLobbyMetrics] = useState<LobbyMetricsSnapshot | null>(null);
   const [liveLoaded, setLiveLoaded] = useState(false);
   const [expandedTable, setExpandedTable] = useState<string | null>(null);
   const [staleCount, setStaleCount] = useState(0);
@@ -479,6 +545,11 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
     if (v.userId && v.userEmail) acc[v.userId] = v.userEmail;
     return acc;
   }, {});
+
+  const tables = useMemo(
+    () => mergeRealTablesWithDemand(realTables, lobbyMetrics),
+    [realTables, lobbyMetrics]
+  );
 
   useEffect(() => {
     const unsub = subscribeToAllActiveGames(
@@ -496,7 +567,7 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
           if (b.status === 'playing' && a.status !== 'playing') return 1;
           return b.updatedAtMs - a.updatedAtMs;
         });
-        setTables(padTablesToMinimumOpen(processed, MIN_MONITOR_OPEN_TABLES));
+        setRealTables(processed);
         setLiveLoaded(true);
       },
       (err) => {
@@ -505,7 +576,7 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
             ? 'Firestore query failed (index or rules). Check firestore.rules and the browser console link.'
             : err.message || 'Live subscription failed'
         );
-        setTables(padTablesToMinimumOpen([], MIN_MONITOR_OPEN_TABLES));
+        setRealTables([]);
         setLiveLoaded(true);
       }
     );
@@ -513,22 +584,40 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const unsub = subscribeMatchmakingLobbyMetrics(setLobbyMetrics);
+    return () => unsub();
+  }, []);
+
   const realTablesOnly = tables.filter((t) => !t.isOpenSlot);
   const totalTables = tables.length;
-  const playingTables = realTablesOnly.filter((t) => t.status === 'playing');
-  const waitingTables = realTablesOnly.filter((t) => t.status === 'waiting');
+  const playingTables = realTables.filter((t) => t.status === 'playing');
+  const waitingTables = realTables.filter((t) => t.status === 'waiting');
   const openSlotRows = tables.filter((t) => t.isOpenSlot);
   const tablesWithBots = realTablesOnly.filter((t) => t.bots.length > 0).length;
 
-  // Deduplicate real players by userId across ALL tables
-  const playingUserIds = new Set<string>();
-  playingTables.forEach((t) => t.realPlayers.forEach((p) => playingUserIds.add(p.userId)));
-  const waitingUserIds = new Set<string>();
-  waitingTables.forEach((t) => t.realPlayers.forEach((p) => {
-    if (!playingUserIds.has(p.userId)) waitingUserIds.add(p.userId);
-  }));
-  const uniquePlayingCount = playingUserIds.size;
-  const uniqueWaitingCount = waitingUserIds.size;
+  const uniquePlayingCount = useMemo(() => {
+    const ids = new Set<string>();
+    realTables
+      .filter((t) => t.status === 'playing')
+      .forEach((t) => t.realPlayers.forEach((p) => ids.add(p.userId)));
+    return ids.size;
+  }, [realTables]);
+
+  const uniqueWaitingCount = useMemo(() => {
+    const playingIds = new Set<string>();
+    realTables
+      .filter((t) => t.status === 'playing')
+      .forEach((t) => t.realPlayers.forEach((p) => playingIds.add(p.userId)));
+    const merged = new Set<string>();
+    realTables
+      .filter((t) => t.status === 'waiting')
+      .forEach((t) => t.realPlayers.forEach((p) => {
+        if (!playingIds.has(p.userId)) merged.add(p.userId);
+      }));
+    lobbyMetrics?.queuedUserIds.forEach((id) => merged.add(id));
+    return merged.size;
+  }, [realTables, lobbyMetrics]);
 
   return (
     <div className="space-y-4">
@@ -551,12 +640,16 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
             )}
           </h2>
           <p className="text-xs text-muted-foreground">
-            Active poker tables right now
+            Active poker tables right now.
             {staleCount > 0 && (
               <span className="ml-2 text-amber-400/70">
                 ({staleCount} stale/zombie game{staleCount !== 1 ? 's' : ''} hidden)
               </span>
             )}
+          </p>
+          <p className="text-[11px] text-muted-foreground/80 mt-1 max-w-2xl">
+            Extra “open” rows per matchmaking pool scale from queue depth and flow events in the last 60s
+            (max of the two). Below 6 → none for that pool; then 6–11 → 1, 12–17 → 2, 18–23 → 3, 24+ → 4. Sit & Go and Tournament use separate pools.
           </p>
           {liveSubError && (
             <p className="text-xs text-destructive mt-1 max-w-xl">{liveSubError}</p>
@@ -607,7 +700,22 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-amber-400">{uniqueWaitingCount}</div>
-              <p className="text-xs text-muted-foreground mt-1">Unique real players in lobby</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Waiting tables + matchmaking pool queues (unique players).
+              </p>
+              {lobbyMetrics && (
+                <p className="text-[11px] text-muted-foreground/85 mt-2 leading-snug">
+                  Queue only — Sit & Go:{' '}
+                  <span className="text-amber-400/90 font-medium tabular-nums">
+                    {lobbyMetrics.queuedUserIdsSitAndGo.size}
+                  </span>
+                  {' · '}
+                  Tournament:{' '}
+                  <span className="text-amber-400/90 font-medium tabular-nums">
+                    {lobbyMetrics.queuedUserIdsTournament.size}
+                  </span>
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -635,7 +743,8 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
           </CardTitle>
           <CardDescription>
             Live tables are only counted if updated in the last {playingTables.length > 0 ? '2 hrs (playing) / 20 min (waiting)' : '20 min'}.
-            The list always shows at least three open listings. Click a row for player details.
+            Demand-based open rows follow tier/mode/stake pools; if nothing is live and demand is zero, three generic listings appear.
+            Click a row for player details.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -667,7 +776,11 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
                       </span>
 
                       {table.isOpenSlot ? (
-                        <Badge variant="outline" className="border-sky-500/50 text-sky-300 text-xs px-2 py-0 shrink-0">Open</Badge>
+                        table.monitorPoolId ? (
+                          <Badge variant="outline" className="border-violet-500/50 text-violet-300 text-xs px-2 py-0 shrink-0">Demand</Badge>
+                        ) : (
+                          <Badge variant="outline" className="border-sky-500/50 text-sky-300 text-xs px-2 py-0 shrink-0">Open</Badge>
+                        )
                       ) : table.status === 'playing' ? (
                         <Badge className="bg-emerald-600 text-white text-xs px-2 py-0 shrink-0">Playing</Badge>
                       ) : (
@@ -676,7 +789,13 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
 
                       <span className="font-mono text-xs text-muted-foreground shrink-0 hidden sm:block">
                         {table.isOpenSlot ? (
-                          <span className="text-sky-300/80">Listing {table.openSlotIndex ?? '—'}</span>
+                          table.monitorPoolId ? (
+                            <span className="text-violet-300/90 truncate max-w-[220px] block" title={table.monitorPoolId}>
+                              Opt {table.openSlotIndex ?? '—'} / pool
+                            </span>
+                          ) : (
+                            <span className="text-sky-300/80">Listing {table.openSlotIndex ?? '—'}</span>
+                          )
                         ) : (
                           <>#{table.id.slice(0, 8)}</>
                         )}
@@ -684,11 +803,23 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
 
                       <span className="text-xs text-muted-foreground shrink-0">
                         {table.isOpenSlot ? (
-                          <>Standard stakes · {table.smallBlind}/{table.bigBlind} · Buy‑in {table.buyIn.toLocaleString()}</>
+                          table.monitorPoolId ? (
+                            <>
+                              {table.monitorTierLabel} · {table.monitorStakesLabel} · blinds {table.smallBlind}/{table.bigBlind}
+                            </>
+                          ) : (
+                            <>Standard stakes · {table.smallBlind}/{table.bigBlind} · Buy‑in {table.buyIn.toLocaleString()}</>
+                          )
                         ) : (
                           <>{table.smallBlind}/{table.bigBlind} — Buy‑in {table.buyIn.toLocaleString()}</>
                         )}
                       </span>
+
+                      {table.isOpenSlot && table.monitorPoolId && (
+                        <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-400 shrink-0 px-1.5 py-0">
+                          Matchmaking pool
+                        </Badge>
+                      )}
 
                       {!table.isOpenSlot && table.isMatchmaking && (
                         <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400 shrink-0">
@@ -788,15 +919,39 @@ function LiveGamesSection({ visits }: { visits: AnalyticsVisit[] }) {
                           )}
                           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
                             {table.isOpenSlot ? (
-                              <>Open listing {table.openSlotIndex ?? ''} · seats available</>
+                              table.monitorPoolId ? (
+                                <>
+                                  Demand row {table.openSlotIndex ?? ''} · {table.monitorTierLabel} · {table.monitorStakesLabel}
+                                </>
+                              ) : (
+                                <>Open listing {table.openSlotIndex ?? ''} · seats available</>
+                              )
                             ) : (
                               <>Players at Table #{table.id.slice(0, 8)}</>
                             )}
                           </div>
                           {table.isOpenSlot ? (
-                            <p className="text-sm text-muted-foreground py-4 px-1">
-                              No players seated yet. This listing stays open on the dashboard for visibility.
-                            </p>
+                            <div className="text-sm text-muted-foreground py-4 px-1 space-y-2">
+                              {table.monitorPoolId && lobbyMetrics ? (
+                                <>
+                                  {(() => {
+                                    const m = lobbyMetrics.byPool.get(table.monitorPoolId!);
+                                    return (
+                                      <p className="text-xs font-mono bg-muted/40 rounded-md px-3 py-2 border border-border/50">
+                                        <span className="text-foreground/80 block mb-1 break-all">{table.monitorPoolId}</span>
+                                        Queue: {m?.queueCount ?? 0} · Events (60s): {m?.flowLast60 ?? 0} · Pressure (max):{' '}
+                                        {m?.pressure ?? 0} → {m?.openOptions ?? 0} option
+                                        {(m?.openOptions ?? 0) !== 1 ? 's' : ''}{' '}
+                                        (below 6 → none; steps at 6 / 12 / 18 / 24)
+                                      </p>
+                                    );
+                                  })()}
+                                  <p>Not a Firestore game — capacity hint from lobby metrics only.</p>
+                                </>
+                              ) : (
+                                <p>No players seated yet. This listing stays on the dashboard for visibility.</p>
+                              )}
+                            </div>
                           ) : (
                           <div className="rounded-md border border-border/50 overflow-hidden">
                             <Table>

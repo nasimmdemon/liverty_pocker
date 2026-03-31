@@ -12,3 +12,5 @@ Date: 2026-03-31
 7. Monitor operations — Add open matchmaking table (Firebase-signed-in user as host, chosen pool from catalog) and Close table on each live row (marks `games/{id}` status `ended`). New helpers: `matchmakingPoolId.ts`, `matchmakingPoolCatalog.ts`, `monitorSettings.ts`, `closeGameRoomAsEnded`, `createMonitorMatchmakingOpenTable`.
 
 8. Firestore rules — `monitor_settings/{docId}`: read allowed for everyone, write if `request.auth != null` (deploy rules for production).
+
+9. Monitor demand scaling — Synthetic “Demand” rows per matchmaking pool (tier + Sit & Go vs Tournament + stake) from `max(queue size, matchmaking_flow events in last 60s)`; open option count = min(4, floor(pressure/6)) with pressure below 6 → 0 rows for that pool (then 6–11→1 … 24+→4). If no real games and no demand rows, three generic listings remain. “In Lobby / Waiting” includes queue players with Sit & Go vs Tournament breakdown.
